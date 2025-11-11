@@ -1,0 +1,56 @@
+﻿{
+  "swagger": "2.0",
+  "info": {
+    "title": "Example API",
+    "version": "2025-11-05"
+  },
+  "paths": {
+    "/foo": {
+      "put": {
+        "operationId": "Update_Foo",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/FooProperties"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully updated",
+            "schema": {
+              "$ref": "#/definitions/FooProperties"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "FooProperties": {
+      "description": "Foo properties.",
+      "type": "object",
+      "properties": {
+        "Name": {
+          "description": "Name of foo",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "parameters": {
+    "FooProperties": {
+      "name": "FooProperties",
+      "in": "body",
+      "description": "Foo properties.",
+      "required": true,
+      "schema": {
+        "$ref": "#/definitions/FooProperties"
+      }
+    }
+  }
+}
