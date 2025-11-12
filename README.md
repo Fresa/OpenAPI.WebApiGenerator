@@ -12,16 +12,16 @@ API frameworks supported:
 
 ## Installation
 ```Shell
-dotnet add package TBA
+dotnet add package WebApiGenerator.OpenAPI
 ```
 
-https://www.nuget.org/packages/TBA
+https://www.nuget.org/packages/WebApiGenerator.OpenAPI
 
 ## Getting Started
 1. Add a reference to the generator in the project file where the API should exist:
 ```
 <ItemGroup>
-    <ProjectReference Include="..\..\src\Azure.Api.Generator\Azure.Api.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <PackageReference Include="WebApiGenerator.OpenAPITest" Version="x.y.z" PrivateAssets="all" />
 </ItemGroup>
 ```
 2. Add a reference to the OpenAPI specification:
