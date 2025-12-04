@@ -295,22 +295,25 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
             defaultNamespace ??= spec.Namespace;
 
-            var filePath = string.Empty;
-            // Only add the named type if the spec.TypeName is not null or empty.
-            if (!string.IsNullOrEmpty(spec.TypeName))
+            if (string.IsNullOrEmpty(spec.TypeName))
             {
-                // Corvus doesn't support defining paths for the source code file hint, so we piggyback such information on the type name property 
-                filePath = Path.GetDirectoryName(spec.TypeName!);
-                var typeName = Path.GetFileName(spec.TypeName!);
-                
-                namedTypes.Add(
-                    new CSharpLanguageProvider.NamedType(
-                        rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
-                        typeName,
-                        spec.Namespace,
-                        spec.Accessibility));
+                throw new InvalidOperationException($"Missing type name for schema {spec.Location}");
             }
 
+            // Corvus doesn't support defining paths for the source code file hint, so we piggyback such information on the type name property 
+            var filePath = Path.GetDirectoryName(spec.TypeName!);
+            if (filePath == string.Empty)
+            {
+                throw new InvalidOperationException($"Expected type {spec.TypeName} to contain a path");
+            }
+            var typeName = Path.GetFileName(spec.TypeName!);
+            
+            namedTypes.Add(
+                new CSharpLanguageProvider.NamedType(
+                    rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
+                    typeName,
+                    spec.Namespace,
+                    spec.Accessibility));
             namespaceToPathConversion[spec.Namespace] = filePath;
         }
 
