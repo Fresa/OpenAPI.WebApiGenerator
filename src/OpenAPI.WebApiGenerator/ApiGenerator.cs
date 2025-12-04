@@ -176,7 +176,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         // Any content
                         ["*/*"] = new()
                     };
-                    var responseBodies = responseContent.Select(valuePair =>
+                    var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;
                         var contentType = valuePair.Key.ToPascalCase();
@@ -193,9 +193,30 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var typeDeclaration = GenerateCode(context, contentSpecification, schema, globalOptions);
                         return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
                     }).ToList();
+
+                    var responseHeaderGenerators = response.Headers?.Select(valuePair =>
+                    {
+                        var name = valuePair.Key;
+                        var typeName = name.ToPascalCase();
+                        var header = valuePair.Value;
+                        var schema = new InMemoryAdditionalText(
+                            $"/{responseContentDirectory}/{responseStatusCodePattern}/Headers/{typeName}.json",
+                            header.GetSchema().SerializeToJson());
+
+                        var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
+                            ns: $"{responseContentNamespace}._{responseStatusCodePattern}.Headers",
+                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers", typeName),
+                            location: schema.Path,
+                            rebaseToRootPath: false);
+
+                        var typeDeclaration = GenerateCode(context, headerSpecification, schema, globalOptions);
+                        return new ResponseHeaderGenerator(header, typeDeclaration);
+                    }).ToList() ?? [];
+                    
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
-                        responseBodies);
+                        responseBodyGenerators,
+                        responseHeaderGenerators);
                 }).ToList();
                 var responseGenerator = new ResponseGenerator(
                     responseBodyGenerators);

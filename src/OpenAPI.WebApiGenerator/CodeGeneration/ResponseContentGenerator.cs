@@ -10,6 +10,7 @@ internal sealed class ResponseContentGenerator
 {
     private readonly string _statusCodePattern;
     private readonly List<ResponseBodyContentGenerator> _contentGenerators = [];
+    private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
     private readonly string _responseClassName;
 
     private ResponseContentGenerator(string statusCodePattern)
@@ -31,9 +32,11 @@ internal sealed class ResponseContentGenerator
     }
     public ResponseContentGenerator(
         string statusCodePattern,
-        List<ResponseBodyContentGenerator> contentGenerators) : this(statusCodePattern)
+        List<ResponseBodyContentGenerator> contentGenerators,
+        List<ResponseHeaderGenerator> headerGenerators) : this(statusCodePattern)
     {
         _contentGenerators = contentGenerators;
+        _headerGenerators = headerGenerators;
     }
     
     public string GenerateResponseContentClass()
