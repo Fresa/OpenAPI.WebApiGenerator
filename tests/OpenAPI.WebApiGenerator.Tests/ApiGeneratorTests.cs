@@ -35,7 +35,7 @@ public class ApiGeneratorTests
         diagnostics.Should().AllSatisfy(diagnostic =>
         {
             diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
-            diagnostic.Id.Should().Be("AF1001");
+            diagnostic.Id.Should().Be("AF1001", diagnostic.GetMessage());
         }); 
 
         var generatedFiles = newCompilation.SyntaxTrees
