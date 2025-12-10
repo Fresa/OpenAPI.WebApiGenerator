@@ -8,7 +8,6 @@ namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class ResponseContentGenerator
 {
-    private readonly string _statusCodePattern;
     private readonly List<ResponseBodyContentGenerator> _contentGenerators = [];
     private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
     private readonly HttpResponseExtensionsGenerator _httpResponseExtensionsGenerator;
@@ -17,7 +16,6 @@ internal sealed class ResponseContentGenerator
     private ResponseContentGenerator(string statusCodePattern,
         HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
     {
-        _statusCodePattern = statusCodePattern;
         _httpResponseExtensionsGenerator = httpResponseExtensionsGenerator;
         var classNamePrefix = Enum.TryParse<HttpStatusCode>(statusCodePattern, out var statusCode)
             ? statusCode.ToString()

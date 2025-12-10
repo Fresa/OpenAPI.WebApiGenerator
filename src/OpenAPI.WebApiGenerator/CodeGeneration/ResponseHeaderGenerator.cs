@@ -41,9 +41,9 @@ internal sealed class ResponseHeaderGenerator(
         var headerSpecificationAsJson = 
             $$"""
               {
-                  "name": "{{name}}",
-                  "in": "header",
-                  {{textWriter.GetStringBuilder().ToString().TrimStart('{')}} 
+                "name": "{{name}}",
+                "in": "header",
+                {{textWriter.GetStringBuilder().ToString().TrimStart('{').TrimStart()}} 
               """;
         
         return $"{httpResponseExtensionsGenerator.CreateWriteHeaderInvocation(
