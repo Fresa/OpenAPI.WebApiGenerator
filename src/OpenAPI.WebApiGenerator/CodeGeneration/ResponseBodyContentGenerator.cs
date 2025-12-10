@@ -24,7 +24,7 @@ internal sealed class ResponseBodyContentGenerator(string contentType, TypeDecla
     {
         return
             $$"""
-                internal {{typeDeclaration.FullyQualifiedDotnetTypeName()}}? {{ContentPropertyName}} { get; set; }          
+                internal {{typeDeclaration.FullyQualifiedDotnetTypeName()}}? {{ContentPropertyName}} { get; }          
               """; 
     }
 }
