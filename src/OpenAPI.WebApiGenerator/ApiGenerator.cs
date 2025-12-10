@@ -225,7 +225,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         httpResponseExtensionsGenerator);
                 }).ToList();
                 var responseGenerator = new ResponseGenerator(
-                    responseBodyGenerators);
+                    responseBodyGenerators, httpResponseExtensionsGenerator);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
                         operationNamespace, 

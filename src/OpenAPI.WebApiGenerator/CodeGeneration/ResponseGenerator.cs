@@ -3,7 +3,7 @@ using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseBodyGenerators)
+internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseBodyGenerators, HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
 {
     public SourceCode GenerateResponseClass(string @namespace, string path)
     {
@@ -12,6 +12,7 @@ internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseB
                 #nullable enable
                 using Corvus.Json;
                 using System.Text.Json;
+                using {{httpResponseExtensionsGenerator.Namespace}};
               
                 namespace {{@namespace}};
                 

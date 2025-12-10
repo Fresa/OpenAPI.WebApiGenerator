@@ -3,7 +3,8 @@
 internal sealed class HttpResponseExtensionsGenerator(string @namespace)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
-    
+    public string Namespace => @namespace;
+
     internal string CreateWriteHeaderInvocation(
         string responseVariableName, 
         string bindingTypeName,
@@ -13,8 +14,7 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
     {
         return
             $""""
-            {@namespace}.{HttpResponseExtensionsClassName}.WriteResponseHeader<{bindingTypeName}>(
-            {responseVariableName},
+            {responseVariableName}.WriteResponseHeader<{bindingTypeName}>(
             """
             {headerSpecificationAsJson}
             """,
@@ -30,8 +30,8 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
     {
         return
             $"""
-             {@namespace}.{HttpResponseExtensionsClassName}.WriteResponseBody(
-                {responseVariableName}, {headerValueVariableName})
+             {responseVariableName}.WriteResponseBody(
+                {headerValueVariableName})
              """;
     }
     
