@@ -51,7 +51,7 @@ internal sealed class ResponseHeaderGenerator(
             FullyQualifiedTypeName.TrimEnd('?'),
             headerSpecificationAsJson,
             name,
-            _propertyName
-            )}{(IsRequired ? "" : ".AsOptional()")},";
+            $"Headers.{_propertyName}"
+            )}{(IsRequired ? "" : ".AsOptional()")};";
     }
 }
