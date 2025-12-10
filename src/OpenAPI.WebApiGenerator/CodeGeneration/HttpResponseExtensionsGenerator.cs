@@ -62,6 +62,10 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
                 where TValue : struct, IJsonValue
             {
                 Validate(value);
+                if (value.IsUndefined())
+                {
+                    return;
+                }
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(headerSpecificationAsJson);
                 var serializedValue = Serialize(parameter, name, value);
                 response.Headers[name] = serializedValue;

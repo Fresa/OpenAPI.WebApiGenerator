@@ -15,16 +15,16 @@ internal sealed class ResponseHeaderGenerator(
 {
     private readonly string _propertyName = name.ToPascalCase();
     private readonly string _requiredDirective = header.Required ? "required" : string.Empty;
-    private readonly string _nullableDirective = header.Required ? string.Empty : "?";
+    private string DefaultValueAssignment => header.Required ? "" : $" = {FullyQualifiedTypeName}.Undefined;";
     private string FullyQualifiedTypeName =>
-        $"{_fullyQualifiedTypeDeclarationIdentifier}{_nullableDirective}";
+        $"{_fullyQualifiedTypeDeclarationIdentifier}";
     private readonly string _fullyQualifiedTypeDeclarationIdentifier = typeDeclaration.FullyQualifiedDotnetTypeName();
 
     internal bool IsRequired { get; } = header.Required;
     
     internal string GenerateProperty() =>
         $$"""
-          internal {{_requiredDirective}} {{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }          
+          internal {{_requiredDirective}} {{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
           """;
     
     internal string GenerateWriteDirective(string responseVariableName)
@@ -48,10 +48,10 @@ internal sealed class ResponseHeaderGenerator(
         
         return $"{httpResponseExtensionsGenerator.CreateWriteHeaderInvocation(
             responseVariableName,
-            FullyQualifiedTypeName.TrimEnd('?'),
+            FullyQualifiedTypeName,
             headerSpecificationAsJson,
             name,
             $"Headers.{_propertyName}"
-            )}{(IsRequired ? "" : ".AsOptional()")};";
+            )};";
     }
 }
