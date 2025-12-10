@@ -11,11 +11,14 @@ internal sealed class ResponseContentGenerator
     private readonly string _statusCodePattern;
     private readonly List<ResponseBodyContentGenerator> _contentGenerators = [];
     private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
+    private readonly HttpResponseExtensionsGenerator _httpResponseExtensionsGenerator;
     private readonly string _responseClassName;
 
-    private ResponseContentGenerator(string statusCodePattern)
+    private ResponseContentGenerator(string statusCodePattern,
+        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
     {
         _statusCodePattern = statusCodePattern;
+        _httpResponseExtensionsGenerator = httpResponseExtensionsGenerator;
         var classNamePrefix = Enum.TryParse<HttpStatusCode>(statusCodePattern, out var statusCode)
             ? statusCode.ToString()
             : statusCodePattern.First() switch
@@ -33,7 +36,8 @@ internal sealed class ResponseContentGenerator
     public ResponseContentGenerator(
         string statusCodePattern,
         List<ResponseBodyContentGenerator> contentGenerators,
-        List<ResponseHeaderGenerator> headerGenerators) : this(statusCodePattern)
+        List<ResponseHeaderGenerator> headerGenerators,
+        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator) : this(statusCodePattern, httpResponseExtensionsGenerator)
     {
         _contentGenerators = contentGenerators;
         _headerGenerators = headerGenerators;
@@ -41,6 +45,10 @@ internal sealed class ResponseContentGenerator
     
     public string GenerateResponseContentClass()
     {
+        var anyHeaders = _headerGenerators.Any();
+        var anyRequiredHeader = _headerGenerators.Any(generator => generator.IsRequired);
+        var headerRequiredDirective = anyRequiredHeader ? "required" : "";
+        var responseVariableName = "httpResponse";
         return 
             $$"""
             internal sealed class {{_responseClassName}} : Response
@@ -51,7 +59,18 @@ internal sealed class ResponseContentGenerator
                 {{_contentGenerators.AggregateToString(generator => 
                     generator.GenerateContentProperty())}}
                 
-                internal override void WriteTo(HttpResponse httpResponse)
+                {{(anyHeaders ? 
+                $$"""
+                internal {{headerRequiredDirective}} ResponseHeaders Headers { get; init; } {{(anyRequiredHeader ? "= new()" : "")}}
+                
+                internal sealed class ResponseHeaders 
+                {
+                    {{_headerGenerators.AggregateToString(generator =>
+                        generator.GenerateProperty())}}
+                }
+                """ : "")}}
+                
+                internal override void WriteTo(HttpResponse {{responseVariableName}})
                 {
                     IJsonValue content = true switch
                     { 
@@ -60,8 +79,9 @@ internal sealed class ResponseContentGenerator
                         _ => throw new InvalidOperationException("No content was defined") 
                     };
                     
-                    using var jsonWriter = new Utf8JsonWriter(httpResponse.BodyWriter);
-                    content.WriteTo(jsonWriter);
+                    {{_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(responseVariableName, "content")}};
+                    {{_headerGenerators.AggregateToString(generator =>
+                        generator.GenerateWriteDirective(responseVariableName))}}
                 }
             }
             """;

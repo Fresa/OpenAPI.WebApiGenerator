@@ -73,8 +73,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var httpRequestExtensionSourceCode =
             httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
         httpRequestExtensionSourceCode.AddTo(context);
-        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
+        var httpResponseExtensionSourceCode =
+            httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
+        httpResponseExtensionSourceCode.AddTo(context);
+        
+        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -210,13 +215,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
                             rebaseToRootPath: false);
 
                         var typeDeclaration = GenerateCode(context, headerSpecification, schema, globalOptions);
-                        return new ResponseHeaderGenerator(header, typeDeclaration);
+                        return new ResponseHeaderGenerator(name, header, typeDeclaration, httpResponseExtensionsGenerator);
                     }).ToList() ?? [];
                     
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
                         responseBodyGenerators,
-                        responseHeaderGenerators);
+                        responseHeaderGenerators,
+                        httpResponseExtensionsGenerator);
                 }).ToList();
                 var responseGenerator = new ResponseGenerator(
                     responseBodyGenerators);
