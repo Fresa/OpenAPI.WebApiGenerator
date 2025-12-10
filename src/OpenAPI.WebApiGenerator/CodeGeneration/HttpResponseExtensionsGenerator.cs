@@ -7,14 +7,13 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
 
     internal string CreateWriteHeaderInvocation(
         string responseVariableName, 
-        string bindingTypeName,
         string headerSpecificationAsJson,
         string headerName,
         string headerValueVariableName)
     {
         return
             $""""
-            {responseVariableName}.WriteResponseHeader<{bindingTypeName}>(
+            {responseVariableName}.WriteResponseHeader(
             """
             {headerSpecificationAsJson}
             """,

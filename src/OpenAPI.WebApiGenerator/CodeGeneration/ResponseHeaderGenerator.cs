@@ -48,7 +48,6 @@ internal sealed class ResponseHeaderGenerator(
         
         return $"{httpResponseExtensionsGenerator.CreateWriteHeaderInvocation(
             responseVariableName,
-            FullyQualifiedTypeName,
             headerSpecificationAsJson,
             name,
             $"Headers.{_propertyName}"
