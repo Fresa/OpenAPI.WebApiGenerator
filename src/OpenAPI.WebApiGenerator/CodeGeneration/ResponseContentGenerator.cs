@@ -46,6 +46,7 @@ internal sealed class ResponseContentGenerator
         var anyHeaders = _headerGenerators.Any();
         var anyRequiredHeader = _headerGenerators.Any(generator => generator.IsRequired);
         var headerRequiredDirective = anyRequiredHeader ? "required" : "";
+        var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
         var responseVariableName = "httpResponse";
         return 
             $$"""
@@ -59,7 +60,7 @@ internal sealed class ResponseContentGenerator
                 
                 {{(anyHeaders ? 
                 $$"""
-                internal {{headerRequiredDirective}} ResponseHeaders Headers { get; init; } {{(anyRequiredHeader ? "= new()" : "")}}
+                internal {{headerRequiredDirective}} ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
                 
                 internal sealed class ResponseHeaders 
                 {
