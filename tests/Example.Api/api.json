@@ -24,6 +24,12 @@
             "description": "Successfully updated",
             "schema": {
               "$ref": "#/definitions/FooProperties"
+            },
+            "headers": {
+              "Status": {
+                "description": "The Status of foo",
+                "type": "integer"
+              }
             }
           }
         }

@@ -22,5 +22,9 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
         var responseContent = await result.Content.ReadAsJsonNodeAsync(CancellationToken);
         responseContent.Should().NotBeNull();
         responseContent.GetValue<string>("#/Name").Should().Be("test");
+        result.Headers.Should().HaveCount(1);
+        result.Headers.Should().ContainKey("Status")
+            .WhoseValue.Should().HaveCount(1)
+            .And.Contain("2");
     }
 }
