@@ -47,13 +47,15 @@ internal sealed class ResponseContentGenerator
         var anyRequiredHeader = _headerGenerators.Any(generator => generator.IsRequired);
         var headerRequiredDirective = anyRequiredHeader ? "required" : "";
         var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
-        var responseVariableName = "httpResponse";
+        const string responseVariableName = "httpResponse";
+        const string contentTypeFieldName = "_contentType";
         return 
             $$"""
             internal sealed class {{_responseClassName}} : Response
             {
+                private string {{contentTypeFieldName}} = string.Empty;
                 {{_contentGenerators.AggregateToString(generator =>
-                    generator.GenerateConstructor(_responseClassName))}}
+                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
                 
                 {{_contentGenerators.AggregateToString(generator => 
                     generator.GenerateContentProperty())}}
@@ -79,6 +81,7 @@ internal sealed class ResponseContentGenerator
                     };
                     
                     {{_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(responseVariableName, "content")}};
+                    {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
                     {{_headerGenerators.AggregateToString(generator =>
                         generator.GenerateWriteDirective(responseVariableName))}}
                 }

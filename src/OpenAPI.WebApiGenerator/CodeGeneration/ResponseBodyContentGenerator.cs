@@ -9,13 +9,14 @@ internal sealed class ResponseBodyContentGenerator(string contentType, TypeDecla
     private readonly string _contentVariableName = contentType.ToCamelCase();
     public string ContentPropertyName { get; } = contentType.ToPascalCase();
     
-    public string GenerateConstructor(string className)
+    public string GenerateConstructor(string className, string contentTypeFieldName)
     {
         return
             $$"""
                 public {{className}}({{typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}})
                 {
                     {{ContentPropertyName}} = {{_contentVariableName}};
+                    {{contentTypeFieldName}} = "{{contentType}}";
                 }          
               """; 
     }
