@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Example.Api.IntegrationTests.Http;
 using Example.Api.IntegrationTests.Json;
@@ -22,5 +23,10 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
         var responseContent = await result.Content.ReadAsJsonNodeAsync(CancellationToken);
         responseContent.Should().NotBeNull();
         responseContent.GetValue<string>("#/Name").Should().Be("test");
+        result.Headers.Should().HaveCount(1);
+        result.Headers.Should().ContainKey("Status")
+            .WhoseValue.Should().HaveCount(1)
+            .And.Contain("2");
+        result.Content.Headers.ContentType.Should().Be(MediaTypeHeaderValue.Parse("application/json"));
     }
 }

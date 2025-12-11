@@ -73,8 +73,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var httpRequestExtensionSourceCode =
             httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
         httpRequestExtensionSourceCode.AddTo(context);
-        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
+        var httpResponseExtensionSourceCode =
+            httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
+        httpResponseExtensionSourceCode.AddTo(context);
+        
+        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -176,7 +181,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         // Any content
                         ["*/*"] = new()
                     };
-                    var responseBodies = responseContent.Select(valuePair =>
+                    var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;
                         var contentType = valuePair.Key.ToPascalCase();
@@ -193,12 +198,34 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var typeDeclaration = GenerateCode(context, contentSpecification, schema, globalOptions);
                         return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
                     }).ToList();
+
+                    var responseHeaderGenerators = response.Headers?.Select(valuePair =>
+                    {
+                        var name = valuePair.Key;
+                        var typeName = name.ToPascalCase();
+                        var header = valuePair.Value;
+                        var schema = new InMemoryAdditionalText(
+                            $"/{responseContentDirectory}/{responseStatusCodePattern}/Headers/{typeName}.json",
+                            header.GetSchema().SerializeToJson());
+
+                        var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
+                            ns: $"{responseContentNamespace}._{responseStatusCodePattern}.Headers",
+                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers", typeName),
+                            location: schema.Path,
+                            rebaseToRootPath: false);
+
+                        var typeDeclaration = GenerateCode(context, headerSpecification, schema, globalOptions);
+                        return new ResponseHeaderGenerator(name, header, typeDeclaration, httpResponseExtensionsGenerator);
+                    }).ToList() ?? [];
+                    
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
-                        responseBodies);
+                        responseBodyGenerators,
+                        responseHeaderGenerators,
+                        httpResponseExtensionsGenerator);
                 }).ToList();
                 var responseGenerator = new ResponseGenerator(
-                    responseBodyGenerators);
+                    responseBodyGenerators, httpResponseExtensionsGenerator);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
                         operationNamespace, 
@@ -295,22 +322,25 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
             defaultNamespace ??= spec.Namespace;
 
-            var filePath = string.Empty;
-            // Only add the named type if the spec.TypeName is not null or empty.
-            if (!string.IsNullOrEmpty(spec.TypeName))
+            if (string.IsNullOrEmpty(spec.TypeName))
             {
-                // Corvus doesn't support defining paths for the source code file hint, so we piggyback such information on the type name property 
-                filePath = Path.GetDirectoryName(spec.TypeName!);
-                var typeName = Path.GetFileName(spec.TypeName!);
-                
-                namedTypes.Add(
-                    new CSharpLanguageProvider.NamedType(
-                        rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
-                        typeName,
-                        spec.Namespace,
-                        spec.Accessibility));
+                throw new InvalidOperationException($"Missing type name for schema {spec.Location}");
             }
 
+            // Corvus doesn't support defining paths for the source code file hint, so we piggyback such information on the type name property 
+            var filePath = Path.GetDirectoryName(spec.TypeName!);
+            if (filePath == string.Empty)
+            {
+                throw new InvalidOperationException($"Expected type {spec.TypeName} to contain a path");
+            }
+            var typeName = Path.GetFileName(spec.TypeName!);
+            
+            namedTypes.Add(
+                new CSharpLanguageProvider.NamedType(
+                    rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
+                    typeName,
+                    spec.Namespace,
+                    spec.Accessibility));
             namespaceToPathConversion[spec.Namespace] = filePath;
         }
 
