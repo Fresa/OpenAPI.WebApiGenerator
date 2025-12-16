@@ -89,8 +89,7 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
 
             private static T Validate<T>(T value) where T : struct, IJsonValue<T>
             {
-                var validationContext = ValidationContext.ValidContext;
-                value.Validate(validationContext);
+                var validationContext = value.Validate(ValidationContext.ValidContext.UsingResults(), ValidationLevel.Verbose);
                 if (validationContext.IsValid)
                 {
                     return value;

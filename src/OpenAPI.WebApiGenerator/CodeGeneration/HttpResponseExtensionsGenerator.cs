@@ -79,8 +79,7 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
             
             private static void Validate(IJsonValue value)
             {
-                var validationContext = ValidationContext.ValidContext;
-                value.Validate(validationContext);
+                var validationContext = value.Validate(ValidationContext.ValidContext.UsingResults());
                 if (validationContext.IsValid)
                 {
                     return;
