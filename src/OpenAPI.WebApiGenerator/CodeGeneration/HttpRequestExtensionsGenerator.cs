@@ -7,7 +7,8 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
     internal string CreateBindParameterInvocation(
         string requestVariableName, 
         string bindingTypeName,
-        string parameterSpecificationAsJson)
+        string parameterSpecificationAsJson,
+        bool isRequired)
     {
         return
             $""""
@@ -15,19 +16,20 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
             {requestVariableName},
             """
             {parameterSpecificationAsJson}
-            """
-            )
+            """,
+            {isRequired.ToString().ToLowerInvariant()})
             """";
     }
     
     internal string CreateBindBodyInvocation(
         string requestVariableName, 
-        string bindingTypeName)
+        string bindingTypeName,
+        bool isRequired)
     {
         return
             $""""
              await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
-                {requestVariableName}, cancellationToken)
+                {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
                     .ConfigureAwait(false)
              """";
     }
@@ -60,23 +62,25 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
             /// <returns></returns>
             /// <exception cref="BadHttpRequestException"></exception>
             internal static T Bind<T>(this HttpRequest request, 
-                string parameterSpecificationAsJson)
+                string parameterSpecificationAsJson,
+                bool isRequired)
                 where T : struct, IJsonValue<T>
             {
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(parameterSpecificationAsJson);
                 var value = parameter switch
                 {
-                    null => T.Undefined,
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),
                     _ when TryGetValue(request, parameter, out var stringValue) =>
                         Parse<T>(parameter, stringValue),
                     _ => T.Undefined
                 };
-
-                return Validate(value);
+                 
+                return Validate(value, isRequired);
             }
 
-            internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, CancellationToken cancellationToken)
+            internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, 
+                bool isRequired,
+                CancellationToken cancellationToken)
                 where T : struct, IJsonValue<T>
             {
                 var document = await JsonDocument.ParseAsync(request.Body, 
@@ -84,12 +88,18 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
                         .ConfigureAwait(false);
                 var value = T.FromJson(document.RootElement.Clone());
 
-                return Validate(value);
+                return Validate(value, isRequired);
             }
 
-            private static T Validate<T>(T value) where T : struct, IJsonValue<T>
+            private static T Validate<T>(T value, bool isRequired) where T : struct, IJsonValue<T>
             {
-                var validationContext = value.Validate(ValidationContext.ValidContext.UsingResults(), ValidationLevel.Verbose);
+                if (!isRequired && value.IsUndefined())
+                {
+                    return value;
+                }
+                
+                var validationContext = ValidationContext.ValidContext.UsingResults();
+                validationContext = value.Validate(validationContext, ValidationLevel.Verbose);
                 if (validationContext.IsValid)
                 {
                     return value;
