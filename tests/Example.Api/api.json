@@ -38,6 +38,10 @@
               "Status": {
                 "description": "The Status of foo",
                 "type": "integer"
+              },
+              "Tag": {
+                "description": "An optional tag",
+                "type": "string"
               }
             }
           }
