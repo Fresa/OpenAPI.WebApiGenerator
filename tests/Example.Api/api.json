@@ -5,7 +5,7 @@
     "version": "2025-11-05"
   },
   "paths": {
-    "/foo": {
+    "/foo/{FooId}": {
       "put": {
         "operationId": "Update_Foo",
         "consumes": [
@@ -17,6 +17,15 @@
         "parameters": [
           {
             "$ref": "#/parameters/FooProperties"
+          },
+          {
+            "$ref": "#/parameters/Bar"
+          },
+          {
+            "$ref": "#/parameters/FooId"
+          },
+          {
+            "$ref": "#/parameters/Fee"
           }
         ],
         "responses": {
@@ -57,6 +66,28 @@
       "schema": {
         "$ref": "#/definitions/FooProperties"
       }
+    },
+    "Bar": {
+      "name": "Bar",
+      "in": "header",
+      "type": "string",
+      "required": true
+    },
+    "FooId": {
+      "name": "FooId",
+      "in": "path",
+      "type": "integer",
+      "required": true
+    },
+    "Fee": {
+      "name": "Fee",
+      "in": "query",
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "required": false,
+      "collectionFormat": "multi"
     }
   }
 }
