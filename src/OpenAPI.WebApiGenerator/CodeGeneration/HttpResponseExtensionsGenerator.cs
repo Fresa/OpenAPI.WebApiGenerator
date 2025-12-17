@@ -9,7 +9,8 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
         string responseVariableName, 
         string headerSpecificationAsJson,
         string headerName,
-        string headerValueVariableName)
+        string headerValueVariableName,
+        bool isRequired)
     {
         return
             $""""
@@ -18,7 +19,8 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
             {headerSpecificationAsJson}
             """,
             "{headerName}",
-            {headerValueVariableName}
+            {headerValueVariableName},
+            {isRequired.ToString().ToLowerInvariant()}
             )
             """";
     }
@@ -57,14 +59,15 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
             internal static void WriteResponseHeader<TValue>(this HttpResponse response, 
                 string headerSpecificationAsJson, 
                 string name, 
-                TValue value)
+                TValue value,
+                bool isRequired)
                 where TValue : struct, IJsonValue
             {
-                Validate(value);
-                if (value.IsUndefined())
+                if (!isRequired && value.IsUndefined()) 
                 {
                     return;
                 }
+                Validate(value);
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(headerSpecificationAsJson);
                 var serializedValue = Serialize(parameter, name, value);
                 response.Headers[name] = serializedValue;
@@ -79,8 +82,8 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
             
             private static void Validate(IJsonValue value)
             {
-                var validationContext = ValidationContext.ValidContext;
-                value.Validate(validationContext);
+                var validationContext = ValidationContext.ValidContext.UsingResults();
+                validationContext = value.Validate(validationContext, ValidationLevel.Verbose);
                 if (validationContext.IsValid)
                 {
                     return;

@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.3.13" />
-        <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.1.0" />
+        <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.4.2" />
+        <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.1.1" />
     </ItemGroup>
 
     <ItemGroup>

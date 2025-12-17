@@ -50,7 +50,7 @@ internal sealed class ResponseHeaderGenerator(
             responseVariableName,
             headerSpecificationAsJson,
             name,
-            $"Headers.{_propertyName}"
-            )};";
+            $"Headers.{_propertyName}",
+            header.Required)};";
     }
 }

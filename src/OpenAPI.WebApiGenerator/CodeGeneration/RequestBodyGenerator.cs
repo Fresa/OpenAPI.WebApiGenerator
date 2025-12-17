@@ -71,7 +71,7 @@ internal sealed class RequestBodyGenerator
                                   case "{{content.ContentType.ToLower()}}":
                                       return new RequestContent
                                       {
-                                          {{content.GenerateRequestBindingDirective()}}
+                                          {{content.GenerateRequestBindingDirective(_body.Required)}}
                                       };
                                   """
                             ))}}
