@@ -12,4 +12,7 @@ internal static class EnumerableExtensions
             .Aggregate(new StringBuilder(), (builder, item) => 
                 builder.AppendLine(convert(item)))
             .ToString();
+    
+    internal static IEnumerable<(T item, int i)> WithIndex<T>(this IEnumerable<T> items) =>
+        items.Select((arg1, i) => (arg1, i));
 }

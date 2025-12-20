@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Corvus.Json;
 using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
@@ -15,6 +17,7 @@ using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
+using JsonPointer = Corvus.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator;
 
@@ -63,12 +66,24 @@ public sealed class ApiGenerator : IIncrementalGenerator
         OpenApiDocument OpenApiDocument, 
         Compilation Compilation) generatorContext)
     {
-        var openApi = generatorContext.OpenApiDocument;
         var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
         var endpointGenerator = new OperationGenerator(compilation);
         var rootNamespace = compilation.Assembly.Name;
-        
+
+        var openApi = generatorContext.OpenApiDocument;
+        var openApiSpecAsJson = GetOpenApiSpecAsJson(openApi);
+        var openApiUri = "http://test.com/test.json";
+        //var openApiSpecSource = new InMemoryAdditionalText("http://test.com/test.json", openApiSpecAsJson);
+        var documentResolver = new PrepopulatedDocumentResolver();
+        documentResolver.AddDocument(openApiUri, JsonDocument.Parse(openApiSpecAsJson));
+        // SourceGeneratorHelpers.BuildDocumentResolver([openApiSpecSource], context.CancellationToken);
+        var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
+        var openApiVisitor = OpenApiPointerVisitor.V3(JsonNode.Parse(openApiSpecAsJson) ??
+                                 throw new InvalidOperationException("OpenApi spec is empty"));
+
+        // var visit = new OpenApiWalker(new OpenApiJsonPointerVisitor());
+        // visit.Walk(openApi);
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
         var httpRequestExtensionSourceCode =
             httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
@@ -80,27 +95,36 @@ public sealed class ApiGenerator : IIncrementalGenerator
         httpResponseExtensionSourceCode.AddTo(context);
         
         var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
+        
+        using var pathsPointer = openApiVisitor.Visit(openApi.Paths);
         foreach (var path in openApi.Paths)
         {
+            using var pathPointer = openApiVisitor.Visit(path);
             var pathExpression = path.Key;
             var pathItem = path.Value;
             var entityType = pathExpression.ToPascalCase();
             var entityNamespace = $"{rootNamespace}.{entityType}";
             var entityDirectory = entityType;
             var parameterGenerators = new Dictionary<string, ParameterGenerator>();
-            foreach (var parameter in pathItem.Parameters ?? [])
+            using var parametersPointer = openApiVisitor.Visit(pathItem.Parameters);
+            foreach (var (parameter, i) in (pathItem.Parameters ?? []).WithIndex())
             {
-                var schema = new InMemoryAdditionalText(
-                    $"/{entityDirectory}/{parameter.GetTypeDeclarationIdentifier()}.json",
-                        parameter.GetSchema().SerializeToJson());
-                
+                using var parameterPointer = openApiVisitor.Visit(parameter, i);
+                // var schema = new InMemoryAdditionalText(
+                //     $"/{entityDirectory}/{parameter.GetTypeDeclarationIdentifier()}.json",
+                //     parameter.GetSchema().SerializeToJson());
+                using var schemaPointer = openApiVisitor.VisitSchema(parameter);
                 var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                     ns: entityNamespace,
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
-                    location: schema.Path,
+                    // location: schema.Path,
+                    location: openApiUri + "#"+  openApiVisitor.GetPointer(),
+                    // location:  openApiUri + "#/parameters/AllowTrailingDot",
                     rebaseToRootPath: false);
-                var typeDeclaration = GenerateCode(context, generationSpecification, schema, globalOptions);
-                parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter, httpRequestExtensionsGenerator);
+                //var typeDeclaration = GenerateCode(context, generationSpecification, schema, globalOptions);
+                var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
+                parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
+                    httpRequestExtensionsGenerator);
             }
 
             foreach (var openApiOperation in path.Value.GetOperations())
@@ -110,13 +134,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
                 var operationNamespace = $"{entityNamespace}.{operationId}";
                 var operationDirectory = $"{entityDirectory}/{operationId}";
-                
+
                 foreach (var parameter in operation.GetParameters())
                 {
                     var schema = new InMemoryAdditionalText(
                         $"/{operationDirectory}/{parameter.GetTypeDeclarationIdentifier()}.json",
                         parameter.GetSchema().SerializeToJson());
-                    
+
                     var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                         ns: operationNamespace,
                         typeName: Path.Combine(operationDirectory, parameter.GetTypeDeclarationIdentifier()),
@@ -124,7 +148,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         rebaseToRootPath: false);
 
                     var typeDeclaration = GenerateCode(context, generationSpecification, schema, globalOptions);
-                    parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter, httpRequestExtensionsGenerator);
+                    parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
+                        httpRequestExtensionsGenerator);
                 }
 
                 var requestBodyNamespace = $"{operationNamespace}.Requests";
@@ -150,7 +175,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
                         var typeDeclaration = GenerateCode(context, contentSpecification, schema, globalOptions);
                         return new RequestBodyContentGenerator(
-                            pair.Key, 
+                            pair.Key,
                             typeDeclaration,
                             httpRequestExtensionsGenerator);
                     }).ToList();
@@ -159,12 +184,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         contentGenerators);
                 }
 
-                var requestGenerator = new RequestGenerator(parameterGenerators.Values.ToList(), requestBodyGenerator);
+                var requestGenerator =
+                    new RequestGenerator(parameterGenerators.Values.ToList(), requestBodyGenerator);
                 var requestSourceCode = requestGenerator.GenerateRequestClass(
                     operationNamespace,
                     operationDirectory);
                 requestSourceCode.AddTo(context);
-                
+
                 var responseContentNamespace = operationNamespace + ".Responses";
                 var responseContentDirectory = Path.Combine(operationDirectory, "Responses");
                 var responses = operation.Responses ?? new OpenApiResponses
@@ -191,7 +217,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
                         var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                             ns: $"{responseContentNamespace}._{responseStatusCodePattern}",
-                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, contentType),
+                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern,
+                                contentType),
                             location: schema.Path,
                             rebaseToRootPath: false);
 
@@ -210,14 +237,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
                         var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                             ns: $"{responseContentNamespace}._{responseStatusCodePattern}.Headers",
-                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers", typeName),
+                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers",
+                                typeName),
                             location: schema.Path,
                             rebaseToRootPath: false);
 
                         var typeDeclaration = GenerateCode(context, headerSpecification, schema, globalOptions);
-                        return new ResponseHeaderGenerator(name, header, typeDeclaration, httpResponseExtensionsGenerator);
+                        return new ResponseHeaderGenerator(name, header, typeDeclaration,
+                            httpResponseExtensionsGenerator);
                     }).ToList() ?? [];
-                    
+
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
                         responseBodyGenerators,
@@ -228,7 +257,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     responseBodyGenerators, httpResponseExtensionsGenerator);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
-                        operationNamespace, 
+                        operationNamespace,
                         operationDirectory);
                 responseSourceCode.AddTo(context);
 
@@ -236,12 +265,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var endpointSource = endpointGenerator
                     .Generate(operationNamespace,
                         operationDirectory,
-                        pathExpression, 
+                        pathExpression,
                         operationMethod);
                 endpointSource
                     .AddTo(context);
             }
         }
+
 
         if (endpointGenerator.TryGenerateMissingHandlers(out var missingHandlers))
         {
@@ -266,6 +296,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+    private static TypeDeclaration GenerateCode(SourceProductionContext context,
+        SourceGeneratorHelpers.GenerationSpecification specification,
+        SourceGeneratorHelpers.GenerationContext generationContext,
+        SourceGeneratorHelpers.GlobalOptions globalOptions)
+    {
+        var typeDeclarations = GenerateCode(context, new SourceGeneratorHelpers.TypesToGenerate(
+            [specification], generationContext), VocabularyRegistry);
+        return typeDeclarations.Single();
+    }
+    
     private static TypeDeclaration GenerateCode(SourceProductionContext context,
         SourceGeneratorHelpers.GenerationSpecification specification,
         AdditionalText schema,
@@ -392,7 +432,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
             }
         }
 
-        return typeDeclarationsToGenerate;
+        return typeDeclarationsToGenerate
+            .Select(declaration => declaration.ReducedTypeDeclaration().ReducedType)
+            .ToList();
     }
     
     private static Action<SourceProductionContext, T> WithExceptionReporting<T>(
@@ -450,4 +492,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
             // Doesn't work
             description: null,
             customTags: WellKnownDiagnosticTags.AnalyzerException);
+
+    private static string GetOpenApiSpecAsJson(OpenApiDocument openApi)
+    {
+        var textWriter = new StringWriter();
+        using (textWriter)
+        {
+            var jsonWriter = new OpenApiJsonWriter(textWriter);
+            openApi.SerializeAsV2(jsonWriter);
+        }
+
+        return textWriter.GetStringBuilder().ToString();
+    }
 }
