@@ -1,6 +1,8 @@
 ﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class HttpRequestExtensionsGenerator(string @namespace)
+internal sealed class HttpRequestExtensionsGenerator(
+    string @namespace,
+    JsonValueValidationExtensionsGenerator jsonValueValidationExtensionsGenerator)
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
     
@@ -27,11 +29,11 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
         bool isRequired)
     {
         return
-            $""""
+            $"""
              await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
                 {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
                     .ConfigureAwait(false)
-             """";
+             """;
     }
     
     internal SourceCode GenerateHttpRequestExtensionsClass() =>
@@ -42,7 +44,6 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
         using System.Text.Json;
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
-        using Microsoft.AspNetCore.Routing;
         using Microsoft.Extensions.Primitives;
         using OpenAPI.ParameterStyleParsers.OpenApi20;
         using OpenAPI.ParameterStyleParsers.OpenApi20.ParameterParsers;
@@ -75,7 +76,10 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
                     _ => T.Undefined
                 };
                  
-                return Validate(value, isRequired);
+                return {{{jsonValueValidationExtensionsGenerator
+                    .CreateValidateInvocation(
+                        "value", 
+                        "isRequired")}}};
             }
 
             internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, 
@@ -88,35 +92,12 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
                         .ConfigureAwait(false);
                 var value = T.FromJson(document.RootElement.Clone());
 
-                return Validate(value, isRequired);
+                return {{{jsonValueValidationExtensionsGenerator
+                    .CreateValidateInvocation(
+                        "value", 
+                        "isRequired")}}};
             }
-
-            private static T Validate<T>(T value, bool isRequired) where T : struct, IJsonValue<T>
-            {
-                if (!isRequired && value.IsUndefined())
-                {
-                    return value;
-                }
-                
-                var validationContext = ValidationContext.ValidContext.UsingResults();
-                validationContext = value.Validate(validationContext, ValidationLevel.Verbose);
-                if (validationContext.IsValid)
-                {
-                    return value;
-                }
-
-                var validationResults = validationContext.Results.IsEmpty
-                    ? "None"
-                    : JsonSerializer.Serialize(validationContext.Results, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
-
-                throw new BadHttpRequestException($$"""
-                                                    Object of type {{typeof(T)}} could not be parsed'.
-                                                    "Validation results: {{validationResults}}
-                                                    """);
-            }
+           
 
             private static T Parse<T>(Parameter parameter, string? stringValue)
                 where T : struct, IJsonValue<T>

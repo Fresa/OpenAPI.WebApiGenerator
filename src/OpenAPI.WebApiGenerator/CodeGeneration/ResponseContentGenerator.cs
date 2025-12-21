@@ -73,14 +73,21 @@ internal sealed class ResponseContentGenerator
                 
                 internal override void WriteTo(HttpResponse {{responseVariableName}})
                 {
-                    IJsonValue content = true switch
+                    switch (true)
                     { 
                     {{_contentGenerators.AggregateToString(generator => 
-                        $"_ when {generator.ContentPropertyName} is not null => {generator.ContentPropertyName}")}}!,
-                        _ => throw new InvalidOperationException("No content was defined") 
-                    };
+                        $"""
+                         case true when {generator.ContentPropertyName} is not null:
+                            {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
+                                responseVariableName, 
+                                $"{generator.ContentPropertyName}.Value")};
+                            break;
+                         """
+                    )}}
+                        default:
+                            throw new InvalidOperationException("No content was defined");         
+                    }
                     
-                    {{_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(responseVariableName, "content")}};
                     {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
                     {{_headerGenerators.AggregateToString(generator =>
                         generator.GenerateWriteDirective(responseVariableName))}}

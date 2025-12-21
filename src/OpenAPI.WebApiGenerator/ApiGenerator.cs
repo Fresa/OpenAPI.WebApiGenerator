@@ -84,12 +84,17 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         // var visit = new OpenApiWalker(new OpenApiJsonPointerVisitor());
         // visit.Walk(openApi);
-        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
+        
+        var jsonValueValidationExtensionsGenerator = new JsonValueValidationExtensionsGenerator(rootNamespace);
+        var jsonValueValidationExtensionsSourceCode = jsonValueValidationExtensionsGenerator.GenerateClass();
+        jsonValueValidationExtensionsSourceCode.AddTo(context);
+
+        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace, jsonValueValidationExtensionsGenerator);
         var httpRequestExtensionSourceCode =
             httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
         httpRequestExtensionSourceCode.AddTo(context);
         
-        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace, jsonValueValidationExtensionsGenerator);
         var httpResponseExtensionSourceCode =
             httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
         httpResponseExtensionSourceCode.AddTo(context);
