@@ -42,9 +42,9 @@ internal sealed class JsonValueValidationExtensionsGenerator(string @namespace)
                 var validationResults = validationContext.Results.IsEmpty
                     ? "None"
                     : validationContext.Results.Aggregate(
-                        new StringBuilder($"Object of type {typeof(T)} is not valid"), 
+                        new StringBuilder($"Object of type {typeof(T)} is not valid:").AppendLine(), 
                         (builder, result) => 
-                            builder.AppendLine(result.ToString())).ToString();
+                            builder.AppendLine($"- {result}")).ToString();
 
                 throw new BadHttpRequestException(validationResults);
             }
