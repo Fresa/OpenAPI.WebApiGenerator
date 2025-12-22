@@ -46,7 +46,14 @@ internal sealed class JsonValueValidationExtensionsGenerator(string @namespace)
                         (builder, result) => 
                             builder.AppendLine($"- {result}")).ToString();
 
-                throw new BadHttpRequestException(validationResults);
+                throw new JsonValidationException(validationResults);
+            }
+        }
+        
+        internal class JsonValidationException : Exception 
+        {
+            internal JsonValidationException(string message) : base(message)
+            {
             }
         }
         #nullable restore
