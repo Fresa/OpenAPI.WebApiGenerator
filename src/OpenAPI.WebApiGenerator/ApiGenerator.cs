@@ -98,7 +98,12 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var httpResponseExtensionSourceCode =
             httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
         httpResponseExtensionSourceCode.AddTo(context);
-        
+
+        var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
+        var jsonValidationExceptionSourceCode =
+            jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass();
+        jsonValidationExceptionSourceCode.AddTo(context);
+
         var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         
         using var pathsPointer = openApiVisitor.Visit(openApi.Paths);

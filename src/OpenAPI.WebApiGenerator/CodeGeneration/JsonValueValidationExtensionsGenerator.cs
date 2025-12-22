@@ -24,7 +24,7 @@ internal sealed class JsonValueValidationExtensionsGenerator(string @namespace)
 
         internal static class {{ClassName}}
         {
-            internal static T Validate<T>(this T value, bool isRequired) 
+            internal static ValidationContext Validate<T>(this T value, bool isRequired) 
                 where T : struct, IJsonValue
             {
                 if (!isRequired && value.IsUndefined())
@@ -34,27 +34,7 @@ internal sealed class JsonValueValidationExtensionsGenerator(string @namespace)
                 
                 var validationContext = ValidationContext.ValidContext;
                 validationContext = value.Validate(validationContext, ValidationLevel.Detailed);
-                if (validationContext.IsValid)
-                {
-                    return value;
-                }
-
-                var validationMessage = $"Object of type {typeof(T)} is not valid";
-                var validationResults = validationContext.Results.IsEmpty
-                    ? validationMessage
-                    : validationContext.Results.Aggregate(
-                        new StringBuilder($"{validationMessage}:").AppendLine(), 
-                        (builder, result) => 
-                            builder.AppendLine($"- {result}")).ToString();
-
-                throw new JsonValidationException(validationResults);
-            }
-        }
-        
-        internal class JsonValidationException : Exception 
-        {
-            internal JsonValidationException(string message) : base(message)
-            {
+                return validationContext;
             }
         }
         #nullable restore
