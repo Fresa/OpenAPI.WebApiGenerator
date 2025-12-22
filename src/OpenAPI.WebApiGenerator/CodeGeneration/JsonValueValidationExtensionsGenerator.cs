@@ -39,10 +39,11 @@ internal sealed class JsonValueValidationExtensionsGenerator(string @namespace)
                     return value;
                 }
 
+                var validationMessage = $"Object of type {typeof(T)} is not valid";
                 var validationResults = validationContext.Results.IsEmpty
-                    ? "None"
+                    ? validationMessage
                     : validationContext.Results.Aggregate(
-                        new StringBuilder($"Object of type {typeof(T)} is not valid:").AppendLine(), 
+                        new StringBuilder($"{validationMessage}:").AppendLine(), 
                         (builder, result) => 
                             builder.AppendLine($"- {result}")).ToString();
 
