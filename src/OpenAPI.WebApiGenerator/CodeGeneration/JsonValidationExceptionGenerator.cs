@@ -3,40 +3,35 @@
 internal sealed class JsonValidationExceptionGenerator(string @namespace)
 {
     private const string ClassName = "JsonValidationException";
-    internal string CreateThrowJsonValidationExceptionInvocation(
-        string messageVariableName, 
-        string validationResultVariableName)
-    {
-        return
-            $"throw new {ClassName}({messageVariableName}, {validationResultVariableName})";
-    }
     internal SourceCode GenerateJsonValidationExceptionClass() =>
         new($"{ClassName}.g.cs",
         $$"""
         #nullable enable
         using Corvus.Json;
         using System;
+        using System.Collections.Immutable;
+        using System.Text;
         
         namespace {{@namespace}};
               
         internal sealed class {{ClassName}} : Exception 
         {
-            internal JsonValidationException(string message, ImmutableList<ValidationResult> validationResult) : base(
-                GetValidationMessage(validationResult))
+            internal {{ClassName}}(string message, ImmutableList<ValidationResult> validationResult) : base(
+                GetValidationMessage(message, validationResult))
             {
-                //var validationMessage = $"Object of type {typeof(T)} is not valid";
+                ValidationResult = validationResult;
             }
 
-            internal ImmutableList<ValidationResult> ValidationResult => validationResult;
+            internal ImmutableList<ValidationResult> ValidationResult { get; }
 
-            private static string GetValidationMessage(ImmutableList<ValidationResult> validationResult)
+            private static string GetValidationMessage(string message, ImmutableList<ValidationResult> validationResult)
             {
-                return validationContext.Results.IsEmpty
-                    ? validationMessage
-                    : validationContext.Results.Aggregate(
-                        new StringBuilder($"{validationMessage}:").AppendLine(), 
+                return validationResult.IsEmpty
+                    ? message
+                    : validationResult.Aggregate(
+                        new StringBuilder($"{message}:").AppendLine(), 
                         (builder, result) => 
-                            builder.AppendLine($"- {result}")).ToString()
+                            builder.AppendLine($"- {result}")).ToString();
             }
         }
         #nullable restore

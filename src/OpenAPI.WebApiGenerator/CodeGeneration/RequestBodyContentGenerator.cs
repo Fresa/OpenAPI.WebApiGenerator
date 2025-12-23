@@ -14,14 +14,14 @@ internal sealed class RequestBodyContentGenerator(
 
     private string FullyQualifiedTypeDeclarationIdentifier => typeDeclaration.FullyQualifiedDotnetTypeName();
 
-    private readonly string _propertyName = contentType.ToPascalCase();
+    internal string PropertyName { get; } = contentType.ToPascalCase();
 
     internal string ContentType => contentType;
     
     internal string GenerateRequestBindingDirective(bool isRequired)
     {
         return $"""
-                 {_propertyName} = 
+                 {PropertyName} = 
                     ({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
                         "request", 
                         FullyQualifiedTypeDeclarationIdentifier,
@@ -33,7 +33,7 @@ internal sealed class RequestBodyContentGenerator(
     public string GenerateRequestProperty()
     {
         return $$"""
-                 internal {{FullyQualifiedTypeName}} {{_propertyName}} { get; private set; }
+                 internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
                  """;
     }
 }

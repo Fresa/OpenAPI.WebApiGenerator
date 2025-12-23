@@ -17,15 +17,18 @@ internal sealed class ParameterGenerator(
 
     private string FullyQualifiedTypeDeclarationIdentifier => typeDeclaration.FullyQualifiedDotnetTypeName();
     
-    private readonly string _propertyName = parameter.GetName().ToPascalCase();
+    internal string PropertyName { get; } = parameter.GetName().ToPascalCase();
+    internal bool IsParameterRequired { get; } = parameter.Required;
     
     internal string GenerateRequestProperty()
     {
         return $$"""
-                internal {{(parameter.Required ? "required " : "")}}{{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }
+                internal {{(IsParameterRequired ? "required " : "")}}{{FullyQualifiedTypeName}} {{PropertyName}} { get; init; }
                 """;
     }
 
+    internal string AsRequired(string variableName) => $"{variableName}{(IsParameterRequired ? "" : $" ?? {FullyQualifiedTypeDeclarationIdentifier}.Undefined")}";
+    
     internal string GenerateRequestBindingDirective(string requestVariableName)
     {
         using var textWriter = new StringWriter();
@@ -36,10 +39,10 @@ internal sealed class ParameterGenerator(
         parameter.SerializeAsV2(jsonWriter);
         textWriter.Flush();
 
-        return $" {_propertyName} = {httpRequestExtensionsGenerator.CreateBindParameterInvocation(
+        return $" {PropertyName} = {httpRequestExtensionsGenerator.CreateBindParameterInvocation(
             requestVariableName,
-            FullyQualifiedTypeName.TrimEnd('?'),
+            FullyQualifiedTypeDeclarationIdentifier,
             textWriter.GetStringBuilder().ToString(),
-            parameter.Required)}{(parameter.Required ? "" : ".AsOptional()")},";
+            IsParameterRequired)}{(IsParameterRequired ? "" : ".AsOptional()")},";
     }
 }

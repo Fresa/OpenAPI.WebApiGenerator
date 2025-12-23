@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -20,7 +21,7 @@ internal sealed class RequestBodyGenerator
         
     }
     public RequestBodyGenerator(
-        IOpenApiRequestBody body,
+        IOpenApiRequestBody? body,
         List<RequestBodyContentGenerator> contentGenerators)
     {
         _body = body;
@@ -40,6 +41,20 @@ internal sealed class RequestBodyGenerator
         return $"""
                  {propertyName} = await RequestContent.BindAsync({requestVariableName}, cancellationToken)
                     .ConfigureAwait(false)
+                """;
+    }
+    
+    internal string GenerateValidateDirective(string propertyName, string validationContextVariableName, string validationLevelVariableName)
+    {
+        if (_body is null)
+        {
+            return string.Empty;
+        }
+
+        return $"""
+                {validationContextVariableName} = {propertyName}{(Body.Required ? "" : "?")}.Validate(
+                    {validationContextVariableName}, 
+                    {validationLevelVariableName}){(Body.Required ? "" : $" ?? {validationContextVariableName}")};
                 """;
     }
 
@@ -82,6 +97,22 @@ internal sealed class RequestBodyGenerator
                                 """)}}
                                 default:
                                     throw new BadHttpRequestException($"Request body does not support content type {requestContentType}");
+                        }
+                    }
+                    
+                    internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel)
+                    {
+                        switch (true) 
+                        {
+                            {{_contentGenerators.AggregateToString(content => 
+                                       $"""
+                                        case true when {content.PropertyName} is not null:
+                                            return {content.PropertyName}!.Value.Validate(validationContext, validationLevel);
+                                        """)}}
+                            default:
+                            {{(_body.Required ? 
+                                """throw new InvalidOperationException("Request body not set");""" :
+                                "return validationContext;")}}
                         }
                     }
                  }

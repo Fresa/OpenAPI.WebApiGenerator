@@ -1,8 +1,7 @@
 ﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpResponseExtensionsGenerator(
-    string @namespace,
-    JsonValueValidationExtensionsGenerator jsonValueValidationExtensionsGenerator)
+    string @namespace)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
@@ -69,10 +68,8 @@ internal sealed class HttpResponseExtensionsGenerator(
                 {
                     return;
                 }
-                {{{jsonValueValidationExtensionsGenerator
-                    .CreateValidateInvocation(
-                        "value", 
-                        "isRequired")}}};
+                
+                Validate(value);
         
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(headerSpecificationAsJson);
                 var serializedValue = Serialize(parameter, name, value);
@@ -82,11 +79,8 @@ internal sealed class HttpResponseExtensionsGenerator(
             internal static void WriteResponseBody<TValue>(this HttpResponse response, TValue value)
                 where TValue : struct, IJsonValue<TValue>
             {
-                var isRequired = true;
-                {{{jsonValueValidationExtensionsGenerator
-                    .CreateValidateInvocation(
-                        "value", 
-                        "isRequired")}}};
+                Validate(value);
+                
                 using var jsonWriter = new Utf8JsonWriter(response.BodyWriter);
                 value.WriteTo(jsonWriter);
             }
@@ -98,6 +92,18 @@ internal sealed class HttpResponseExtensionsGenerator(
                 var value = jsonValue.Serialize();
         
                 return parser.Serialize(JsonNode.Parse(value));
+            }
+            
+            private static void Validate<T>(T value)
+                where T : struct, IJsonValue
+            {
+                var validationContext = ValidationContext.ValidContext;
+                var validationLevel = ValidationLevel.Detailed;
+                validationContext = value.Validate(validationContext, validationLevel);
+                if (!validationContext.IsValid)
+                {
+                    throw new JsonValidationException($"Object of type {typeof(T)} is not valid", validationContext.Results);
+                }
             }
         }
         #nullable restore

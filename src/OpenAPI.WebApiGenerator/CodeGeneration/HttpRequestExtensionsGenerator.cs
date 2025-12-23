@@ -1,8 +1,7 @@
 ﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpRequestExtensionsGenerator(
-    string @namespace,
-    JsonValueValidationExtensionsGenerator jsonValueValidationExtensionsGenerator)
+    string @namespace)
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
     
@@ -68,18 +67,13 @@ internal sealed class HttpRequestExtensionsGenerator(
                 where T : struct, IJsonValue<T>
             {
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(parameterSpecificationAsJson);
-                var value = parameter switch
+                return parameter switch
                 {
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),
                     _ when TryGetValue(request, parameter, out var stringValue) =>
                         Parse<T>(parameter, stringValue),
                     _ => T.Undefined
                 };
-                 
-                return {{{jsonValueValidationExtensionsGenerator
-                    .CreateValidateInvocation(
-                        "value", 
-                        "isRequired")}}};
             }
 
             internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, 
@@ -90,12 +84,7 @@ internal sealed class HttpRequestExtensionsGenerator(
                 var document = await JsonDocument.ParseAsync(request.Body, 
                     cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
-                var value = T.FromJson(document.RootElement.Clone());
-
-                return {{{jsonValueValidationExtensionsGenerator
-                    .CreateValidateInvocation(
-                        "value", 
-                        "isRequired")}}};
+                return T.FromJson(document.RootElement.Clone());
             }
            
 
