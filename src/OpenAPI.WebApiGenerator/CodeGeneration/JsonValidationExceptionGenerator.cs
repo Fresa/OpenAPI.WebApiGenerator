@@ -3,6 +3,13 @@
 internal sealed class JsonValidationExceptionGenerator(string @namespace)
 {
     private const string ClassName = "JsonValidationException";
+    internal string CreateThrowJsonValidationExceptionInvocation(
+        string message, 
+        string validationResultVariableName)
+    {
+        return
+            $"""throw new {@namespace}.{ClassName}("{message}", {validationResultVariableName})""";
+    }
     internal SourceCode GenerateJsonValidationExceptionClass() =>
         new($"{ClassName}.g.cs",
         $$"""

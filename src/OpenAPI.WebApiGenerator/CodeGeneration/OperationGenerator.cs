@@ -6,7 +6,8 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class OperationGenerator(Compilation compilation)
+internal sealed class OperationGenerator(Compilation compilation,
+    JsonValidationExceptionGenerator jsonValidationExceptionGenerator)
 {
     private readonly List<(string Namespace, string Path)> _missingHandlers = [];
 
@@ -14,7 +15,9 @@ internal sealed class OperationGenerator(Compilation compilation)
     {
         var endpointSource =
             $$"""
+              using Corvus.Json;
               using Microsoft.AspNetCore.Mvc;
+              using System.Collections.Immutable;
               using System.Threading;
 
               namespace {{@namespace}};
@@ -26,6 +29,9 @@ internal sealed class OperationGenerator(Compilation compilation)
 
                 {{HandleMethodSignature}};
                 
+                private Func<ImmutableList<ValidationResult>, Response> HandleValidationError { get; } = validationResult => 
+                    {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
+                
                 internal static async Task HandleAsync(
                     HttpContext context, 
                     [FromServices] Operation operation, 
@@ -33,6 +39,15 @@ internal sealed class OperationGenerator(Compilation compilation)
                 {
                     var request = await Request.BindAsync(context, cancellationToken)
                         .ConfigureAwait(false);
+                    
+                    var validationContext = request.Validate(ValidationLevel.Detailed);
+                    if (!validationContext.IsValid)
+                    {
+                        operation.HandleValidationError(validationContext.Results)
+                            .WriteTo(context.Response);
+                        return;
+                    }
+                    
                     var response = await operation.HandleAsync(request, cancellationToken)
                         .ConfigureAwait(false);
                     response.WriteTo(context.Response);

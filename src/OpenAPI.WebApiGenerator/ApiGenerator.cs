@@ -68,8 +68,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
     {
         var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
-        var endpointGenerator = new OperationGenerator(compilation);
         var rootNamespace = compilation.Assembly.Name;
+        
+        var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
+        var jsonValidationExceptionSourceCode =
+            jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass();
+        jsonValidationExceptionSourceCode.AddTo(context);
+
+        var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
 
         var openApi = generatorContext.OpenApiDocument;
         var openApiSpecAsJson = GetOpenApiSpecAsJson(openApi);
@@ -95,11 +101,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
         httpResponseExtensionSourceCode.AddTo(context);
 
-        var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
-        var jsonValidationExceptionSourceCode =
-            jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass();
-        jsonValidationExceptionSourceCode.AddTo(context);
-
+        
         var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         
         using var pathsPointer = openApiVisitor.Visit(openApi.Paths);
