@@ -17,6 +17,7 @@ using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
+using OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 using JsonPointer = Corvus.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator;
@@ -79,18 +80,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         var openApi = generatorContext.OpenApiDocument;
         var openApiSpecAsJson = GetOpenApiSpecAsJson(openApi);
-        var openApiUri = "http://test.com/test.json";
-        //var openApiSpecSource = new InMemoryAdditionalText("http://test.com/test.json", openApiSpecAsJson);
+        var openApiUri = new JsonReference("http://test.com/test.json");
         var documentResolver = new PrepopulatedDocumentResolver();
-        documentResolver.AddDocument(openApiUri, JsonDocument.Parse(openApiSpecAsJson));
-        // SourceGeneratorHelpers.BuildDocumentResolver([openApiSpecSource], context.CancellationToken);
+        var openApiDocument = JsonDocument.Parse(openApiSpecAsJson);
+        if (!documentResolver.AddDocument(openApiUri, openApiDocument))
+        {
+            throw new InvalidOperationException("Could not add OpenApi document");
+        }
         var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
-        var openApiVisitor = OpenApiPointerVisitor.V3(JsonNode.Parse(openApiSpecAsJson) ??
-                                 throw new InvalidOperationException("OpenApi spec is empty"));
+        var openApiVisitor = OpenApiJsonPointerResolver.V2(openApiUri, openApiDocument);
 
-        // var visit = new OpenApiWalker(new OpenApiJsonPointerVisitor());
-        // visit.Walk(openApi);
-        
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
         var httpRequestExtensionSourceCode =
             httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
@@ -101,35 +100,25 @@ public sealed class ApiGenerator : IIncrementalGenerator
             httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
         httpResponseExtensionSourceCode.AddTo(context);
 
-        
         var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         
-        using var pathsPointer = openApiVisitor.Visit(openApi.Paths);
         foreach (var path in openApi.Paths)
         {
-            using var pathPointer = openApiVisitor.Visit(path);
+            var pathPointer = openApiVisitor.Resolve(path);
             var pathExpression = path.Key;
             var pathItem = path.Value;
             var entityType = pathExpression.ToPascalCase();
             var entityNamespace = $"{rootNamespace}.{entityType}";
             var entityDirectory = entityType;
             var parameterGenerators = new Dictionary<string, ParameterGenerator>();
-            using var parametersPointer = openApiVisitor.Visit(pathItem.Parameters);
             foreach (var (parameter, i) in (pathItem.Parameters ?? []).WithIndex())
             {
-                using var parameterPointer = openApiVisitor.Visit(parameter, i);
-                // var schema = new InMemoryAdditionalText(
-                //     $"/{entityDirectory}/{parameter.GetTypeDeclarationIdentifier()}.json",
-                //     parameter.GetSchema().SerializeToJson());
-                using var schemaPointer = openApiVisitor.VisitSchema(parameter);
+                var schemaReference = pathPointer.ResolveParameterSchemaPointer(parameter, i);
                 var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                     ns: entityNamespace,
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
-                    // location: schema.Path,
-                    location: openApiUri + "#"+  openApiVisitor.GetPointer(),
-                    // location:  openApiUri + "#/parameters/AllowTrailingDot",
+                    location: schemaReference,
                     rebaseToRootPath: false);
-                //var typeDeclaration = GenerateCode(context, generationSpecification, schema, globalOptions);
                 var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
                 parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
                     httpRequestExtensionsGenerator);
