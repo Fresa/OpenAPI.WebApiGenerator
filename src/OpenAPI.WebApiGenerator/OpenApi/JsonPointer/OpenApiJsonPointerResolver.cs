@@ -18,7 +18,7 @@ internal abstract class OpenApiJsonPointerResolver(
     public static IOpenApiJsonPointerResolver V3(JsonReference openApiReference, JsonDocument openApiSpec) => 
         new OpenApiJsonPointerResolverV3(openApiReference, openApiSpec);
     public static IOpenApiJsonPointerResolver V2(JsonReference openApiReference, JsonDocument openApiSpec) => 
-        new OpenApiJsonPointerResolverV3(openApiReference, openApiSpec);
+        new OpenApiJsonPointerResolverV2(openApiReference, openApiSpec);
 
     protected JsonPointer Resolve(IEnumerable<string> segments) =>
         Resolve(segments.ToArray());
