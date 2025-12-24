@@ -3,10 +3,8 @@ using System.Text;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
-internal readonly struct JsonPointer(params string[] segments)
+internal readonly struct JsonPointer(params string[]? segments)
 {
-    // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-    // structs have default constructors
     private string[] Segments => segments ?? [];
 
     internal JsonPointer Append(string segment)
