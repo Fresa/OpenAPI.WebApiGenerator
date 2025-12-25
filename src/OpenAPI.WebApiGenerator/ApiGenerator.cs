@@ -111,9 +111,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
             var entityNamespace = $"{rootNamespace}.{entityType}";
             var entityDirectory = entityType;
             var parameterGenerators = new Dictionary<string, ParameterGenerator>();
-            foreach (var (parameter, i) in (pathItem.Parameters ?? []).WithIndex())
+            foreach (var parameter in pathItem.Parameters ?? [])
             {
-                var schemaReference = pathPointer.GetSchemaReference(parameter, i);
+                var schemaReference = pathPointer.GetSchemaReference(parameter);
                 var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                     ns: entityNamespace,
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
@@ -127,15 +127,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
             foreach (var openApiOperation in path.Value.GetOperations())
             {
                 var operationJsonPointerResolver = pathPointer.Visit(openApiOperation.Key);
+                pathPointer.Visit(openApiOperation.Key);
                 var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
                 var operationNamespace = $"{entityNamespace}.{operationId}";
                 var operationDirectory = $"{entityDirectory}/{operationId}";
 
-                foreach (var (parameter, i) in operation.GetParameters().WithIndex())
+                foreach (var parameter in operation.GetParameters())
                 {
-                    var schemaReference = operationJsonPointerResolver.GetSchemaReference(parameter, i);
+                    var schemaReference = operationJsonPointerResolver.GetSchemaReference(parameter);
                     var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                         ns: operationNamespace,
                         typeName: Path.Combine(operationDirectory, parameter.GetTypeDeclarationIdentifier()),

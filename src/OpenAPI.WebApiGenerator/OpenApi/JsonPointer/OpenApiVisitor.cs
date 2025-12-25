@@ -31,12 +31,18 @@ internal abstract class OpenApiVisitor(
     protected bool TryVisit(IEnumerable<string> segments, out JsonPointer jsonPointer) => 
         TryVisit(segments.ToArray(), out jsonPointer);
 
+    private readonly HashSet<JsonPointer> _cache = [];
     protected bool TryVisit(string[] segments, out JsonPointer jsonPointer)
     {
         jsonPointer = Pointer;
         foreach (var segment in segments)
         {
             jsonPointer = jsonPointer.Append(segment);
+            if (_cache.Contains(jsonPointer))
+            {
+                continue;
+            }
+
             if (!JsonPointerUtilities.TryResolvePointer(Document, jsonPointer.ToString().AsSpan(), out var node))
             {
                 return false;
@@ -51,6 +57,8 @@ internal abstract class OpenApiVisitor(
                     _ => jsonPointer
                 };
             }
+
+            _cache.Add(jsonPointer);
         }
         
         return true;            

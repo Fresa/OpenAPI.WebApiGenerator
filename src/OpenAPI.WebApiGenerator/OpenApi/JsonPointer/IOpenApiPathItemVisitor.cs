@@ -6,6 +6,6 @@ namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
 internal interface IOpenApiPathItemVisitor
 {
-    public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index);
+    public JsonReference GetSchemaReference(IOpenApiParameter parameter);
     IOpenApiOperationVisitor Visit(HttpMethod parameter);
 }

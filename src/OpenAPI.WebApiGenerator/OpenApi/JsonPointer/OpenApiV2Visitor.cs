@@ -22,8 +22,8 @@ internal class OpenApiV2Visitor(JsonReference openApiReference, JsonDocument doc
     {
         private readonly ParameterVisitor _parameterVisitor = new(openApiReference, document, pointer);
         
-        public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index) => 
-            _parameterVisitor.GetSchemaReference(parameter, index);
+        public JsonReference GetSchemaReference(IOpenApiParameter parameter) => 
+            _parameterVisitor.GetSchemaReference(parameter);
 
         public IOpenApiOperationVisitor Visit(HttpMethod httpMethod) =>
             new OperationVisitor(Reference, Document, Visit(httpMethod.Method.ToLowerInvariant()));
@@ -36,8 +36,8 @@ internal class OpenApiV2Visitor(JsonReference openApiReference, JsonDocument doc
         {
             private readonly ParameterVisitor _parameterVisitor = new(openApiReference, document, pointer);
             
-            public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index) => 
-                _parameterVisitor.GetSchemaReference(parameter, index);
+            public JsonReference GetSchemaReference(IOpenApiParameter parameter) => 
+                _parameterVisitor.GetSchemaReference(parameter);
         }
     }
 
@@ -47,20 +47,47 @@ internal class OpenApiV2Visitor(JsonReference openApiReference, JsonDocument doc
         JsonPointer pointer) :
         OpenApiVisitor(openApiReference, document, pointer)
     {
-        internal JsonReference GetSchemaReference(IOpenApiParameter parameter, int index)
+        private Dictionary<(string Name, string In), JsonReference>? _cache;
+        
+        internal JsonReference GetSchemaReference(IOpenApiParameter parameter)
         {
-            string[] segments = ["parameters", index.ToString()];
-            var pointer = parameter switch
-            {
-                _ when parameter.Schema is not null => VisitSchema(),
-                _ => throw new InvalidOperationException("Parameter doesn't have a schema")
-            };
-            return new JsonReference(Reference.Uri.ToString(), pointer.ToString());
+            var name = parameter.GetName();
+            var location = parameter.GetLocation();
+            _cache ??= VisitParameters();
+            return _cache.TryGetValue((name, location), out var reference)
+                ? reference
+                : throw new InvalidOperationException("parameter doesn't exist");
+        }
 
-            JsonPointer VisitSchema() =>
-                TryVisit(segments.Append("schema"), out var schemaPointer) ? 
-                    schemaPointer : 
-                    Visit(segments);
+        private Dictionary<(string Name, string Location), JsonReference> VisitParameters()
+        {
+            var parameters = new Dictionary<(string Name, string Location), JsonReference>();
+            var parameterIndex = 0;
+            string[] segments = ["parameters", parameterIndex.ToString()];
+            while (TryVisit(segments, out var parameterPointer))
+            {
+                var parameterNameElement = JsonPointerUtilities.ResolvePointer(
+                    Document,
+                    parameterPointer.Append("name").ToString().AsSpan());
+                var parameterName = parameterNameElement.GetString() ??
+                                    throw new InvalidOperationException("parameter doesn't have a name");
+                var parameterLocationElement = JsonPointerUtilities.ResolvePointer(
+                    Document,
+                    parameterPointer.Append("in").ToString().AsSpan());
+                var parameterLocation = parameterLocationElement.GetString() ??
+                                        throw new InvalidOperationException("parameter doesn't have a location");
+
+                var pointer = TryVisit(segments.Append("schema"), out var schemaPointer)
+                    ? schemaPointer
+                    : parameterPointer;
+                
+                var schemaReference = new JsonReference(Reference.Uri.ToString(), pointer.ToString());
+                parameters.Add((parameterName, parameterLocation), schemaReference);
+                parameterIndex++;
+                segments[1] = parameterIndex.ToString();
+            }
+
+            return parameters;
         }
     }
 }
