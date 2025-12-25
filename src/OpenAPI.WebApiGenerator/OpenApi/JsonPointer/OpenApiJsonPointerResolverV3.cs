@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
 using Microsoft.OpenApi;
@@ -19,7 +20,7 @@ internal class OpenApiJsonPointerResolverV3(JsonReference openApiReference, Json
     private sealed class PathItemPointerResolver(JsonReference openApiReference, JsonDocument document, JsonPointer pointer) : 
         OpenApiJsonPointerResolver(openApiReference, document, pointer), IOpenApiPathItemJsonPointerResolver
     {
-        public JsonReference ResolveParameterSchemaPointer(IOpenApiParameter parameter, int index)
+        public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index)
         {
             string[] segments = ["parameters", index.ToString()];
             var pointer = parameter switch
@@ -33,6 +34,11 @@ internal class OpenApiJsonPointerResolverV3(JsonReference openApiReference, Json
                 _ => throw new InvalidOperationException("Parameter doesn't have a schema")
             };
             return new JsonReference(Reference.Uri.ToString(), pointer.ToString());
-        } 
+        }
+
+        public IOpenApiOperationJsonPointerResolver Resolve(HttpMethod parameter)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

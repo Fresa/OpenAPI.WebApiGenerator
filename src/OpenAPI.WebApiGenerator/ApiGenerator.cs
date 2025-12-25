@@ -113,7 +113,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             var parameterGenerators = new Dictionary<string, ParameterGenerator>();
             foreach (var (parameter, i) in (pathItem.Parameters ?? []).WithIndex())
             {
-                var schemaReference = pathPointer.ResolveParameterSchemaPointer(parameter, i);
+                var schemaReference = pathPointer.GetSchemaReference(parameter, i);
                 var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                     ns: entityNamespace,
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
@@ -126,25 +126,23 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
             foreach (var openApiOperation in path.Value.GetOperations())
             {
+                var operationJsonPointerResolver = pathPointer.Resolve(openApiOperation.Key);
                 var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
                 var operationNamespace = $"{entityNamespace}.{operationId}";
                 var operationDirectory = $"{entityDirectory}/{operationId}";
 
-                foreach (var parameter in operation.GetParameters())
+                foreach (var (parameter, i) in operation.GetParameters().WithIndex())
                 {
-                    var schema = new InMemoryAdditionalText(
-                        $"/{operationDirectory}/{parameter.GetTypeDeclarationIdentifier()}.json",
-                        parameter.GetSchema().SerializeToJson());
-
+                    var schemaReference = operationJsonPointerResolver.GetSchemaReference(parameter, i);
                     var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                         ns: operationNamespace,
                         typeName: Path.Combine(operationDirectory, parameter.GetTypeDeclarationIdentifier()),
-                        location: schema.Path,
+                        location: schemaReference,
                         rebaseToRootPath: false);
 
-                    var typeDeclaration = GenerateCode(context, generationSpecification, schema, globalOptions);
+                    var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
                     parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
                         httpRequestExtensionsGenerator);
                 }
