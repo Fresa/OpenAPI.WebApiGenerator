@@ -88,7 +88,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             throw new InvalidOperationException("Could not add OpenApi document");
         }
         var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
-        var openApiVisitor = OpenApiJsonPointerResolver.V2(openApiUri, openApiDocument);
+        var openApiVisitor = OpenApiVisitor.V2(openApiUri, openApiDocument);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
         var httpRequestExtensionSourceCode =
@@ -104,7 +104,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         
         foreach (var path in openApi.Paths)
         {
-            var pathPointer = openApiVisitor.Resolve(path);
+            var pathPointer = openApiVisitor.Visit(path);
             var pathExpression = path.Key;
             var pathItem = path.Value;
             var entityType = pathExpression.ToPascalCase();
@@ -126,7 +126,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
             foreach (var openApiOperation in path.Value.GetOperations())
             {
-                var operationJsonPointerResolver = pathPointer.Resolve(openApiOperation.Key);
+                var operationJsonPointerResolver = pathPointer.Visit(openApiOperation.Key);
                 var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();

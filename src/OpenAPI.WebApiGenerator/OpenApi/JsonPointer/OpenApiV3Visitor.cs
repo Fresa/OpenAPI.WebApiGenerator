@@ -8,26 +8,26 @@ using Microsoft.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
-internal class OpenApiJsonPointerResolverV3(JsonReference openApiReference, JsonDocument document) : 
-    OpenApiJsonPointerResolver(openApiReference, document, default), IOpenApiJsonPointerResolver
+internal class OpenApiV3Visitor(JsonReference openApiReference, JsonDocument document) : 
+    OpenApiVisitor(openApiReference, document, default), IOpenApiVisitor
 {
-    public IOpenApiPathItemJsonPointerResolver Resolve(KeyValuePair<string, IOpenApiPathItem> path) => 
-        new PathItemPointerResolver(
+    public IOpenApiPathItemVisitor Visit(KeyValuePair<string, IOpenApiPathItem> path) => 
+        new PathItemVisitor(
             Reference,
             Document, 
-            Resolve("paths", path.Key));
+            Visit("paths", path.Key));
     
-    private sealed class PathItemPointerResolver(JsonReference openApiReference, JsonDocument document, JsonPointer pointer) : 
-        OpenApiJsonPointerResolver(openApiReference, document, pointer), IOpenApiPathItemJsonPointerResolver
+    private sealed class PathItemVisitor(JsonReference openApiReference, JsonDocument document, JsonPointer pointer) : 
+        OpenApiVisitor(openApiReference, document, pointer), IOpenApiPathItemVisitor
     {
         public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index)
         {
             string[] segments = ["parameters", index.ToString()];
             var pointer = parameter switch
             {
-                _ when parameter.Schema is not null => Resolve(segments
+                _ when parameter.Schema is not null => Visit(segments
                     .Append("schema")),
-                _ when parameter.Content is not null => Resolve(segments
+                _ when parameter.Content is not null => Visit(segments
                     .Append("content")
                     .Append(parameter.Content.Single().Key)
                     .Append("schema")),
@@ -36,7 +36,7 @@ internal class OpenApiJsonPointerResolverV3(JsonReference openApiReference, Json
             return new JsonReference(Reference.Uri.ToString(), pointer.ToString());
         }
 
-        public IOpenApiOperationJsonPointerResolver Resolve(HttpMethod parameter)
+        public IOpenApiOperationVisitor Visit(HttpMethod parameter)
         {
             throw new NotImplementedException();
         }

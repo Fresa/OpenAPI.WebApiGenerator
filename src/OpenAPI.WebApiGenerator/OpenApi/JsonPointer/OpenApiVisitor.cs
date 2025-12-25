@@ -6,7 +6,7 @@ using Corvus.Json;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
-internal abstract class OpenApiJsonPointerResolver(
+internal abstract class OpenApiVisitor(
     JsonReference openApiReference,
     JsonDocument document,
     JsonPointer pointer)
@@ -15,23 +15,23 @@ internal abstract class OpenApiJsonPointerResolver(
     private JsonPointer Pointer { get; } = pointer;
     protected JsonDocument Document { get; } = document;
 
-    public static IOpenApiJsonPointerResolver V3(JsonReference openApiReference, JsonDocument openApiSpec) => 
-        new OpenApiJsonPointerResolverV3(openApiReference, openApiSpec);
-    public static IOpenApiJsonPointerResolver V2(JsonReference openApiReference, JsonDocument openApiSpec) => 
-        new OpenApiJsonPointerResolverV2(openApiReference, openApiSpec);
+    public static IOpenApiVisitor V3(JsonReference openApiReference, JsonDocument openApiSpec) => 
+        new OpenApiV3Visitor(openApiReference, openApiSpec);
+    public static IOpenApiVisitor V2(JsonReference openApiReference, JsonDocument openApiSpec) => 
+        new OpenApiV2Visitor(openApiReference, openApiSpec);
 
-    protected JsonPointer Resolve(IEnumerable<string> segments) =>
-        Resolve(segments.ToArray());
+    protected JsonPointer Visit(IEnumerable<string> segments) =>
+        Visit(segments.ToArray());
     
-    protected JsonPointer Resolve(params string[] segments) =>
-        TryResolve(segments, out var jsonPointer)
+    protected JsonPointer Visit(params string[] segments) =>
+        TryVisit(segments, out var jsonPointer)
             ? jsonPointer
             : throw new InvalidOperationException($"{jsonPointer} doesn't exist in openapi document");
 
-    protected bool TryResolve(IEnumerable<string> segments, out JsonPointer jsonPointer) => 
-        TryResolve(segments.ToArray(), out jsonPointer);
+    protected bool TryVisit(IEnumerable<string> segments, out JsonPointer jsonPointer) => 
+        TryVisit(segments.ToArray(), out jsonPointer);
 
-    protected bool TryResolve(string[] segments, out JsonPointer jsonPointer)
+    protected bool TryVisit(string[] segments, out JsonPointer jsonPointer)
     {
         jsonPointer = Pointer;
         foreach (var segment in segments)

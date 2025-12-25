@@ -4,8 +4,8 @@ using Microsoft.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
-internal interface IOpenApiPathItemJsonPointerResolver
+internal interface IOpenApiPathItemVisitor
 {
     public JsonReference GetSchemaReference(IOpenApiParameter parameter, int index);
-    IOpenApiOperationJsonPointerResolver Resolve(HttpMethod parameter);
+    IOpenApiOperationVisitor Visit(HttpMethod parameter);
 }
