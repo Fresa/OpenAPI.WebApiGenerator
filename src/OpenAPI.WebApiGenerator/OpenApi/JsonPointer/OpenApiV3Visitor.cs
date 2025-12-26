@@ -2,28 +2,65 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
 using Corvus.Json;
 using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
-internal class OpenApiV3Visitor(JsonReference openApiReference, JsonDocument document) : 
-    OpenApiVisitor(openApiReference, document, default), IOpenApiVisitor
+internal sealed class OpenApiV3Visitor : 
+    OpenApiVisitor<OpenApiDocument>, IOpenApiVisitor
 {
-    public IOpenApiPathItemVisitor Visit(KeyValuePair<string, IOpenApiPathItem> path) => 
-        new PathItemVisitor(
-            Reference,
-            Document, 
-            Visit("paths", path.Key));
-    
-    private sealed class PathItemVisitor(JsonReference openApiReference, JsonDocument document, JsonPointer pointer) : 
-        OpenApiVisitor(openApiReference, document, pointer), IOpenApiPathItemVisitor
+    private OpenApiV3Visitor(OpenApiReference<OpenApiDocument> openApiReference) : base(openApiReference)
     {
-        private readonly ParameterVisitor _parameterVisitor = new(openApiReference, document, pointer);
-        
+        VisitPathItems();
+    }
+
+    private readonly Dictionary<IOpenApiPathItem, JsonReference> _pathItems = new ();
+    
+    internal static OpenApiV3Visitor Visit(OpenApiReference<OpenApiDocument> openApiReference) => 
+        new(openApiReference);
+
+    private void VisitPathItems()
+    {
+        foreach (var path in OpenApiDocument.Paths)
+        {
+            var pointer = Visit("paths", path.Key);
+            _pathItems.Add(path.Value, new JsonReference(Reference.Uri, pointer.ToString().AsSpan()));
+        }
+    }
+    
+    public IOpenApiPathItemVisitor Visit(IOpenApiPathItem pathItem) => 
+        PathItemVisitor.Visit(new OpenApiReference<IOpenApiPathItem>(pathItem, Document, _pathItems[pathItem]));
+
+    private sealed class PathItemVisitor : 
+        OpenApiVisitor<IOpenApiPathItem>, IOpenApiPathItemVisitor
+    {
+        private readonly Dictionary<IOpenApiParameter, ParameterVisitor> _parameterVisitors = new();
+
+        private PathItemVisitor(OpenApiReference<IOpenApiPathItem> openApiReference) : base(openApiReference)
+        {
+            VisitParameters();
+        }
+
         public JsonReference GetSchemaReference(IOpenApiParameter parameter) => 
-            _parameterVisitor.GetSchemaReference(parameter);
+            _parameterVisitors[parameter].Reference;
+
+        private void VisitParameters()
+        {
+            foreach (var (parameter, i) in (OpenApiDocument.Parameters ?? []).WithIndex())
+            {
+                var parameterPointer = Visit("parameters", i.ToString());
+                var parameterReference = new JsonReference(Reference.Uri, parameterPointer.ToString().AsSpan());
+                _parameterVisitors.Add(parameter, ParameterVisitor.Visit(new OpenApiReference<IOpenApiParameter>(
+                    parameter,
+                    Document,
+                    parameterReference)));
+            }
+        }
+
+        internal static PathItemVisitor Visit(OpenApiReference<IOpenApiPathItem> openApiReference) => 
+            new(openApiReference);
 
         public IOpenApiOperationVisitor Visit(HttpMethod parameter)
         {
@@ -31,63 +68,30 @@ internal class OpenApiV3Visitor(JsonReference openApiReference, JsonDocument doc
         }
     }
     
-    private sealed class ParameterVisitor(
-        JsonReference openApiReference,
-        JsonDocument document,
-        JsonPointer pointer) :
-        OpenApiVisitor(openApiReference, document, pointer)
+    private sealed class ParameterVisitor :
+        OpenApiVisitor<IOpenApiParameter>
     {
-        private Dictionary<(string Name, string In), JsonReference>? _cache;
-        
-        internal JsonReference GetSchemaReference(IOpenApiParameter parameter)
+        internal JsonReference SchemaReference { get; }
+
+        private ParameterVisitor(OpenApiReference<IOpenApiParameter> openApiReference) : base(openApiReference)
         {
-            var name = parameter.GetName();
-            var location = parameter.GetLocation();
-            _cache ??= VisitParameters();
-            return _cache.TryGetValue((name, location), out var reference)
-                ? reference
-                : throw new InvalidOperationException("parameter doesn't exist");
+            SchemaReference = VisitSchema();
         }
 
-        private Dictionary<(string Name, string Location), JsonReference> VisitParameters()
+        internal static ParameterVisitor Visit(OpenApiReference<IOpenApiParameter> reference) => new(reference);
+
+        private JsonReference VisitSchema()
         {
-            var parameters = new Dictionary<(string Name, string Location), JsonReference>();
-            var parameterIndex = 0;
-            string[] segments = ["parameters", parameterIndex.ToString()];
-            while (TryVisit(segments, out var parameterPointer))
+            if (!TryVisit(["schema"], out var schemaPointer))
             {
-                var parameterNameElement = JsonPointerUtilities.ResolvePointer(
-                    Document,
-                    parameterPointer.Append("name").ToString().AsSpan());
-                var parameterName = parameterNameElement.GetString() ??
-                                    throw new InvalidOperationException("parameter doesn't have a name");
-                var parameterLocationElement = JsonPointerUtilities.ResolvePointer(
-                    Document,
-                    parameterPointer.Append("in").ToString().AsSpan());
-                var parameterLocation = parameterLocationElement.GetString() ??
-                                        throw new InvalidOperationException("parameter doesn't have a location");
-
-                if (!TryVisit(segments.Append("schema"), out var pointer))
-                {
-                    var contentPointer = Visit(segments
-                        .Append("content"));
-                    var content = JsonPointerUtilities.ResolvePointer(
-                        Document, 
-                        contentPointer.ToString().AsSpan());
-                    var contentName = content.EnumerateObject().First().Name;
-                    pointer = Visit(segments
-                        .Append("content")
-                        .Append(contentName)
-                        .Append("schema"));
-                }
-                
-                var schemaReference = new JsonReference(Reference.Uri.ToString(), pointer.ToString());
-                parameters.Add((parameterName, parameterLocation), schemaReference);
-                parameterIndex++;
-                segments[1] = parameterIndex.ToString();
-            }
-
-            return parameters;
+                schemaPointer = Visit(
+                    "content",
+                    OpenApiDocument.Content?.Single().Key ??
+                    throw new InvalidOperationException("Parameter doesn't contain a schema"),
+                    "schema");
+            } 
+            
+            return new JsonReference(Reference.Uri, schemaPointer.ToString().AsSpan());
         }
     }
 }

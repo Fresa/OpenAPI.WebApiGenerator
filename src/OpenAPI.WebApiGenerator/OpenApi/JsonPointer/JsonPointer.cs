@@ -1,11 +1,23 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using Corvus.Json;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 
 internal readonly struct JsonPointer(params string[]? segments) : IEquatable<JsonPointer>
 {
+    internal static JsonPointer ParseFrom(JsonReference jsonReference) => 
+        ParseFrom(jsonReference.Fragment.ToString());
+
+    internal static JsonPointer ParseFrom(string pointer)
+    {
+        var segments = pointer.TrimStart('#')
+            .Split(['/'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(Decode);
+        return new JsonPointer(segments.ToArray());
+    }
+    
     private string[] Segments => segments ?? [];
 
     internal JsonPointer Append(string segment)
@@ -21,6 +33,8 @@ internal readonly struct JsonPointer(params string[]? segments) : IEquatable<Jso
 
     private static string Encode(string segment) => 
         segment.Replace("~", "~0").Replace("/", "~1");
+    private static string Decode(string segment) => 
+        segment.Replace("~0", "~").Replace("~1", "/");
 
     private readonly int _hashCode = GenerateHashCode(segments ?? []);
 

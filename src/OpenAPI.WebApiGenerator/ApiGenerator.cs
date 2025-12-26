@@ -88,7 +88,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
             throw new InvalidOperationException("Could not add OpenApi document");
         }
         var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
-        var openApiVisitor = OpenApiVisitor.V2(openApiUri, openApiDocument);
+        var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
+        var openApiVisitor = OpenApiVisitor.V2(openApiReference);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
         var httpRequestExtensionSourceCode =
@@ -104,16 +105,16 @@ public sealed class ApiGenerator : IIncrementalGenerator
         
         foreach (var path in openApi.Paths)
         {
-            var pathPointer = openApiVisitor.Visit(path);
             var pathExpression = path.Key;
             var pathItem = path.Value;
+            var openApiPathVisitor = openApiVisitor.Visit(pathItem);
             var entityType = pathExpression.ToPascalCase();
             var entityNamespace = $"{rootNamespace}.{entityType}";
             var entityDirectory = entityType;
             var parameterGenerators = new Dictionary<string, ParameterGenerator>();
             foreach (var parameter in pathItem.Parameters ?? [])
             {
-                var schemaReference = pathPointer.GetSchemaReference(parameter);
+                var schemaReference = openApiPathVisitor.GetSchemaReference(parameter);
                 var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                     ns: entityNamespace,
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
@@ -126,8 +127,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
             foreach (var openApiOperation in path.Value.GetOperations())
             {
-                var operationJsonPointerResolver = pathPointer.Visit(openApiOperation.Key);
-                pathPointer.Visit(openApiOperation.Key);
+                var openApiOperationVisitor = openApiPathVisitor.Visit(openApiOperation.Key);
                 var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
@@ -136,7 +136,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
                 foreach (var parameter in operation.GetParameters())
                 {
-                    var schemaReference = operationJsonPointerResolver.GetSchemaReference(parameter);
+                    var schemaReference = openApiOperationVisitor.GetSchemaReference(parameter);
                     var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                         ns: operationNamespace,
                         typeName: Path.Combine(operationDirectory, parameter.GetTypeDeclarationIdentifier()),
