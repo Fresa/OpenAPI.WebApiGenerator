@@ -22,12 +22,8 @@ internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseB
                 {
                     {{Enumerable.Range(1, 5).AggregateToString(i => 
                         $$"""
-                          protected int Validate{{i}}xxStatusCode(int code)
-                          {
-                              if (code >= {{i}}00 && code <= {{i}}99)
-                                  return code;
-                              throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");
-                          }
+                          protected int Validate{{i}}xxStatusCode(int code) 
+                            => (code >= {{i}}00 && code <= {{i}}99) ? code : throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");
                           """)}}
                     
                     internal abstract void WriteTo(HttpResponse httpResponse);

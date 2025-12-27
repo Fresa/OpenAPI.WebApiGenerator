@@ -51,18 +51,28 @@ internal sealed class ResponseContentGenerator
         var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
         const string responseVariableName = "httpResponse";
         const string contentTypeFieldName = "_contentType";
-        const string statusCodeFieldName = "_statusCode";
+        
+        var hasExplicitStatusCode = int.TryParse(_responseStatusCodePattern, out _);
+        var hasDefaultStatusCode = _responseStatusCodePattern == "default";
+        var needsStatusCodeValidation = !hasExplicitStatusCode && !hasDefaultStatusCode;
+
         return 
             $$"""
             internal sealed class {{_responseClassName}} : Response
             {
                 private string {{contentTypeFieldName}} = string.Empty;
-                private int {{statusCodeFieldName}};
                 {{_contentGenerators.AggregateToString(generator =>
-                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName, statusCodeFieldName))}}
+                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
                 
                 {{_contentGenerators.AggregateToString(generator => 
                     generator.GenerateContentProperty())}}
+                
+                private int _statusCode{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}; 
+                internal int StatusCode
+                { 
+                    get => _statusCode;{{(hasExplicitStatusCode ? "" : 
+                    $"init => _statusCode = {(needsStatusCodeValidation ? $"Validate{_responseStatusCodePattern.First()}xxStatusCode(value)" : "value")};")}}
+                }
                 
                 {{(anyHeaders ? 
                 $$"""
@@ -93,6 +103,7 @@ internal sealed class ResponseContentGenerator
                     }
                     
                     {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
+                    {{responseVariableName}}.StatusCode = StatusCode;
                     {{_headerGenerators.AggregateToString(generator =>
                         generator.GenerateWriteDirective(responseVariableName))}}
                 }
