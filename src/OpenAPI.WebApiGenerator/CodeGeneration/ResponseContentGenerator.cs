@@ -12,11 +12,13 @@ internal sealed class ResponseContentGenerator
     private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
     private readonly HttpResponseExtensionsGenerator _httpResponseExtensionsGenerator;
     private readonly string _responseClassName;
+    private readonly string _responseStatusCodePattern;
 
     private ResponseContentGenerator(string statusCodePattern,
         HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
     {
         _httpResponseExtensionsGenerator = httpResponseExtensionsGenerator;
+        _responseStatusCodePattern = statusCodePattern;
         var classNamePrefix = Enum.TryParse<HttpStatusCode>(statusCodePattern, out var statusCode)
             ? statusCode.ToString()
             : statusCodePattern.First() switch
@@ -49,13 +51,15 @@ internal sealed class ResponseContentGenerator
         var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
         const string responseVariableName = "httpResponse";
         const string contentTypeFieldName = "_contentType";
+        const string statusCodeFieldName = "_statusCode";
         return 
             $$"""
             internal sealed class {{_responseClassName}} : Response
             {
                 private string {{contentTypeFieldName}} = string.Empty;
+                private int {{statusCodeFieldName}};
                 {{_contentGenerators.AggregateToString(generator =>
-                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
+                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName, statusCodeFieldName))}}
                 
                 {{_contentGenerators.AggregateToString(generator => 
                     generator.GenerateContentProperty())}}
