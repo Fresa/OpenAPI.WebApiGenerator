@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -146,5 +147,70 @@ public class ApiGeneratorTests
             .ToArray();
 
         generatedFiles.Should().HaveCountGreaterThan(0);
+    }
+
+    [Fact]
+    public void NoResponseContent_Generating_DefaultResponseConstructor()
+    {
+        const string openApiSpec =
+"""
+{
+  "swagger": "2.0",
+  "paths": {
+    "/foo": {
+      "delete": {
+        "operationId": "Delete",
+        "responses": {
+          "202": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}
+""";
+        var compilation = SetupGenerator(openApiSpec, 
+            out var diagnostics);
+        HasOnlyMissingHandler(diagnostics);
+        compilation.SyntaxTrees.Should().HaveCountGreaterThan(0);
+        var responseType = compilation.GetSymbolsWithName("Accepted202", cancellationToken: Cancellation)
+            .OfType<INamedTypeSymbol>()
+            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{compilation.AssemblyName}.Foo.Delete")
+            .Should().HaveCount(1).And.Subject.First();
+        responseType.Constructors.Should().HaveCount(1)
+            .And.Subject.First()
+            .Parameters.Should().HaveCount(0);
+    }
+
+    private void HasOnlyMissingHandler(ImmutableArray<Diagnostic> diagnostics)
+    {
+        diagnostics.Should().AllSatisfy(diagnostic =>
+        {
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Id.Should().Be("AF1001", diagnostic.GetMessage());
+        });
+    }
+    
+    private Compilation SetupGenerator(string openApiSpec, out ImmutableArray<Diagnostic> diagnostics)
+    {
+        var generator = new ApiGenerator();
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+
+        driver = driver.AddAdditionalTexts(
+            [
+                new InMemoryAdditionalText("openapi.json",
+                    openApiSpec)
+            ]
+        );
+
+        const string assemblyName = nameof(ApiGeneratorTests);
+        var compilation = CSharpCompilation.Create(assemblyName,
+            options: new CSharpCompilationOptions(outputKind: OutputKind.DynamicallyLinkedLibrary));
+
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out diagnostics,
+            Cancellation);
+        return newCompilation;
     }
 }

@@ -60,7 +60,7 @@ internal sealed class ResponseContentGenerator
             $$"""
             internal sealed class {{_responseClassName}} : Response
             {
-                private string {{contentTypeFieldName}} = string.Empty;
+                private string? {{contentTypeFieldName}};
                 {{_contentGenerators.AggregateToString(generator =>
                     generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
                 

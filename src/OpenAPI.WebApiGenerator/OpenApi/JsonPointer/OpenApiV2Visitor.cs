@@ -89,10 +89,12 @@ internal sealed class OpenApiV2Visitor :
         {
             private Dictionary<IOpenApiParameter, JsonReference> _parameterSchemaReferences = new();
             private JsonReference? _bodySchemaReference;
+            private Dictionary<IOpenApiResponse, IOpenApiResponseVisitor> _responseVisitors = new();
             
             private OperationVisitor(OpenApiReference<OpenApiOperation> openApiReference) : base(openApiReference)
             {
                 VisitParameters();
+                VisitResponses();
             }
             
             private void VisitParameters()
@@ -111,6 +113,19 @@ internal sealed class OpenApiV2Visitor :
                 _bodySchemaReference = parametersVisitor.BodySchema;
             }
 
+            private void VisitResponses()
+            {
+                foreach (var response in OpenApiDocument.Responses ?? [])
+                {
+                    var responsePointer = Visit("responses", response.Key);
+                    var responseReference = new JsonReference(Reference.Uri, responsePointer.ToString().AsSpan());
+                    var responseVisitor =
+                        ResponseVisitor.Visit(
+                            new OpenApiReference<IOpenApiResponse>(response.Value, Document, responseReference));
+                    _responseVisitors.Add(response.Value, responseVisitor);
+                }
+            }
+            
             internal static OperationVisitor Visit(
                 OpenApiReference<OpenApiOperation> openApiReference) =>
                 new(openApiReference);
@@ -120,7 +135,37 @@ internal sealed class OpenApiV2Visitor :
 
             public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent) => 
                 _bodySchemaReference ?? throw new InvalidOperationException("Operation doesn't define a body");
+
+            public IOpenApiResponseVisitor Visit(IOpenApiResponse response) => 
+                _responseVisitors[response];
         }
+    }
+
+    private sealed class ResponseVisitor :
+        OpenApiVisitor<IOpenApiResponse>, IOpenApiResponseVisitor
+    {
+        private ResponseVisitor(OpenApiReference<IOpenApiResponse> openApiReference) : base(openApiReference)
+        {
+            VisitContent();
+        }
+
+        private JsonReference? _schemaReference;
+
+        internal static ResponseVisitor Visit(OpenApiReference<IOpenApiResponse> openApiReference) =>
+            new(openApiReference);
+
+        private void VisitContent()
+        {
+            if (TryVisit(["schema"], out var schemaPointer))
+            {
+                _schemaReference = new JsonReference(Reference.Uri, schemaPointer.ToString().AsSpan());
+            }
+        }
+
+        public JsonReference GetSchemaReference(OpenApiMediaType mediaType) => 
+            _schemaReference ?? throw new InvalidOperationException("Response has no content defined");
+
+        public bool HasContent() => _schemaReference != null;
     }
 
     private sealed class ParametersVisitor : 

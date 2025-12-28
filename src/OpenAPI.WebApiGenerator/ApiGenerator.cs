@@ -183,36 +183,33 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
                 var responseContentNamespace = operationNamespace + ".Responses";
                 var responseContentDirectory = Path.Combine(operationDirectory, "Responses");
-                var responses = operation.Responses ?? new OpenApiResponses
-                {
-                    ["default"] = new OpenApiResponse()
-                };
+                var responses = operation.Responses ??
+                                throw new InvalidOperationException(
+                                    $"No responses defined for operation {operationId}");
                 var responseBodyGenerators = responses.Select(pair =>
                 {
                     var response = pair.Value;
                     var responseStatusCodePattern = pair.Key.ToPascalCase();
-
-                    var responseContent = response.Content ?? new Dictionary<string, OpenApiMediaType>
-                    {
-                        // Any content
-                        ["*/*"] = new()
-                    };
+                    var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
+                    var responseContent =
+                        // OpenAPI.NET is incorrectly adding content when there is none defined. 
+                        // No content definition means NO content.
+                        (openApiResponseVisitor.HasContent() ? response.Content : null) ??
+                        new Dictionary<string, OpenApiMediaType>();
                     var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;
                         var contentType = valuePair.Key.ToPascalCase();
-                        var schema = new InMemoryAdditionalText(
-                            $"/{responseContentDirectory}/{responseStatusCodePattern}/{contentType}.json",
-                            content.Schema.SerializeToJson());
-
+                        var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(content);
+                        
                         var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                             ns: $"{responseContentNamespace}._{responseStatusCodePattern}",
                             typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern,
                                 contentType),
-                            location: schema.Path,
+                            location: contentSchemaReference,
                             rebaseToRootPath: false);
 
-                        var typeDeclaration = GenerateCode(context, contentSpecification, schema, globalOptions);
+                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext, globalOptions);
                         return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
                     }).ToList();
 
