@@ -6,4 +6,5 @@ namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
 internal interface IOpenApiOperationVisitor
 {
     public JsonReference GetSchemaReference(IOpenApiParameter parameter);
+    public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent);
 }

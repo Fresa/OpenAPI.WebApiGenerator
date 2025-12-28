@@ -155,18 +155,15 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     {
                         var requestBodyContent = pair.Value;
                         var bodyTypeDeclarationIdentifier = pair.Key.ToPascalCase();
-
-                        var schema = new InMemoryAdditionalText(
-                            $"/{requestBodyDirectory}/{bodyTypeDeclarationIdentifier}.json",
-                            requestBodyContent.Schema.SerializeToJson());
-
+                        var schemaReference = openApiOperationVisitor.GetSchemaReference(requestBodyContent);
+                        
                         var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                             ns: requestBodyNamespace,
                             typeName: Path.Combine(requestBodyDirectory, bodyTypeDeclarationIdentifier),
-                            location: schema.Path,
+                            location: schemaReference,
                             rebaseToRootPath: false);
 
-                        var typeDeclaration = GenerateCode(context, contentSpecification, schema, globalOptions);
+                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext, globalOptions);
                         return new RequestBodyContentGenerator(
                             pair.Key,
                             typeDeclaration,

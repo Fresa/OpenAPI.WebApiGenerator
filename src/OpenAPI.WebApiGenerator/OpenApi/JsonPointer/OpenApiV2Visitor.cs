@@ -87,7 +87,8 @@ internal sealed class OpenApiV2Visitor :
         private sealed class OperationVisitor :
             OpenApiVisitor<OpenApiOperation>, IOpenApiOperationVisitor
         {
-            private Dictionary<IOpenApiParameter, JsonReference> _parameterSchamaReferences = new();
+            private Dictionary<IOpenApiParameter, JsonReference> _parameterSchemaReferences = new();
+            private JsonReference? _bodySchemaReference;
             
             private OperationVisitor(OpenApiReference<OpenApiOperation> openApiReference) : base(openApiReference)
             {
@@ -106,7 +107,8 @@ internal sealed class OpenApiV2Visitor :
                         OpenApiDocument.Parameters,
                         Document,
                         new JsonReference(Reference.Uri, parametersPointer.ToString().AsSpan())));
-                _parameterSchamaReferences = parametersVisitor.Schemas;
+                _parameterSchemaReferences = parametersVisitor.Schemas;
+                _bodySchemaReference = parametersVisitor.BodySchema;
             }
 
             internal static OperationVisitor Visit(
@@ -114,7 +116,10 @@ internal sealed class OpenApiV2Visitor :
                 new(openApiReference);
 
             public JsonReference GetSchemaReference(IOpenApiParameter parameter) =>
-                _parameterSchamaReferences[parameter];
+                _parameterSchemaReferences[parameter];
+
+            public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent) => 
+                _bodySchemaReference ?? throw new InvalidOperationException("Operation doesn't define a body");
         }
     }
 
@@ -127,6 +132,7 @@ internal sealed class OpenApiV2Visitor :
         }
 
         internal Dictionary<IOpenApiParameter, JsonReference> Schemas { get; } = new();
+        internal JsonReference? BodySchema { get; private set; }
         
         internal static ParametersVisitor Visit(OpenApiReference<IList<IOpenApiParameter>> openApiReference) => 
             new(openApiReference);
@@ -155,6 +161,11 @@ internal sealed class OpenApiV2Visitor :
 
                 parameters.Add((parameterName, parameterLocation),
                     new JsonReference(Reference.Uri, schemaPointer.ToString().AsSpan()));
+                if (parameterLocation == "body")
+                {
+                    BodySchema = parameters[(parameterName, parameterLocation)];
+                }
+                
                 parameterIndex++;
             }
 
