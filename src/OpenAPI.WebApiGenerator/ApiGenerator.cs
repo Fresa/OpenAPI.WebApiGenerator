@@ -108,7 +108,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             var entityType = pathExpression.ToPascalCase();
             var entityNamespace = $"{rootNamespace}.{entityType}";
             var entityDirectory = entityType;
-            var parameterGenerators = new Dictionary<string, ParameterGenerator>();
+            var pathParameterGenerators = new Dictionary<string, ParameterGenerator>();
             foreach (var parameter in pathItem.Parameters ?? [])
             {
                 var schemaReference = openApiPathVisitor.GetSchemaReference(parameter);
@@ -118,7 +118,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     location: schemaReference,
                     rebaseToRootPath: false);
                 var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
-                parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
+                pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                     httpRequestExtensionsGenerator);
             }
 
@@ -130,6 +130,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
                 var operationNamespace = $"{entityNamespace}.{operationId}";
                 var operationDirectory = $"{entityDirectory}/{operationId}";
+                var operationParameterGenerators = new Dictionary<string, ParameterGenerator>(pathParameterGenerators);
 
                 foreach (var parameter in operation.GetParameters())
                 {
@@ -141,7 +142,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         rebaseToRootPath: false);
 
                     var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
-                    parameterGenerators[parameter.GetName()] = new ParameterGenerator(typeDeclaration, parameter,
+                    operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                         httpRequestExtensionsGenerator);
                 }
 
@@ -175,7 +176,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 }
 
                 var requestGenerator =
-                    new RequestGenerator(parameterGenerators.Values.ToList(), requestBodyGenerator);
+                    new RequestGenerator(operationParameterGenerators.Values.ToList(), requestBodyGenerator);
                 var requestSourceCode = requestGenerator.GenerateRequestClass(
                     operationNamespace,
                     operationDirectory);
