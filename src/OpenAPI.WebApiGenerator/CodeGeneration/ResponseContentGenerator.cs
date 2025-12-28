@@ -60,7 +60,7 @@ internal sealed class ResponseContentGenerator
             $$"""
             internal sealed class {{_responseClassName}} : Response
             {
-                private string? {{contentTypeFieldName}};
+                private string? {{contentTypeFieldName}} = null;
                 {{_contentGenerators.AggregateToString(generator =>
                     generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
                 
@@ -87,20 +87,22 @@ internal sealed class ResponseContentGenerator
                 
                 internal override void WriteTo(HttpResponse {{responseVariableName}})
                 {
-                    switch (true)
-                    { 
-                    {{_contentGenerators.AggregateToString(generator => 
-                        $"""
-                         case true when {generator.ContentPropertyName} is not null:
-                            {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
-                                responseVariableName, 
-                                $"{generator.ContentPropertyName}.Value")};
-                            break;
-                         """
-                    )}}
-                        default:
-                            throw new InvalidOperationException("No content was defined");         
-                    }
+                    {{(_contentGenerators.Any() ? 
+                        $$"""
+                          switch (true)
+                          { 
+                          {{_contentGenerators.AggregateToString(generator => 
+                            $"""
+                             case true when {generator.ContentPropertyName} is not null:
+                                {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
+                                    responseVariableName, 
+                                    $"{generator.ContentPropertyName}.Value")};
+                                break;
+                             """)}}
+                             default:
+                                 throw new InvalidOperationException("No content was defined");         
+                          }                         
+                          """ : "")}}
                     
                     {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
                     {{responseVariableName}}.StatusCode = StatusCode;

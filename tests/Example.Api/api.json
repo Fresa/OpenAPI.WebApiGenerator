@@ -57,6 +57,14 @@
           }
         }
       },
+      "delete": {
+        "operationId": "Delete_Foo",
+        "responses": {
+          "200": {
+            "description": "Successfully deleted"
+          }
+        }
+      },
       "parameters": [
         {
           "$ref": "#/parameters/FooId"
