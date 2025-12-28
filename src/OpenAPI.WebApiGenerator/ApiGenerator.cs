@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Corvus.Json;
 using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
@@ -18,7 +17,6 @@ using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
 using OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
-using JsonPointer = Corvus.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator;
 
@@ -34,7 +32,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         var provider = context.AdditionalTextsProvider
             .Where(additionalText => Path.GetFileName(additionalText.Path).EndsWith(".json"))
-            .Select((text, _) => OpenApiDocument.Load(text.AsStream(), "json").Document ?? throw new InvalidOperationException($"Could not load OpenAPI document {text.Path}"))
             .Collect();
         
         var openapiDocumentProvider = provider.Select((array, _) => array.First());
@@ -59,30 +56,30 @@ public sealed class ApiGenerator : IIncrementalGenerator
             ));
 
         context.RegisterSourceOutput(openApiProvider,
-            WithExceptionReporting<(SourceGeneratorHelpers.GlobalOptions, OpenApiDocument, Compilation)>(GenerateCode));
+            WithExceptionReporting<(SourceGeneratorHelpers.GlobalOptions, AdditionalText, Compilation)>(GenerateCode));
     }
 
     private static void GenerateCode(SourceProductionContext context, (
         SourceGeneratorHelpers.GlobalOptions Options, 
-        OpenApiDocument OpenApiDocument, 
+        AdditionalText OpenApiDocument, 
         Compilation Compilation) generatorContext)
     {
         var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
-        
+        var openApiDocumentFile = generatorContext.OpenApiDocument;
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         var jsonValidationExceptionSourceCode =
             jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass();
         jsonValidationExceptionSourceCode.AddTo(context);
 
         var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
-
-        var openApi = generatorContext.OpenApiDocument;
-        var openApiSpecAsJson = GetOpenApiSpecAsJson(openApi);
+        var openApi = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json").Document ??
+                      throw new InvalidOperationException(
+                          $"Could not load OpenAPI document {openApiDocumentFile.Path}");
         var openApiUri = new JsonReference("http://test.com/test.json");
         var documentResolver = new PrepopulatedDocumentResolver();
-        var openApiDocument = JsonDocument.Parse(openApiSpecAsJson);
+        var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());
         if (!documentResolver.AddDocument(openApiUri, openApiDocument))
         {
             throw new InvalidOperationException("Could not add OpenApi document");
@@ -488,16 +485,4 @@ public sealed class ApiGenerator : IIncrementalGenerator
             // Doesn't work
             description: null,
             customTags: WellKnownDiagnosticTags.AnalyzerException);
-
-    private static string GetOpenApiSpecAsJson(OpenApiDocument openApi)
-    {
-        var textWriter = new StringWriter();
-        using (textWriter)
-        {
-            var jsonWriter = new OpenApiJsonWriter(textWriter);
-            openApi.SerializeAsV2(jsonWriter);
-        }
-
-        return textWriter.GetStringBuilder().ToString();
-    }
 }
