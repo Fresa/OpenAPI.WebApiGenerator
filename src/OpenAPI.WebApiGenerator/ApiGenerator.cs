@@ -117,7 +117,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
                     location: schemaReference,
                     rebaseToRootPath: false);
-                var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
+                var typeDeclaration = GenerateCode(context, generationSpecification, generationContext);
                 pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                     httpRequestExtensionsGenerator);
             }
@@ -141,7 +141,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         location: schemaReference,
                         rebaseToRootPath: false);
 
-                    var typeDeclaration = GenerateCode(context, generationSpecification, generationContext, globalOptions);
+                    var typeDeclaration = GenerateCode(context, generationSpecification, generationContext);
                     operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                         httpRequestExtensionsGenerator);
                 }
@@ -164,7 +164,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                             location: schemaReference,
                             rebaseToRootPath: false);
 
-                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext, globalOptions);
+                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext);
                         return new RequestBodyContentGenerator(
                             pair.Key,
                             typeDeclaration,
@@ -210,7 +210,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                             location: contentSchemaReference,
                             rebaseToRootPath: false);
 
-                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext, globalOptions);
+                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext);
                         return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
                     }).ToList();
 
@@ -219,18 +219,15 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var name = valuePair.Key;
                         var typeName = name.ToPascalCase();
                         var header = valuePair.Value;
-                        var schema = new InMemoryAdditionalText(
-                            $"/{responseContentDirectory}/{responseStatusCodePattern}/Headers/{typeName}.json",
-                            header.GetSchema().SerializeToJson());
-
+                        var responseHeaderSchema = openApiResponseVisitor.GetSchemaReference(header);
                         var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
                             ns: $"{responseContentNamespace}._{responseStatusCodePattern}.Headers",
                             typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers",
                                 typeName),
-                            location: schema.Path,
+                            location: responseHeaderSchema,
                             rebaseToRootPath: false);
 
-                        var typeDeclaration = GenerateCode(context, headerSpecification, schema, globalOptions);
+                        var typeDeclaration = GenerateCode(context, headerSpecification, generationContext);
                         return new ResponseHeaderGenerator(name, header, typeDeclaration,
                             httpResponseExtensionsGenerator);
                     }).ToList() ?? [];
@@ -286,25 +283,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
     private static TypeDeclaration GenerateCode(SourceProductionContext context,
         SourceGeneratorHelpers.GenerationSpecification specification,
-        SourceGeneratorHelpers.GenerationContext generationContext,
-        SourceGeneratorHelpers.GlobalOptions globalOptions)
+        SourceGeneratorHelpers.GenerationContext generationContext)
     {
         var typeDeclarations = GenerateCode(context, new SourceGeneratorHelpers.TypesToGenerate(
             [specification], generationContext), VocabularyRegistry);
         return typeDeclarations.Single();
     }
     
-    private static TypeDeclaration GenerateCode(SourceProductionContext context,
-        SourceGeneratorHelpers.GenerationSpecification specification,
-        AdditionalText schema,
-        SourceGeneratorHelpers.GlobalOptions globalOptions)
-    {
-        var generationContext = new SourceGeneratorHelpers.GenerationContext(SourceGeneratorHelpers.BuildDocumentResolver([schema], context.CancellationToken), globalOptions);
-        var typeDeclarations = GenerateCode(context, new SourceGeneratorHelpers.TypesToGenerate(
-            [specification], generationContext), VocabularyRegistry);
-        return typeDeclarations.Single();
-    }
-
     private static List<TypeDeclaration> GenerateCode(SourceProductionContext context, SourceGeneratorHelpers.TypesToGenerate typesToGenerate, VocabularyRegistry vocabularyRegistry)
     {
         if (typesToGenerate.GenerationSpecifications.Length == 0)
