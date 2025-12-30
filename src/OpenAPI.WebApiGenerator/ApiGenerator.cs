@@ -16,7 +16,7 @@ using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
-using OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
+using OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 namespace OpenAPI.WebApiGenerator;
 

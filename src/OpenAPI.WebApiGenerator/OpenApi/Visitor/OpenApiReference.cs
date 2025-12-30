@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Corvus.Json;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal sealed class OpenApiReference<T>(T document, JsonDocument openApiDocument, JsonReference documentReference)
 {

@@ -6,7 +6,7 @@ using Corvus.Json;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor.V3;
 
 internal sealed class OpenApiV3Visitor : 
     OpenApiVisitor<OpenApiDocument>, IOpenApiVisitor

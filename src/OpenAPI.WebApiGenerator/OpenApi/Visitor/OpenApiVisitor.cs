@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Corvus.Json;
 using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.OpenApi.Visitor.V2;
+using OpenAPI.WebApiGenerator.OpenApi.Visitor.V3;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal abstract class OpenApiVisitor
 {

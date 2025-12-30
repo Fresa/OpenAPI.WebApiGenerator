@@ -1,6 +1,6 @@
 ﻿using Microsoft.OpenApi;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.JsonPointer;
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal interface IOpenApiVisitor
 {
