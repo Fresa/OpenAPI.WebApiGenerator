@@ -1,6 +1,7 @@
 ﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class HttpResponseExtensionsGenerator(string @namespace)
+internal sealed class HttpResponseExtensionsGenerator(
+    string @namespace)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
@@ -27,12 +28,12 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
     
     internal string CreateWriteBodyInvocation(
         string responseVariableName, 
-        string headerValueVariableName)
+        string contentVariableName)
     {
         return
             $"""
              {responseVariableName}.WriteResponseBody(
-                {headerValueVariableName})
+                {contentVariableName})
              """;
     }
     
@@ -67,36 +68,23 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
                 {
                     return;
                 }
+                
                 Validate(value);
+        
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(headerSpecificationAsJson);
                 var serializedValue = Serialize(parameter, name, value);
                 response.Headers[name] = serializedValue;
             }
         
-            internal static void WriteResponseBody(this HttpResponse response, IJsonValue value)
+            internal static void WriteResponseBody<TValue>(this HttpResponse response, TValue value)
+                where TValue : struct, IJsonValue<TValue>
             {
                 Validate(value);
+                
                 using var jsonWriter = new Utf8JsonWriter(response.BodyWriter);
                 value.WriteTo(jsonWriter);
             }
             
-            private static void Validate(IJsonValue value)
-            {
-                var validationContext = ValidationContext.ValidContext.UsingResults();
-                validationContext = value.Validate(validationContext, ValidationLevel.Verbose);
-                if (validationContext.IsValid)
-                {
-                    return;
-                }
-        
-                var validationResults = validationContext.Results.IsEmpty ? "None" : JsonSerializer.Serialize(validationContext.Results, new JsonSerializerOptions { WriteIndented = true });
-                throw new InvalidOperationException(
-                    $"""
-                     Object of type {value.GetType()} is not valid'.
-                     "Validation results: {validationResults}
-                     """);
-            }
-        
             private static string? Serialize<TValue>(Parameter parameter, string name, TValue jsonValue)
                 where TValue : struct, IJsonValue
             {
@@ -104,6 +92,18 @@ internal sealed class HttpResponseExtensionsGenerator(string @namespace)
                 var value = jsonValue.Serialize();
         
                 return parser.Serialize(JsonNode.Parse(value));
+            }
+            
+            private static void Validate<T>(T value)
+                where T : struct, IJsonValue
+            {
+                var validationContext = ValidationContext.ValidContext;
+                var validationLevel = ValidationLevel.Detailed;
+                validationContext = value.Validate(validationContext, validationLevel);
+                if (!validationContext.IsValid)
+                {
+                    throw new JsonValidationException($"Object of type {typeof(T)} is not valid", validationContext.Results);
+                }
             }
         }
         #nullable restore

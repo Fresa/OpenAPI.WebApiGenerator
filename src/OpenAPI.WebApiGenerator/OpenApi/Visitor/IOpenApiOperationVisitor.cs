@@ -1,0 +1,11 @@
+﻿using Corvus.Json;
+using Microsoft.OpenApi;
+
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
+
+internal interface IOpenApiOperationVisitor
+{
+    public JsonReference GetSchemaReference(IOpenApiParameter parameter);
+    public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent);
+    public IOpenApiResponseVisitor Visit(IOpenApiResponse response);
+}

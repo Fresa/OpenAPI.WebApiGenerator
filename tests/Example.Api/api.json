@@ -4,6 +4,9 @@
     "title": "Example API",
     "version": "2025-11-05"
   },
+  "produces": [
+    "application/json"
+  ],
   "paths": {
     "/foo/{FooId}": {
       "put": {
@@ -22,10 +25,14 @@
             "$ref": "#/parameters/Bar"
           },
           {
-            "$ref": "#/parameters/FooId"
-          },
-          {
-            "$ref": "#/parameters/Fee"
+            "name": "Fee",
+            "in": "query",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "required": false,
+            "collectionFormat": "multi"
           }
         ],
         "responses": {
@@ -44,9 +51,25 @@
                 "type": "string"
               }
             }
+          },
+          "400": {
+            "$ref": "#/responses/BadRequest"
           }
         }
-      }
+      },
+      "delete": {
+        "operationId": "Delete_Foo",
+        "responses": {
+          "200": {
+            "description": "Successfully deleted"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/parameters/FooId"
+        }
+      ]
     }
   },
   "definitions": {
@@ -82,16 +105,26 @@
       "in": "path",
       "type": "integer",
       "required": true
-    },
-    "Fee": {
-      "name": "Fee",
-      "in": "query",
-      "items": {
-        "type": "string"
-      },
-      "type": "array",
-      "required": false,
-      "collectionFormat": "multi"
+    }
+  },
+  "responses": {
+    "BadRequest": {
+      "description": "Returned when the request has validation errors",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": ["name", "error"]
+        }
+      }
     }
   }
 }

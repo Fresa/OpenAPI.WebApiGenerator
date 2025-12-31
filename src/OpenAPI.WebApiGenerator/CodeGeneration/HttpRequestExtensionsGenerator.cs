@@ -1,6 +1,7 @@
 ﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class HttpRequestExtensionsGenerator(string @namespace)
+internal sealed class HttpRequestExtensionsGenerator(
+    string @namespace)
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
     
@@ -27,11 +28,11 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
         bool isRequired)
     {
         return
-            $""""
+            $"""
              await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
                 {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
                     .ConfigureAwait(false)
-             """";
+             """;
     }
     
     internal SourceCode GenerateHttpRequestExtensionsClass() =>
@@ -42,7 +43,6 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
         using System.Text.Json;
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
-        using Microsoft.AspNetCore.Routing;
         using Microsoft.Extensions.Primitives;
         using OpenAPI.ParameterStyleParsers.OpenApi20;
         using OpenAPI.ParameterStyleParsers.OpenApi20.ParameterParsers;
@@ -67,15 +67,13 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
                 where T : struct, IJsonValue<T>
             {
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(parameterSpecificationAsJson);
-                var value = parameter switch
+                return parameter switch
                 {
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),
                     _ when TryGetValue(request, parameter, out var stringValue) =>
                         Parse<T>(parameter, stringValue),
                     _ => T.Undefined
                 };
-                 
-                return Validate(value, isRequired);
             }
 
             internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, 
@@ -86,37 +84,9 @@ internal sealed class HttpRequestExtensionsGenerator(string @namespace)
                 var document = await JsonDocument.ParseAsync(request.Body, 
                     cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
-                var value = T.FromJson(document.RootElement.Clone());
-
-                return Validate(value, isRequired);
+                return T.FromJson(document.RootElement.Clone());
             }
-
-            private static T Validate<T>(T value, bool isRequired) where T : struct, IJsonValue<T>
-            {
-                if (!isRequired && value.IsUndefined())
-                {
-                    return value;
-                }
-                
-                var validationContext = ValidationContext.ValidContext.UsingResults();
-                validationContext = value.Validate(validationContext, ValidationLevel.Verbose);
-                if (validationContext.IsValid)
-                {
-                    return value;
-                }
-
-                var validationResults = validationContext.Results.IsEmpty
-                    ? "None"
-                    : JsonSerializer.Serialize(validationContext.Results, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
-
-                throw new BadHttpRequestException($$"""
-                                                    Object of type {{typeof(T)}} could not be parsed'.
-                                                    "Validation results: {{validationResults}}
-                                                    """);
-            }
+           
 
             private static T Parse<T>(Parameter parameter, string? stringValue)
                 where T : struct, IJsonValue<T>

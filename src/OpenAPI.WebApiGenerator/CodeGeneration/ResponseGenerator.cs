@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
@@ -18,6 +20,12 @@ internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseB
                 
                 internal abstract partial class Response
                 {
+                    {{Enumerable.Range(1, 5).AggregateToString(i => 
+                        $$"""
+                          protected int Validate{{i}}xxStatusCode(int code) 
+                            => (code >= {{i}}00 && code <= {{i}}99) ? code : throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");
+                          """)}}
+                    
                     internal abstract void WriteTo(HttpResponse httpResponse);
                 
                     {{responseBodyGenerators.AggregateToString(generator => 
