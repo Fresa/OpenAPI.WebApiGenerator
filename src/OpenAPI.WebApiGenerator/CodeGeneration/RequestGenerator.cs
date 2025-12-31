@@ -1,13 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class RequestGenerator(
-    List<ParameterGenerator> parameterGenerators, 
+    List<ParameterGenerator> parameterGenerators,
     RequestBodyGenerator bodyGenerator)
 {
+    private readonly IEnumerable<IGrouping<string, ParameterGenerator>> _parameterGeneratorsGroupedByLocation =
+        parameterGenerators
+            .GroupBy(generator => generator.Location.ToPascalCase())
+            .Where(group => group.Any());
+    
     internal SourceCode GenerateRequestClass(string @namespace, string path)
     {
         var bodyBindingDirective = bodyGenerator.GenerateRequestBindingDirective("Body",
@@ -24,8 +30,10 @@ internal sealed class RequestGenerator(
                 {
                     internal required HttpContext HttpContext { get; init; }
 
-                    {{parameterGenerators.Aggregate(new StringBuilder(), (builder, generator) =>
-                        builder.AppendLine(generator.GenerateRequestProperty()))}}
+                    {{_parameterGeneratorsGroupedByLocation.AggregateToString(group => 
+                        $$"""
+                        internal required {{group.Key}}Parameters {{group.Key}} { get; init; }  
+                        """)}}
 
                     {{bodyGenerator.GenerateRequestProperty("Body")}}
                     
@@ -35,8 +43,18 @@ internal sealed class RequestGenerator(
                         var request = new Request
                         {
                             HttpContext = context,
-                            {{parameterGenerators.Aggregate(new StringBuilder(), (builder, generator) =>
-                                builder.AppendLine(generator.GenerateRequestBindingDirective("httpRequest")))}}
+                            {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+                                $$"""
+                                  {{group.Key}} = new {{group.Key}}Parameters
+                                  {
+                                      {{group
+                                          .AggregateToString(generator =>
+                                              generator.GenerateRequestBindingDirective("httpRequest"))
+                                          .TrimEnd(',')}}
+                                  },
+                                  """)
+                                .TrimEnd(',')
+                            }}
                                 
                             {{bodyBindingDirective}}
                         };
@@ -48,9 +66,10 @@ internal sealed class RequestGenerator(
                     {
                         var validationContext = ValidationContext.ValidContext;
                         {{bodyGenerator.GenerateValidateDirective("Body", "validationContext", "validationLevel")}}
-                        {{parameterGenerators.Aggregate(new StringBuilder(), (builder, generator) =>
-                            builder.AppendLine(
-                                $"validationContext = Validate({generator.AsRequired(generator.PropertyName)}, {generator.IsParameterRequired.ToString().ToLowerInvariant()});"))}}
+                        {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+                            group.AggregateToString(generator =>
+                                $"validationContext = Validate({group.Key}.{generator.AsRequired(generator.PropertyName)}, {generator.IsParameterRequired.ToString().ToLowerInvariant()});"))
+                        }}
                         return validationContext;
                         
                         ValidationContext Validate<T>(T value, 
@@ -65,6 +84,14 @@ internal sealed class RequestGenerator(
                             return value.Validate(validationContext, validationLevel);
                         }
                     }
+                    
+                    {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+                        $$"""
+                          internal sealed class {{group.Key}}Parameters
+                          {
+                              {{group.AggregateToString(generator => generator.GenerateRequestProperty())}}
+                          }
+                          """)}}
                 }
                 #nullable restore
               """);
