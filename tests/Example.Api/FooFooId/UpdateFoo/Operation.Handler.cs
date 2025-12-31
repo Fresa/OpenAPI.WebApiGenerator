@@ -23,9 +23,9 @@ internal partial class Operation
 
     internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)
     {
-        _ = request.Fee;
-        _ = request.FooId;
-        _ = request.Bar;
+        _ = request.Query.Fee;
+        _ = request.Path.FooId;
+        _ = request.Header.Bar;
 
         var response = new Response.OK200(ApplicationJson.Create(
                 name: request.Body.ApplicationJson?.Name))

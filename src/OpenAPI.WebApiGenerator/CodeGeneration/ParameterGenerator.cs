@@ -19,6 +19,7 @@ internal sealed class ParameterGenerator(
     
     internal string PropertyName { get; } = parameter.GetName().ToPascalCase();
     internal bool IsParameterRequired { get; } = parameter.Required;
+    internal string Location { get; } = parameter.GetLocation();
     
     internal string GenerateRequestProperty()
     {
