@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using Corvus.Json;
-using Example.Api.FooFooId.UpdateFoo.Responses._200;
 
 namespace Example.Api.FooFooId.UpdateFoo;
 
@@ -14,11 +13,11 @@ internal partial class Operation
     private static Response HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
-            Responses._400.ApplicationJson.RequiredErrorAndName.Create(
+            Responses.BadRequest400.ApplicationJson.RequiredErrorAndName.Create(
                 name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
                 error: result.Message ?? string.Empty));
         return new Response.BadRequest400(
-            Responses._400.ApplicationJson.Create(response.ToArray()));
+            Responses.BadRequest400.ApplicationJson.Create(response.ToArray()));
     }
 
     internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)
@@ -27,7 +26,7 @@ internal partial class Operation
         _ = request.Path.FooId;
         _ = request.Header.Bar;
 
-        var response = new Response.OK200(ApplicationJson.Create(
+        var response = new Response.OK200(Responses.OK200.ApplicationJson.Create(
                 name: request.Body.ApplicationJson?.Name))
         {
             Headers = new Response.OK200.ResponseHeaders
