@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
@@ -192,6 +193,21 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var response = pair.Value;
                     var responseStatusCodePattern = pair.Key.ToPascalCase();
                     var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
+                    
+                    var classNamePrefix = Enum.TryParse<HttpStatusCode>(responseStatusCodePattern, out var statusCode)
+                        ? statusCode.ToString()
+                        : responseStatusCodePattern.First() switch
+                        {
+                            '1' => "Informational",
+                            '2' => "Successful",
+                            '3' => "Redirection",
+                            '4' => "ClientError",
+                            '5' => "ServerError",
+                            var chr when char.IsDigit(chr) => "X",
+                            _ => string.Empty
+                        };
+                    var responseContentName = $"{classNamePrefix}{responseStatusCodePattern}";
+                    
                     var responseContent =
                         // OpenAPI.NET is incorrectly adding content when there is none defined. 
                         // No content definition means NO content.
@@ -204,8 +220,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(content);
                         
                         var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                            ns: $"{responseContentNamespace}._{responseStatusCodePattern}",
-                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern,
+                            ns: $"{responseContentNamespace}.{responseContentName}",
+                            typeName: Path.Combine(responseContentDirectory, responseContentName,
                                 contentType),
                             location: contentSchemaReference,
                             rebaseToRootPath: false);
@@ -221,8 +237,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var header = valuePair.Value;
                         var responseHeaderSchema = openApiResponseVisitor.GetSchemaReference(header);
                         var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                            ns: $"{responseContentNamespace}._{responseStatusCodePattern}.Headers",
-                            typeName: Path.Combine(responseContentDirectory, responseStatusCodePattern, "Headers",
+                            ns: $"{responseContentNamespace}.{responseContentName}.Headers",
+                            typeName: Path.Combine(responseContentDirectory, responseContentName, "Headers",
                                 typeName),
                             location: responseHeaderSchema,
                             rebaseToRootPath: false);
@@ -233,11 +249,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     }).ToList() ?? [];
 
                     return new ResponseContentGenerator(
+                        responseContentName,
                         responseStatusCodePattern,
                         responseBodyGenerators,
                         responseHeaderGenerators,
                         httpResponseExtensionsGenerator);
                 }).ToList();
+                
                 var responseGenerator = new ResponseGenerator(
                     responseBodyGenerators, httpResponseExtensionsGenerator);
                 var responseSourceCode =
@@ -256,7 +274,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     .AddTo(context);
             }
         }
-
 
         if (endpointGenerator.TryGenerateMissingHandlers(out var missingHandlers))
         {
