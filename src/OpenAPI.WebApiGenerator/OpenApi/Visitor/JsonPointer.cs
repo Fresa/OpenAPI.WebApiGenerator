@@ -18,7 +18,7 @@ internal readonly struct JsonPointer(params string[]? segments) : IEquatable<Jso
         return new JsonPointer(segments.ToArray());
     }
     
-    private string[] Segments => segments ?? [];
+    internal string[] Segments => segments ?? [];
 
     internal JsonPointer Append(string segment)
     {

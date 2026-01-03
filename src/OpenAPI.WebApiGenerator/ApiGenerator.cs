@@ -8,8 +8,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
-using Corvus.Json.CodeGeneration;
-using Corvus.Json.CodeGeneration.CSharp;
 using Corvus.Json.SourceGeneratorTools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -24,9 +22,6 @@ namespace OpenAPI.WebApiGenerator;
 [Generator]
 public sealed class ApiGenerator : IIncrementalGenerator
 {
-    private static readonly IDocumentResolver MetaSchemaResolver = SourceGeneratorHelpers.CreateMetaSchemaResolver();
-    private static readonly VocabularyRegistry VocabularyRegistry = SourceGeneratorHelpers.CreateVocabularyRegistry(MetaSchemaResolver);
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Debugger.Launch();
@@ -68,6 +63,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
+        
         var openApiDocumentFile = generatorContext.OpenApiDocument;
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         var jsonValidationExceptionSourceCode =
@@ -78,6 +74,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var openApi = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json").Document ??
                       throw new InvalidOperationException(
                           $"Could not load OpenAPI document {openApiDocumentFile.Path}");
+        
         var openApiUri = new JsonReference("http://test.com/test.json");
         var documentResolver = new PrepopulatedDocumentResolver();
         var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());
@@ -86,6 +83,11 @@ public sealed class ApiGenerator : IIncrementalGenerator
             throw new InvalidOperationException("Could not add OpenApi document");
         }
         var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
+        var schemaGenerator = new SchemaGenerator(
+            rootNamespace,
+            context,
+            generationContext);
+
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
         var openApiVisitor = OpenApiVisitor.V2(openApiReference);
 
@@ -113,12 +115,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             foreach (var parameter in pathItem.Parameters ?? [])
             {
                 var schemaReference = openApiPathVisitor.GetSchemaReference(parameter);
-                var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                    ns: entityNamespace,
-                    typeName: Path.Combine(entityDirectory, parameter.GetTypeDeclarationIdentifier()),
-                    location: schemaReference,
-                    rebaseToRootPath: false);
-                var typeDeclaration = GenerateCode(context, generationSpecification, generationContext);
+                var typeDeclaration = schemaGenerator.Generate(schemaReference);
                 pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                     httpRequestExtensionsGenerator);
             }
@@ -136,19 +133,11 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 foreach (var parameter in operation.GetParameters())
                 {
                     var schemaReference = openApiOperationVisitor.GetSchemaReference(parameter);
-                    var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                        ns: operationNamespace,
-                        typeName: Path.Combine(operationDirectory, parameter.GetTypeDeclarationIdentifier()),
-                        location: schemaReference,
-                        rebaseToRootPath: false);
-
-                    var typeDeclaration = GenerateCode(context, generationSpecification, generationContext);
+                    var typeDeclaration = schemaGenerator.Generate(schemaReference);
                     operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
                         httpRequestExtensionsGenerator);
                 }
 
-                var requestBodyNamespace = $"{operationNamespace}.Requests";
-                var requestBodyDirectory = Path.Combine(operationDirectory, "Requests");
                 var body = operation.RequestBody;
                 var requestBodyGenerator = RequestBodyGenerator.Empty;
                 if (body is not null)
@@ -156,16 +145,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var contentGenerators = body.GetContent().Select(pair =>
                     {
                         var requestBodyContent = pair.Value;
-                        var bodyTypeDeclarationIdentifier = pair.Key.ToPascalCase();
                         var schemaReference = openApiOperationVisitor.GetSchemaReference(requestBodyContent);
-                        
-                        var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                            ns: requestBodyNamespace,
-                            typeName: Path.Combine(requestBodyDirectory, bodyTypeDeclarationIdentifier),
-                            location: schemaReference,
-                            rebaseToRootPath: false);
-
-                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext);
+                        var typeDeclaration = schemaGenerator.Generate(schemaReference);
                         return new RequestBodyContentGenerator(
                             pair.Key,
                             typeDeclaration,
@@ -216,34 +197,17 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;
-                        var contentType = valuePair.Key.ToPascalCase();
                         var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(content);
-                        
-                        var contentSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                            ns: $"{responseContentNamespace}.{responseContentName}",
-                            typeName: Path.Combine(responseContentDirectory, responseContentName,
-                                contentType),
-                            location: contentSchemaReference,
-                            rebaseToRootPath: false);
-
-                        var typeDeclaration = GenerateCode(context, contentSpecification, generationContext);
+                        var typeDeclaration = schemaGenerator.Generate(contentSchemaReference);
                         return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
                     }).ToList();
 
                     var responseHeaderGenerators = response.Headers?.Select(valuePair =>
                     {
                         var name = valuePair.Key;
-                        var typeName = name.ToPascalCase();
                         var header = valuePair.Value;
                         var responseHeaderSchema = openApiResponseVisitor.GetSchemaReference(header);
-                        var headerSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-                            ns: $"{responseContentNamespace}.{responseContentName}.Headers",
-                            typeName: Path.Combine(responseContentDirectory, responseContentName, "Headers",
-                                typeName),
-                            location: responseHeaderSchema,
-                            rebaseToRootPath: false);
-
-                        var typeDeclaration = GenerateCode(context, headerSpecification, generationContext);
+                        var typeDeclaration = schemaGenerator.Generate(responseHeaderSchema);
                         return new ResponseHeaderGenerator(name, header, typeDeclaration,
                             httpResponseExtensionsGenerator);
                     }).ToList() ?? [];
@@ -288,145 +252,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var routerSourceCode = operationRouterGenerator.ForMinimalApi(operations);
         routerSourceCode.AddTo(context);
     }
-
-    private static readonly DiagnosticDescriptor Crv1001ErrorGeneratingCSharpCode =
-        new(
-            id: "CRV1001",
-            title: "JSON Schema Type Generator Error",
-            messageFormat: "Error generating C# code: {0}: {1}",
-            category: "JsonSchemaCodeGenerator",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
-
-    private static TypeDeclaration GenerateCode(SourceProductionContext context,
-        SourceGeneratorHelpers.GenerationSpecification specification,
-        SourceGeneratorHelpers.GenerationContext generationContext)
-    {
-        var typeDeclarations = GenerateCode(context, new SourceGeneratorHelpers.TypesToGenerate(
-            [specification], generationContext), VocabularyRegistry);
-        return typeDeclarations.Single();
-    }
-    
-    private static List<TypeDeclaration> GenerateCode(SourceProductionContext context, SourceGeneratorHelpers.TypesToGenerate typesToGenerate, VocabularyRegistry vocabularyRegistry)
-    {
-        if (typesToGenerate.GenerationSpecifications.Length == 0)
-        {
-            // Nothing to generate
-            return [];
-        }
-
-        List<TypeDeclaration> typeDeclarationsToGenerate = [];
-        Dictionary<string, string> namespaceToPathConversion = [];
-        List<CSharpLanguageProvider.NamedType> namedTypes = [];
-        JsonSchemaTypeBuilder typeBuilder = new(typesToGenerate.DocumentResolver, vocabularyRegistry);
-
-        string? defaultNamespace = null;
-
-        foreach (SourceGeneratorHelpers.GenerationSpecification spec in typesToGenerate.GenerationSpecifications)
-        {
-            if (context.CancellationToken.IsCancellationRequested)
-            {
-                return [];
-            }
-
-            string schemaFile = spec.Location;
-            JsonReference reference = new(schemaFile);
-            TypeDeclaration rootType;
-            try
-            {
-                rootType = typeBuilder.AddTypeDeclarations(reference, typesToGenerate.FallbackVocabulary, spec.RebaseToRootPath, context.CancellationToken);
-            }
-            catch (Exception ex)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        Crv1001ErrorGeneratingCSharpCode,
-                        Location.None,
-                        reference,
-                        ex.Message));
-
-                return [];
-            }
-            
-            typeDeclarationsToGenerate.Add(rootType);
-
-            defaultNamespace ??= spec.Namespace;
-
-            if (string.IsNullOrEmpty(spec.TypeName))
-            {
-                throw new InvalidOperationException($"Missing type name for schema {spec.Location}");
-            }
-
-            // Corvus doesn't support defining paths for the source code file hint, so we piggyback such information on the type name property 
-            var filePath = Path.GetDirectoryName(spec.TypeName!);
-            if (filePath == string.Empty)
-            {
-                throw new InvalidOperationException($"Expected type {spec.TypeName} to contain a path");
-            }
-            var typeName = Path.GetFileName(spec.TypeName!);
-            
-            namedTypes.Add(
-                new CSharpLanguageProvider.NamedType(
-                    rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
-                    typeName,
-                    spec.Namespace,
-                    spec.Accessibility));
-            namespaceToPathConversion[spec.Namespace] = filePath;
-        }
-
-        CSharpLanguageProvider.Options options = new(
-            defaultNamespace ?? "GeneratedTypes",
-            [.. namedTypes],
-            useOptionalNameHeuristics: typesToGenerate.UseOptionalNameHeuristics,
-            alwaysAssertFormat: typesToGenerate.AlwaysAssertFormat,
-            optionalAsNullable: typesToGenerate.OptionalAsNullable,
-            disabledNamingHeuristics: [.. typesToGenerate.DisabledNamingHeuristics],
-            fileExtension: ".g.cs",
-            defaultAccessibility: typesToGenerate.DefaultAccessibility);
-
-        var languageProvider = CSharpLanguageProvider.DefaultWithOptions(options);
-
-        IReadOnlyCollection<GeneratedCodeFile> generatedCode;
-
-        try
-        {
-            generatedCode =
-                typeBuilder.GenerateCodeUsing(
-                    languageProvider,
-                    context.CancellationToken,
-                    typeDeclarationsToGenerate);
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    Crv1001ErrorGeneratingCSharpCode,
-                    Location.None,
-                    ex.Message));
-
-            return [];
-        }
-
-        foreach (GeneratedCodeFile codeFile in generatedCode)
-        {
-            if (!context.CancellationToken.IsCancellationRequested)
-            {
-                var filePath = namespaceToPathConversion[codeFile.TypeDeclaration.DotnetNamespace()];
-                var fileName = Path.Combine(filePath, codeFile.FileName);
-                
-                var sourceCode = new SourceCode(
-                    fileName,
-                    codeFile.FileContent
-                );
-                sourceCode.AddTo(context);
-            }
-        }
-
-        return typeDeclarationsToGenerate
-            .Select(declaration => declaration.ReducedTypeDeclaration().ReducedType)
-            .ToList();
-    }
-    
+ 
     private static Action<SourceProductionContext, T> WithExceptionReporting<T>(
         Action<SourceProductionContext, T> handler) =>
         (productionContext, input) =>
