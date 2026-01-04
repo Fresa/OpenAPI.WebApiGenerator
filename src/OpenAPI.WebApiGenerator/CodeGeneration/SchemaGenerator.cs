@@ -19,6 +19,7 @@ internal sealed class SchemaGenerator(string rootNamespace,
     private static readonly IDocumentResolver MetaSchemaResolver = SourceGeneratorHelpers.CreateMetaSchemaResolver();
     private static readonly VocabularyRegistry VocabularyRegistry = SourceGeneratorHelpers.CreateVocabularyRegistry(MetaSchemaResolver);
     private readonly Dictionary<string, TypeDeclaration> _typeCache = new();
+    private readonly HashSet<string> _fileCache = [];
     
     internal TypeDeclaration Generate(JsonReference reference)
     {
@@ -26,37 +27,42 @@ internal sealed class SchemaGenerator(string rootNamespace,
         {
             return typeDeclaration;
         }
+        
         var pointer = JsonPointer.ParseFrom(reference);
         var segments = pointer.Segments.Select(segment =>
                 segment.ToPascalCase())
+            .Select(segment =>
+                int.TryParse(segment[..1], out _) ? $"_{segment}" : segment)
             .ToArray();
-        var path = Path.Combine(segments);
-
+        
+        // Last segment is the type name
         var namespaceSegments =
-            segments.Select(segment => 
-                int.TryParse(segment[..1], out _) ? $"_{segment}" : segment);
+            segments.Take(segments.Length - 1);
         var @namespace = string.Join(".", namespaceSegments.Prepend(rootNamespace));
+
+        var path = Path.Combine(segments);
+        
         var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
             ns: @namespace,
+            // type name is path including the name of the type
             typeName: path,
             location: reference,
             rebaseToRootPath: false);
 
-        typeDeclaration = GenerateCode(context, generationSpecification, generationContext);
+        typeDeclaration = GenerateCode(generationSpecification);
         _typeCache.Add(reference, typeDeclaration);
         return typeDeclaration;
     }
     
-    private static TypeDeclaration GenerateCode(SourceProductionContext context,
-        SourceGeneratorHelpers.GenerationSpecification specification,
-        SourceGeneratorHelpers.GenerationContext generationContext)
+    private TypeDeclaration GenerateCode(
+        SourceGeneratorHelpers.GenerationSpecification specification)
     {
-        var typeDeclarations = GenerateCode(context, new SourceGeneratorHelpers.TypesToGenerate(
-            [specification], generationContext), VocabularyRegistry);
+        var typeDeclarations = GenerateCode(new SourceGeneratorHelpers.TypesToGenerate(
+            [specification], generationContext));
         return typeDeclarations.Single();
     }
     
-    private static List<TypeDeclaration> GenerateCode(SourceProductionContext context, SourceGeneratorHelpers.TypesToGenerate typesToGenerate, VocabularyRegistry vocabularyRegistry)
+    private List<TypeDeclaration> GenerateCode(SourceGeneratorHelpers.TypesToGenerate typesToGenerate)
     {
         if (typesToGenerate.GenerationSpecifications.Length == 0)
         {
@@ -67,7 +73,7 @@ internal sealed class SchemaGenerator(string rootNamespace,
         List<TypeDeclaration> typeDeclarationsToGenerate = [];
         Dictionary<string, string> namespaceToPathConversion = [];
         List<CSharpLanguageProvider.NamedType> namedTypes = [];
-        JsonSchemaTypeBuilder typeBuilder = new(typesToGenerate.DocumentResolver, vocabularyRegistry);
+        JsonSchemaTypeBuilder typeBuilder = new(typesToGenerate.DocumentResolver, VocabularyRegistry);
 
         string? defaultNamespace = null;
 
@@ -113,20 +119,17 @@ internal sealed class SchemaGenerator(string rootNamespace,
                 throw new InvalidOperationException($"Expected type {spec.TypeName} to contain a path");
             }
             
-            if (Path.HasExtension(spec.TypeName))
+            var typeName = Path.GetFileName(spec.TypeName)!;
+            if (typeName == string.Empty)
             {
-                var typeName = Path.GetFileName(spec.TypeName)!;
-                namedTypes.Add(
-                    new CSharpLanguageProvider.NamedType(
-                        rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
-                        typeName,
-                        spec.Namespace,
-                        spec.Accessibility));
+                throw new InvalidOperationException($"Expected type {spec.TypeName} to contain a path + type name");
             }
-            else
-            {
-                filePath = spec.TypeName!;
-            }
+            namedTypes.Add(
+                new CSharpLanguageProvider.NamedType(
+                    rootType.ReducedTypeDeclaration().ReducedType.LocatedSchema.Location,
+                    typeName,
+                    spec.Namespace,
+                    spec.Accessibility));
             
             namespaceToPathConversion[spec.Namespace] = filePath;
         }
@@ -166,17 +169,22 @@ internal sealed class SchemaGenerator(string rootNamespace,
 
         foreach (var codeFile in generatedCode)
         {
-            if (!context.CancellationToken.IsCancellationRequested)
+            context.CancellationToken.ThrowIfCancellationRequested();
+            
+            var filePath = namespaceToPathConversion[codeFile.TypeDeclaration.DotnetNamespace()];
+            var fileName = Path.Combine(filePath, codeFile.FileName);
+
+            // Deduplicate nested schemas that might already have been generated
+            if (!_fileCache.Add(fileName))
             {
-                var filePath = namespaceToPathConversion[codeFile.TypeDeclaration.DotnetNamespace()];
-                var fileName = Path.Combine(filePath, codeFile.FileName);
-                
-                var sourceCode = new SourceCode(
-                    fileName,
-                    codeFile.FileContent
-                );
-                sourceCode.AddTo(context);
+                continue;
             }
+
+            var sourceCode = new SourceCode(
+                fileName,
+                codeFile.FileContent
+            );
+            sourceCode.AddTo(context);
         }
 
         return typeDeclarationsToGenerate
