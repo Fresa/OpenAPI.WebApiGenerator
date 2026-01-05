@@ -65,57 +65,59 @@ internal sealed class RequestBodyGenerator
             return string.Empty;
         }
 
-        return $$"""
-                 internal {{(Body.Required ? "required " : "")}}RequestContent{{(Body.Required ? "" : "?")}} {{propertyName}} { get; init; }
+        return 
+$$"""
+    internal {{(Body.Required ? "required " : "")}}RequestContent{{(Body.Required ? "" : "?")}} {{propertyName}} { get; init; }
 
-                 internal sealed class RequestContent 
-                 {
-                    {{_contentGenerators.Aggregate(new StringBuilder(), (builder, content) => builder.AppendLine(content.GenerateRequestProperty()))}}
-                    
-                    internal static async Task<RequestContent{{(_body.Required ? "" : "?")}}> BindAsync(
-                        HttpRequest request,
-                        CancellationToken cancellationToken)
+    internal sealed class RequestContent 
+    {
+        {{_contentGenerators.AggregateToString(content => 
+            content.GenerateRequestProperty())}}
+        internal static async Task<RequestContent{{(_body.Required ? "" : "?")}}> BindAsync(
+            HttpRequest request,
+            CancellationToken cancellationToken)
+        {
+            var requestContentType = request.ContentType;
+            var requestContentMediaType = requestContentType == null ? null : System.Net.Http.Headers.MediaTypeHeaderValue.Parse(requestContentType);
+
+            switch (requestContentMediaType?.MediaType?.ToLower()) 
+            {
+{{_contentGenerators.AggregateToString(content => 
+$$"""
+                case "{{content.ContentType.ToLower()}}":
+                    return new RequestContent
                     {
-                        var requestContentType = request.ContentType;
-                        var requestContentMediaType = requestContentType == null ? null : System.Net.Http.Headers.MediaTypeHeaderValue.Parse(requestContentType);
-                 
-                        switch (requestContentMediaType?.MediaType?.ToLower()) 
-                        {
-                            {{_contentGenerators.Aggregate(new StringBuilder(), (builder, content) => builder.AppendLine(
-                                $$"""
-                                  case "{{content.ContentType.ToLower()}}":
-                                      return new RequestContent
-                                      {
-                                          {{content.GenerateRequestBindingDirective(_body.Required)}}
-                                      };
-                                  """
-                            ))}}
-                            {{(_body.Required ? "" :
-                                """
-                                case "":
-                                    return null;
-                                """)}}
-                                default:
-                                    throw new BadHttpRequestException($"Request body does not support content type {requestContentType}");
-                        }
-                    }
-                    
-                    internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel)
-                    {
-                        switch (true) 
-                        {
-                            {{_contentGenerators.AggregateToString(content => 
-                                       $"""
-                                        case true when {content.PropertyName} is not null:
-                                            return {content.PropertyName}!.Value.Validate(validationContext, validationLevel);
-                                        """)}}
-                            default:
-                            {{(_body.Required ? 
-                                """throw new InvalidOperationException("Request body not set");""" :
-                                "return validationContext;")}}
-                        }
-                    }
-                 }
-                 """;
+                        {{content.GenerateRequestBindingDirective(_body.Required).Indent(24)}}
+                    };
+""")}}
+                {{(_body.Required ? "" :
+"""
+                case "":
+                    return null;
+""")}}
+                default:
+                    throw new BadHttpRequestException($"Request body does not support content type {requestContentType}");
+            }
+        }
+
+        internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel)
+        {
+            switch (true) 
+            {
+{{_contentGenerators.AggregateToString(content => 
+$"""
+                case true when {content.PropertyName} is not null:
+                    return {content.PropertyName}!.Value.Validate(validationContext, validationLevel);
+""")}}
+                default:
+                    {{(_body.Required ? 
+                    """
+                    throw new InvalidOperationException("Request body not set");
+                    """ : 
+                    "return validationContext;")}}
+            }
+        }
+    }
+""";
     }
 }

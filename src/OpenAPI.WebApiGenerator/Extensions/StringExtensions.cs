@@ -45,4 +45,14 @@ internal static class StringExtensions
 
         return firstCharacter + strAsPascalCase[1..];
     }
+
+    internal static string Indent(this string str, int spaces)
+    {
+        var indentation = new string(' ', spaces);
+        return string.Join("\n", 
+            str
+                .Split('\n')
+                .Select(line => $"{indentation}{line}"))
+            .Trim();
+    }
 }
