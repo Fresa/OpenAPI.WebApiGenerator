@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace OpenAPI.WebApiGenerator;
@@ -24,15 +23,6 @@ internal sealed class SourceCode(string fileName, string code)
         context.AddSource(_fileName, ParseCSharpCode(code));
     }
     
-    private static SourceText ParseCSharpCode(string code, bool normalize = true)
-    {
-        var compilationUnit = SyntaxFactory
-            .ParseCompilationUnit(code, options: new CSharpParseOptions());
-        if (normalize)
-        {
-            compilationUnit = compilationUnit.NormalizeWhitespace();
-        }
-        return compilationUnit.WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed)
-            .GetText(Encoding.UTF8);
-    }
+    private static SourceText ParseCSharpCode(string code) => 
+        SourceText.From(code, Encoding.UTF8);
 }
