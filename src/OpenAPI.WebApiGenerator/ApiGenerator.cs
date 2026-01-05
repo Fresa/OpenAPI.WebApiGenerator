@@ -108,9 +108,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
             var pathExpression = path.Key;
             var pathItem = path.Value;
             var openApiPathVisitor = openApiVisitor.Visit(pathItem);
-            var entityType = pathExpression.ToPascalCase();
-            var entityNamespace = $"{rootNamespace}.{entityType}";
-            var entityDirectory = entityType;
             var pathParameterGenerators = new Dictionary<string, ParameterGenerator>();
             foreach (var parameter in pathItem.Parameters ?? [])
             {
@@ -123,11 +120,11 @@ public sealed class ApiGenerator : IIncrementalGenerator
             foreach (var openApiOperation in path.Value.GetOperations())
             {
                 var openApiOperationVisitor = openApiPathVisitor.Visit(openApiOperation.Key);
+                var operationMetadata = TypeMetadata.From(openApiOperationVisitor.Pointer);
+                var operationDirectory = operationMetadata.Path;
+                var operationNamespace = $"{rootNamespace}.{operationMetadata.Namespace}.{operationMetadata.Name}";
                 var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
-                var operationId = (operation.OperationId ?? operationMethod.ToString()).ToPascalCase();
-                var operationNamespace = $"{entityNamespace}.{operationId}";
-                var operationDirectory = $"{entityDirectory}/{operationId}";
                 var operationParameterGenerators = new Dictionary<string, ParameterGenerator>(pathParameterGenerators);
 
                 foreach (var parameter in operation.GetParameters())
@@ -164,11 +161,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     operationDirectory);
                 requestSourceCode.AddTo(context);
 
-                var responseContentNamespace = operationNamespace + ".Responses";
-                var responseContentDirectory = Path.Combine(operationDirectory, "Responses");
                 var responses = operation.Responses ??
                                 throw new InvalidOperationException(
-                                    $"No responses defined for operation {operationId}");
+                                    $"No responses defined for operation at {openApiOperationVisitor.Pointer}");
                 var responseBodyGenerators = responses.Select(pair =>
                 {
                     var response = pair.Value;

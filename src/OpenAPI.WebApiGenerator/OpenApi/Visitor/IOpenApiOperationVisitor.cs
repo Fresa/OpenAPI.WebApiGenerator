@@ -3,7 +3,7 @@ using Microsoft.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
-internal interface IOpenApiOperationVisitor
+internal interface IOpenApiOperationVisitor : IVisitor
 {
     public JsonReference GetSchemaReference(IOpenApiParameter parameter);
     public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent);

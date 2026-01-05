@@ -5,6 +5,7 @@ using Corvus.Json;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.OpenApi.Visitor.V2;
 using OpenAPI.WebApiGenerator.OpenApi.Visitor.V3;
+using JsonPointer = OpenAPI.WebApiGenerator.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
@@ -17,10 +18,10 @@ internal abstract class OpenApiVisitor
 }
 
 internal abstract class OpenApiVisitor<T>(
-    OpenApiReference<T> openApiReference)
+    OpenApiReference<T> openApiReference) : IVisitor
 {
     internal JsonReference Reference => openApiReference.DocumentReference; 
-    private JsonPointer Pointer { get; } = JsonPointer.ParseFrom(openApiReference.DocumentReference);
+    public JsonPointer Pointer { get; } = JsonPointer.ParseFrom(openApiReference.DocumentReference);
     protected JsonDocument Document => openApiReference.OpenApiDocument;
     protected T OpenApiDocument => openApiReference.Document;
     

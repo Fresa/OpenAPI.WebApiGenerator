@@ -7,8 +7,8 @@ using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using Corvus.Json.SourceGeneratorTools;
 using Microsoft.CodeAnalysis;
-using OpenAPI.WebApiGenerator.Extensions;
-using JsonPointer = OpenAPI.WebApiGenerator.OpenApi.Visitor.JsonPointer;
+using OpenAPI.WebApiGenerator.OpenApi;
+using JsonPointer = OpenAPI.WebApiGenerator.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -29,31 +29,11 @@ internal sealed class SchemaGenerator(string rootNamespace,
         }
         
         var pointer = JsonPointer.ParseFrom(reference);
-        var segments = 
-            pointer.Segments
-                // normalize segment names
-                .Select(segment =>
-                    segment.ToPascalCase())
-                // namespace segments cannot start with an integer
-                .Select(segment =>
-                    int.TryParse(segment[..1], out _) ? $"_{segment}" : segment)
-                .ToArray()
-                .AsSpan();
-        // Remove any schema leaf node, as that is metadata and doesn't describe the name of the type
-        if (segments[^1].Equals("schema", StringComparison.CurrentCultureIgnoreCase))
-        {
-            segments = segments[..^1];
-        }
-        var path = Path.Combine(segments.ToArray());
-
-        // Last segment is the type name
-        segments = segments[..^1];
-        var @namespace = string.Join(".", segments.ToArray().Prepend(rootNamespace));
-        
+        var metadata = TypeMetadata.From(pointer);
+                
         var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
-            ns: @namespace,
-            // type name is path including the name of the type
-            typeName: path,
+            ns: $"{rootNamespace}.{metadata.Namespace}",
+            typeName: metadata.Path,
             location: reference,
             rebaseToRootPath: false);
 
