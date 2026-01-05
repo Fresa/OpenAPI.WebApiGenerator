@@ -13,11 +13,11 @@ internal partial class Operation
     private static Response HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
-            Responses.BadRequest.Schema.RequiredErrorAndName.Create(
+            Responses.BadRequest.RequiredErrorAndName.Create(
                 name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
                 error: result.Message ?? string.Empty));
         return new Response.BadRequest400(
-            Responses.BadRequest.Schema.Create(response.ToArray()));
+            Responses.BadRequest.Create(response.ToArray()));
     }
 
     internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)

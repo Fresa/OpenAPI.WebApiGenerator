@@ -29,18 +29,26 @@ internal sealed class SchemaGenerator(string rootNamespace,
         }
         
         var pointer = JsonPointer.ParseFrom(reference);
-        var segments = pointer.Segments.Select(segment =>
-                segment.ToPascalCase())
-            .Select(segment =>
-                int.TryParse(segment[..1], out _) ? $"_{segment}" : segment)
-            .ToArray();
-        
-        // Last segment is the type name
-        var namespaceSegments =
-            segments.Take(segments.Length - 1);
-        var @namespace = string.Join(".", namespaceSegments.Prepend(rootNamespace));
+        var segments = 
+            pointer.Segments
+                // normalize segment names
+                .Select(segment =>
+                    segment.ToPascalCase())
+                // namespace segments cannot start with an integer
+                .Select(segment =>
+                    int.TryParse(segment[..1], out _) ? $"_{segment}" : segment)
+                .ToArray()
+                .AsSpan();
+        // Remove any schema leaf node, as that is metadata and doesn't describe the name of the type
+        if (segments[^1].Equals("schema", StringComparison.CurrentCultureIgnoreCase))
+        {
+            segments = segments[..^1];
+        }
+        var path = Path.Combine(segments.ToArray());
 
-        var path = Path.Combine(segments);
+        // Last segment is the type name
+        segments = segments[..^1];
+        var @namespace = string.Join(".", segments.ToArray().Prepend(rootNamespace));
         
         var generationSpecification = new SourceGeneratorHelpers.GenerationSpecification(
             ns: @namespace,
