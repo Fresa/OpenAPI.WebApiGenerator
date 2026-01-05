@@ -64,7 +64,7 @@ internal sealed partial class OpenApiV2Visitor
         {
             private Dictionary<IOpenApiParameter, JsonReference> _parameterSchemaReferences = new();
             private JsonReference? _bodySchemaReference;
-            private Dictionary<IOpenApiResponse, IOpenApiResponseVisitor> _responseVisitors = new();
+            private readonly Dictionary<IOpenApiResponse, IOpenApiResponseVisitor> _responseVisitors = new();
             
             private OperationVisitor(OpenApiReference<OpenApiOperation> openApiReference) : base(openApiReference)
             {

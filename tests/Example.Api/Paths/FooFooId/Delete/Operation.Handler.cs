@@ -1,4 +1,4 @@
-﻿namespace Example.Api.FooFooId.DeleteFoo;
+﻿namespace Example.Api.Paths.FooFooId.Delete;
 
 internal partial class Operation
 {

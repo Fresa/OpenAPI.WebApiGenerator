@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using Corvus.Json;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
+namespace OpenAPI.WebApiGenerator.Json;
 
 internal readonly struct JsonPointer(params string[]? segments) : IEquatable<JsonPointer>
 {
@@ -18,7 +18,7 @@ internal readonly struct JsonPointer(params string[]? segments) : IEquatable<Jso
         return new JsonPointer(segments.ToArray());
     }
     
-    private string[] Segments => segments ?? [];
+    internal string[] Segments => segments ?? [];
 
     internal JsonPointer Append(string segment)
     {

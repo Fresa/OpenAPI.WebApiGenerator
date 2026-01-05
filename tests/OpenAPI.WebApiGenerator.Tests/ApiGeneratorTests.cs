@@ -103,7 +103,7 @@ public class ApiGeneratorTests
 
         var implementedOperationSourceCode = CSharpSyntaxTree.ParseText(SourceText.From(
             $$"""
-            namespace {{assemblyName}}.Foo.ServiceSetProperties
+            namespace {{assemblyName}}.Paths.Foo.Put
             {
                 internal partial class Operation
                 {
@@ -126,7 +126,7 @@ public class ApiGeneratorTests
         newCompilation.SyntaxTrees.Should().HaveCountGreaterThan(0);
         var operationType = newCompilation.GetSymbolsWithName("Operation", cancellationToken: Cancellation)
             .OfType<INamedTypeSymbol>()
-            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{assemblyName}.Foo.ServiceSetProperties")
+            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{assemblyName}.Paths.Foo.Put")
             .Should().HaveCount(1).And.Subject.First();
         var handleAsyncSymbols = operationType.GetMembers("HandleAsync")
             .OfType<IMethodSymbol>()
@@ -176,7 +176,7 @@ public class ApiGeneratorTests
         compilation.SyntaxTrees.Should().HaveCountGreaterThan(0);
         var responseType = compilation.GetSymbolsWithName("Accepted202", cancellationToken: Cancellation)
             .OfType<INamedTypeSymbol>()
-            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{compilation.AssemblyName}.Foo.Delete")
+            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{compilation.AssemblyName}.Paths.Foo.Delete")
             .Should().HaveCount(1).And.Subject.First();
         responseType.Constructors.Should().HaveCount(1)
             .And.Subject.First()
