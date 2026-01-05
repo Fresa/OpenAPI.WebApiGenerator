@@ -52,7 +52,7 @@ internal sealed class RequestGenerator(
                                           .TrimEnd(',')}}
                                   },
                                   """)
-                                .TrimEnd(',')
+                                .TrimEnd(bodyBindingDirective == string.Empty ? [','] : [])
                             }}
                                 
                             {{bodyBindingDirective}}
