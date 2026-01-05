@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
@@ -12,20 +14,33 @@ internal sealed class ResponseContentGenerator
     private readonly string _responseClassName;
     private readonly string _responseStatusCodePattern;
 
-    private ResponseContentGenerator(string responseClassName,
+    private ResponseContentGenerator(
         string responseStatusCodePattern,
         HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
     {
         _httpResponseExtensionsGenerator = httpResponseExtensionsGenerator;
+        var classNamePrefix = Enum.TryParse<HttpStatusCode>(responseStatusCodePattern, out var statusCode)
+            ? statusCode.ToString()
+            : responseStatusCodePattern.First() switch
+            {
+                '1' => "Informational",
+                '2' => "Successful",
+                '3' => "Redirection",
+                '4' => "ClientError",
+                '5' => "ServerError",
+                var chr when char.IsDigit(chr) => "X",
+                _ => string.Empty
+            };
+        var responseClassName = $"{classNamePrefix}{responseStatusCodePattern}";
+        
         _responseStatusCodePattern = responseStatusCodePattern;
         _responseClassName = responseClassName;
     }
     public ResponseContentGenerator(
-        string responseClassName,
         string responseStatusCodePattern,
         List<ResponseBodyContentGenerator> contentGenerators,
         List<ResponseHeaderGenerator> headerGenerators,
-        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator) : this(responseClassName, responseStatusCodePattern, httpResponseExtensionsGenerator)
+        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator) : this(responseStatusCodePattern, httpResponseExtensionsGenerator)
     {
         _contentGenerators = contentGenerators;
         _headerGenerators = headerGenerators;

@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
@@ -170,20 +169,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var responseStatusCodePattern = pair.Key.ToPascalCase();
                     var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
                     
-                    var classNamePrefix = Enum.TryParse<HttpStatusCode>(responseStatusCodePattern, out var statusCode)
-                        ? statusCode.ToString()
-                        : responseStatusCodePattern.First() switch
-                        {
-                            '1' => "Informational",
-                            '2' => "Successful",
-                            '3' => "Redirection",
-                            '4' => "ClientError",
-                            '5' => "ServerError",
-                            var chr when char.IsDigit(chr) => "X",
-                            _ => string.Empty
-                        };
-                    var responseContentName = $"{classNamePrefix}{responseStatusCodePattern}";
-                    
                     var responseContent =
                         // OpenAPI.NET is incorrectly adding content when there is none defined. 
                         // No content definition means NO content.
@@ -208,7 +193,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     }).ToList() ?? [];
 
                     return new ResponseContentGenerator(
-                        responseContentName,
                         responseStatusCodePattern,
                         responseBodyGenerators,
                         responseHeaderGenerators,
