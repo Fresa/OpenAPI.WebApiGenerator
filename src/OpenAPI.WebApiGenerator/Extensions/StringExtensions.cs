@@ -48,6 +48,10 @@ internal static class StringExtensions
 
     internal static string Indent(this string str, int spaces)
     {
+        if (str == string.Empty)
+        {
+            return str;
+        }
         var indentation = new string(' ', spaces);
         return string.Join("\n", 
             str

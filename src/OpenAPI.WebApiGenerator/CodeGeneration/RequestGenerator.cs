@@ -33,7 +33,6 @@ $$"""
     internal required {{group.Key}}Parameters {{group.Key}} { get; init; }  
 """)}}
 {{bodyGenerator.GenerateRequestProperty("Body")}}
-    
     public static {{(isAsync ? "async" : "")}} Task<Request> BindAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var httpRequest = context.Request;
@@ -49,9 +48,7 @@ $$"""
                         generator.GenerateRequestBindingDirective("httpRequest"))
                     .TrimEnd(',').Indent(16)}}
             },
-""").TrimEnd(bodyBindingDirective == string.Empty ? [','] : [])
-}}
-                
+""").TrimEnd(bodyBindingDirective == string.Empty ? [','] : [])}}
             {{bodyBindingDirective.Indent(12)}}
         };
 
