@@ -44,6 +44,6 @@ internal sealed class ParameterGenerator(
             requestVariableName,
             FullyQualifiedTypeDeclarationIdentifier,
             textWriter.GetStringBuilder().ToString(),
-            IsParameterRequired).Indent(4)}{(IsParameterRequired ? "" : ".AsOptional()")},";
+            IsParameterRequired).Indent(4).TrimStart()}{(IsParameterRequired ? "" : ".AsOptional()")},";
     }
 }

@@ -9,11 +9,11 @@ internal static class EnumerableExtensions
 {
     internal static string AggregateToString<T>(this IEnumerable<T> items, Func<T, string> convert) =>
         items
-            .Aggregate(new StringBuilder(), (builder, item) => 
+            .Aggregate(new StringBuilder().AppendLine(), (builder, item) =>
                 builder.AppendLine(convert(item)))
             .ToString()
             .TrimEnd();
-    
+
     internal static IEnumerable<(T item, int i)> WithIndex<T>(this IEnumerable<T> items) =>
         items.Select((arg1, i) => (arg1, i));
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -19,17 +18,17 @@ using {{httpResponseExtensionsGenerator.Namespace}};
 namespace {{@namespace}};
 
 internal abstract partial class Response
-{
-{{Enumerable.Range(1, 5).AggregateToString(i => 
+{{{Enumerable.Range(1, 5).AggregateToString(i => 
 $$"""
     protected int Validate{{i}}xxStatusCode(int code) 
         => (code >= {{i}}00 && code <= {{i}}99) ? code : throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");
 """)}}
     
     internal abstract void WriteTo(HttpResponse httpResponse);
-
-    {{responseBodyGenerators.AggregateToString(generator => 
-        generator.GenerateResponseContentClass()).Indent(4)}}
+    {{
+    responseBodyGenerators.AggregateToString(generator => 
+        generator.GenerateResponseContentClass()).Indent(4)
+    }}
 }
 #nullable restore
 """);
