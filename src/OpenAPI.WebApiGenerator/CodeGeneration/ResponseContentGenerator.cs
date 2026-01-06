@@ -50,7 +50,7 @@ internal sealed class ResponseContentGenerator
     {
         var anyHeaders = _headerGenerators.Any();
         var anyRequiredHeader = _headerGenerators.Any(generator => generator.IsRequired);
-        var headerRequiredDirective = anyRequiredHeader ? "required" : "";
+        var headerRequiredDirective = anyRequiredHeader ? "required " : "";
         var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
         const string responseVariableName = "httpResponse";
         const string contentTypeFieldName = "_contentType";
@@ -82,14 +82,14 @@ $"""
 {{(anyHeaders ? 
 $$"""
 
-    internal {{headerRequiredDirective}} ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
+    internal {{headerRequiredDirective}}ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
 
     internal sealed class ResponseHeaders 
     {{{
         _headerGenerators.AggregateToString(generator =>
             generator.GenerateProperty()).Indent(8)}}
     }
-    
+
 """ : "")}}
     internal override void WriteTo(HttpResponse {{responseVariableName}})
     {{{(_contentGenerators.Any() ? 
@@ -106,8 +106,8 @@ $"""
 """)}}
             default:
                 throw new InvalidOperationException("No content was defined");         
-        }  
-                               
+        }
+
 """ : "")}}
         {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
         {{responseVariableName}}.StatusCode = StatusCode;{{
