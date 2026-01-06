@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
@@ -18,81 +19,75 @@ internal sealed class RequestGenerator(
         var bodyBindingDirective = bodyGenerator.GenerateRequestBindingDirective("Body",
             "httpRequest",
             out var isAsync);
+        if (bodyBindingDirective != string.Empty)
+        {
+            bodyBindingDirective = new StringBuilder()
+                .AppendLine(",")
+                .Append(bodyBindingDirective)
+                .ToString();
+        }
+        
         return new SourceCode($"{path}/Request.g.cs",
-            $$"""
-                #nullable enable
-                using Corvus.Json;
-                
-                namespace {{@namespace}};
-                
-                internal partial class Request
-                {
-                    internal required HttpContext HttpContext { get; init; }
+$$"""
+#nullable enable
+using Corvus.Json;
 
-                    {{_parameterGeneratorsGroupedByLocation.AggregateToString(group => 
-                        $$"""
-                        internal required {{group.Key}}Parameters {{group.Key}} { get; init; }  
-                        """)}}
+namespace {{@namespace}};
 
-                    {{bodyGenerator.GenerateRequestProperty("Body")}}
-                    
-                    public static {{(isAsync ? "async" : "")}} Task<Request> BindAsync(HttpContext context, CancellationToken cancellationToken)
-                    {
-                        var httpRequest = context.Request;
-                        var request = new Request
-                        {
-                            HttpContext = context,
-                            {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
-                                $$"""
-                                  {{group.Key}} = new {{group.Key}}Parameters
-                                  {
-                                      {{group
-                                          .AggregateToString(generator =>
-                                              generator.GenerateRequestBindingDirective("httpRequest"))
-                                          .TrimEnd(',')}}
-                                  },
-                                  """)
-                                .TrimEnd(',')
-                            }}
-                                
-                            {{bodyBindingDirective}}
-                        };
+internal partial class Request
+{
+    internal required HttpContext HttpContext { get; init; }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group => 
+$$"""
+    internal required {{group.Key}}Parameters {{group.Key}} { get; init; }  
+""")}}
+{{bodyGenerator.GenerateRequestProperty("Body").Indent(4)}}
+    public static {{(isAsync ? "async " : "")}}Task<Request> BindAsync(HttpContext context, CancellationToken cancellationToken)
+    {
+        var httpRequest = context.Request;
+        var request = new Request
+        {
+            HttpContext = context,{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+$$"""
+            {{group.Key}} = new {{group.Key}}Parameters
+            {{{group.AggregateToString(generator =>
+                    generator.GenerateRequestBindingDirective("httpRequest"))
+                .TrimEnd(',').Indent(16)}}
+            },
+""").TrimEnd(',')}}{{bodyBindingDirective.Indent(12).TrimStart()}}
+        };
 
-                        return {{(isAsync ? "request" : "Task.FromResult(request)")}};
-                    }
-                    
-                    internal ValidationContext Validate(ValidationLevel validationLevel)
-                    {
-                        var validationContext = ValidationContext.ValidContext;
-                        {{bodyGenerator.GenerateValidateDirective("Body", "validationContext", "validationLevel")}}
-                        {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
-                            group.AggregateToString(generator =>
-                                $"validationContext = Validate({group.Key}.{generator.AsRequired(generator.PropertyName)}, {generator.IsParameterRequired.ToString().ToLowerInvariant()});"))
-                        }}
-                        return validationContext;
-                        
-                        ValidationContext Validate<T>(T value, 
-                            bool isRequired) 
-                            where T : struct, IJsonValue<T>
-                        {
-                            if (!isRequired && value.IsUndefined())
-                            {
-                                return validationContext;
-                            }
-                          
-                            return value.Validate(validationContext, validationLevel);
-                        }
-                    }
-                    
-                    {{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
-                        $$"""
-                          internal sealed class {{group.Key}}Parameters
-                          {
-                              {{group.AggregateToString(generator => generator.GenerateRequestProperty())}}
-                          }
-                          """)}}
-                }
-                #nullable restore
-              """);
+        return {{(isAsync ? "request" : "Task.FromResult(request)")}};
+    }
+    
+    internal ValidationContext Validate(ValidationLevel validationLevel)
+    {
+        var validationContext = ValidationContext.ValidContext;{{
+            bodyGenerator.GenerateValidateDirective("Body", "validationContext", "validationLevel").Indent(8)
+        }}{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+            group.AggregateToString(generator =>
+        $"validationContext = Validate({group.Key}.{generator.AsRequired(generator.PropertyName)}, {generator.IsParameterRequired.ToString().ToLowerInvariant()});").Trim()).Indent(8)}}
+        return validationContext;
+        
+        ValidationContext Validate<T>(T value, 
+            bool isRequired) 
+            where T : struct, IJsonValue<T>
+        {
+            if (!isRequired && value.IsUndefined())
+            {
+                return validationContext;
+            }
+          
+            return value.Validate(validationContext, validationLevel);
+        }
+    }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
+$$"""
+    internal sealed class {{group.Key}}Parameters
+    {{{group.AggregateToString(generator => 
+        generator.GenerateRequestProperty()).Indent(8)}}
+    }
+""")}}
+}
+#nullable restore
+""");
     }
 }

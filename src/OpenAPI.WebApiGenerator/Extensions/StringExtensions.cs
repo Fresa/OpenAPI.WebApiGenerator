@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 namespace OpenAPI.WebApiGenerator.Extensions;
 
@@ -44,5 +45,18 @@ internal static class StringExtensions
         }
 
         return firstCharacter + strAsPascalCase[1..];
+    }
+
+    internal static string Indent(this string str, int spaces)
+    {
+        if (string.IsNullOrWhiteSpace(str))
+        {
+            return string.Empty;
+        }
+        var indentation = new string(' ', spaces);
+        return string.Join("\n",
+            str
+                .Split('\n')
+                .Select(line => string.IsNullOrWhiteSpace(line) ? string.Empty : $"{indentation}{line}"));
     }
 }

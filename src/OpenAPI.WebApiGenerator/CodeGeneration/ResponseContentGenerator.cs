@@ -50,7 +50,7 @@ internal sealed class ResponseContentGenerator
     {
         var anyHeaders = _headerGenerators.Any();
         var anyRequiredHeader = _headerGenerators.Any(generator => generator.IsRequired);
-        var headerRequiredDirective = anyRequiredHeader ? "required" : "";
+        var headerRequiredDirective = anyRequiredHeader ? "required " : "";
         var defaultHeadersValueAssignment = anyRequiredHeader ? "" : " = new();";
         const string responseVariableName = "httpResponse";
         const string contentTypeFieldName = "_contentType";
@@ -60,59 +60,61 @@ internal sealed class ResponseContentGenerator
         var needsStatusCodeValidation = !hasExplicitStatusCode && !hasDefaultStatusCode;
 
         return 
-            $$"""
-            internal sealed class {{_responseClassName}} : Response
-            {
-                private string? {{contentTypeFieldName}} = null;
-                {{_contentGenerators.AggregateToString(generator =>
-                    generator.GenerateConstructor(_responseClassName, contentTypeFieldName))}}
-                
-                {{_contentGenerators.AggregateToString(generator => 
-                    generator.GenerateContentProperty())}}
-                
-                private int _statusCode{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}; 
-                internal int StatusCode
-                { 
-                    get => _statusCode;{{(hasExplicitStatusCode ? "" : 
-                    $"init => _statusCode = {(needsStatusCodeValidation ? $"Validate{_responseStatusCodePattern.First()}xxStatusCode(value)" : "value")};")}}
-                }
-                
-                {{(anyHeaders ? 
-                $$"""
-                internal {{headerRequiredDirective}} ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
-                
-                internal sealed class ResponseHeaders 
-                {
-                    {{_headerGenerators.AggregateToString(generator =>
-                        generator.GenerateProperty())}}
-                }
-                """ : "")}}
-                
-                internal override void WriteTo(HttpResponse {{responseVariableName}})
-                {
-                    {{(_contentGenerators.Any() ? 
-                        $$"""
-                          switch (true)
-                          { 
-                          {{_contentGenerators.AggregateToString(generator => 
-                            $"""
-                             case true when {generator.ContentPropertyName} is not null:
-                                {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
-                                    responseVariableName, 
-                                    $"{generator.ContentPropertyName}.Value")};
-                                break;
-                             """)}}
-                             default:
-                                 throw new InvalidOperationException("No content was defined");         
-                          }                         
-                          """ : "")}}
-                    
-                    {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
-                    {{responseVariableName}}.StatusCode = StatusCode;
-                    {{_headerGenerators.AggregateToString(generator =>
-                        generator.GenerateWriteDirective(responseVariableName))}}
-                }
-            }
-            """;
+$$"""
+internal sealed class {{_responseClassName}} : Response
+{
+    private string? {{contentTypeFieldName}} = null;{{
+    _contentGenerators.AggregateToString(generator =>
+        generator.GenerateConstructor(_responseClassName, contentTypeFieldName)).Indent(4)
+    }}{{
+    _contentGenerators.AggregateToString(generator => 
+        generator.GenerateContentProperty()).Indent(4)
+    }}
+    
+    private int _statusCode{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}; 
+    internal int StatusCode
+    { 
+        get => _statusCode;{{(hasExplicitStatusCode ? "" : 
+$"""
+        init => _statusCode = {(needsStatusCodeValidation ? $"Validate{_responseStatusCodePattern.First()}xxStatusCode(value)" : "value")};
+""")}}
+    }
+{{(anyHeaders ? 
+$$"""
+
+    internal {{headerRequiredDirective}}ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
+
+    internal sealed class ResponseHeaders 
+    {{{
+        _headerGenerators.AggregateToString(generator =>
+            generator.GenerateProperty()).Indent(8)}}
+    }
+
+""" : "")}}
+    internal override void WriteTo(HttpResponse {{responseVariableName}})
+    {{{(_contentGenerators.Any() ? 
+$$"""
+
+        switch (true)
+        {{{_contentGenerators.AggregateToString(generator => 
+$"""
+            case true when {generator.ContentPropertyName} is not null:
+                {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
+                    responseVariableName, 
+                    $"{generator.ContentPropertyName}.Value")};
+                break;
+""")}}
+            default:
+                throw new InvalidOperationException("No content was defined");         
+        }
+
+""" : "")}}
+        {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
+        {{responseVariableName}}.StatusCode = StatusCode;{{
+        _headerGenerators.AggregateToString(generator =>
+            generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}
+    }
+}
+""";
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
+﻿using OpenAPI.WebApiGenerator.Extensions;
+
+namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpResponseExtensionsGenerator(
     string @namespace)
@@ -16,13 +18,12 @@ internal sealed class HttpResponseExtensionsGenerator(
         return
             $""""
             {responseVariableName}.WriteResponseHeader(
-            """
-            {headerSpecificationAsJson}
-            """,
-            "{headerName}",
-            {headerValueVariableName},
-            {isRequired.ToString().ToLowerInvariant()}
-            )
+                """
+                {headerSpecificationAsJson.Indent(4)}
+                """,
+                "{headerName}",
+                {headerValueVariableName},
+                {isRequired.ToString().ToLowerInvariant()})
             """";
     }
     
@@ -32,8 +33,7 @@ internal sealed class HttpResponseExtensionsGenerator(
     {
         return
             $"""
-             {responseVariableName}.WriteResponseBody(
-                {contentVariableName})
+             {responseVariableName}.WriteResponseBody({contentVariableName})
              """;
     }
     

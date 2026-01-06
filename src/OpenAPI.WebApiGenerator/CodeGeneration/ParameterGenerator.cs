@@ -40,10 +40,10 @@ internal sealed class ParameterGenerator(
         parameter.SerializeAsV2(jsonWriter);
         textWriter.Flush();
 
-        return $" {PropertyName} = {httpRequestExtensionsGenerator.CreateBindParameterInvocation(
+        return $"{PropertyName} = {httpRequestExtensionsGenerator.CreateBindParameterInvocation(
             requestVariableName,
             FullyQualifiedTypeDeclarationIdentifier,
             textWriter.GetStringBuilder().ToString(),
-            IsParameterRequired)}{(IsParameterRequired ? "" : ".AsOptional()")},";
+            IsParameterRequired).Indent(4).TrimStart()}{(IsParameterRequired ? "" : ".AsOptional()")},";
     }
 }

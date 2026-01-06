@@ -28,11 +28,11 @@ internal sealed class HttpRequestExtensionsGenerator(
         bool isRequired)
     {
         return
-            $"""
-             await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
-                {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
-                    .ConfigureAwait(false)
-             """;
+$"""
+await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
+    {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
+.ConfigureAwait(false)
+""";
     }
     
     internal SourceCode GenerateHttpRequestExtensionsClass() =>
