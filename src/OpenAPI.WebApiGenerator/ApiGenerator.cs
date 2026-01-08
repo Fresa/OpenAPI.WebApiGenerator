@@ -65,16 +65,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
         
         var openApiDocumentFile = generatorContext.OpenApiDocument;
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
-        var jsonValidationExceptionSourceCode =
-            jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass();
-        jsonValidationExceptionSourceCode.AddTo(context);
+        jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
         var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
         var openApi = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json").Document ??
                       throw new InvalidOperationException(
                           $"Could not load OpenAPI document {openApiDocumentFile.Path}");
         
-        var openApiUri = new JsonReference("http://test.com/test.json");
+        var openApiUri = new JsonReference(openApi.BaseUri.ToString());
         var documentResolver = new PrepopulatedDocumentResolver();
         var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());
         if (!documentResolver.AddDocument(openApiUri, openApiDocument))
@@ -91,17 +89,18 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var openApiVisitor = OpenApiVisitor.V2(openApiReference);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
-        var httpRequestExtensionSourceCode =
-            httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass();
-        httpRequestExtensionSourceCode.AddTo(context);
+        httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);
         
         var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
-        var httpResponseExtensionSourceCode =
-            httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass();
-        httpResponseExtensionSourceCode.AddTo(context);
+        httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
-        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
+        var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);
+        apiConfigurationGenerator.GenerateClass().AddTo(context);
+
+        var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
+        validationExtensionsGenerator.GenerateClass().AddTo(context);
         
+        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -228,8 +227,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         }
 
         var operationRouterGenerator = new OperationRouterGenerator(rootNamespace);
-        var routerSourceCode = operationRouterGenerator.ForMinimalApi(operations);
-        routerSourceCode.AddTo(context);
+        operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }
  
     private static Action<SourceProductionContext, T> WithExceptionReporting<T>(

@@ -62,6 +62,6 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
         responseContent.Should().NotBeNull();
         responseContent.AsArray().Should().HaveCount(1);
         responseContent.GetValue<string>("#/0/error").Should().NotBeNullOrEmpty();
-        responseContent.GetValue<string>("#/0/name").Should().Be("test.json#/parameters/FooId/type");
+        responseContent.GetValue<string>("#/0/name").Should().Be("#/parameters/FooId/type");
     }
 }
