@@ -1,7 +1,7 @@
 using Example.Api;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddOperations();
+builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());
 var app = builder.Build();
 app.MapOperations();
 app.Run();

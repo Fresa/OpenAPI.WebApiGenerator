@@ -13,7 +13,7 @@ namespace {{@namespace}};
 
 internal static class {{ClassName}}
 {
-    internal static ImmutableList<ValidationResult> WithOpenApiUri(
+    internal static ImmutableList<ValidationResult> WithLocation(
         this ImmutableList<ValidationResult> validationResults, Uri? uri)
     {
         if (uri == null)
@@ -23,11 +23,11 @@ internal static class {{ClassName}}
         var pathUri = uri.GetLeftPart(UriPartial.Path);
         return validationResults
             .Select(result =>
-                new ValidationResult(result.Valid, result.Message, Map(result.Location, pathUri)))
+                new ValidationResult(result.Valid, result.Message, GetLocation(result.Location, pathUri)))
             .ToImmutableList();
     }
 
-    private static (JsonReference ValidationLocation, JsonReference SchemaLocation, JsonReference DocumentLocation)? Map(
+    private static (JsonReference ValidationLocation, JsonReference SchemaLocation, JsonReference DocumentLocation)? GetLocation(
         (JsonReference ValidationLocation, JsonReference SchemaLocation, JsonReference DocumentLocation)? location, string uri)
     {
         if (location == null)

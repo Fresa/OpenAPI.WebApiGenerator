@@ -15,9 +15,11 @@ internal sealed class ApiConfigurationGenerator(string @namespace)
         public sealed class {{ClassName}} 
         {
             /// <summary>
-            /// The url to the OpenAPI specification used to generate the API 
+            /// The uri to the exposed OpenAPI specification used to generate the API.
+            /// This is used in the SchemaLocation of the ValidationResult.
+            /// <example>https://localhost/openapi.json</example> 
             /// </summary>
-            public Uri? OpenApiSpecification { get; set; }
+            public Uri? OpenApiSpecificationUri { get; init; }
         }
         #nullable restore
         """);

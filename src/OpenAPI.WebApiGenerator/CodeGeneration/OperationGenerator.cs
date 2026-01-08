@@ -44,7 +44,7 @@ internal partial class Operation
         var validationContext = request.Validate(ValidationLevel.Detailed);
         if (!validationContext.IsValid)
         {
-            operation.HandleValidationError(validationContext.Results.WithOpenApiUri(configuration.OpenApiSpecification))
+            operation.HandleValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
                 .WriteTo(context.Response);
             return;
         }
