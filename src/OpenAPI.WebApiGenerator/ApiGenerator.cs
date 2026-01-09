@@ -68,10 +68,20 @@ public sealed class ApiGenerator : IIncrementalGenerator
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
         var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
-        var openApi = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json").Document ??
+        var openApiResult = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json");
+        var openApiVersion = openApiResult.Diagnostic?.SpecificationVersion ??
+                             throw new InvalidOperationException("Unknown openapi version");
+        if (openApiResult.Diagnostic.Errors.Any())
+        {
+            throw new InvalidOperationException(
+                openApiResult.Diagnostic.Errors.AggregateToString(
+                    "Errors while parsing OpenAPI specification: ",
+                    error => $"{(error.Pointer == null ? "" : $"{error.Pointer}: ")}{error.Message}"));
+        }
+        var openApi = openApiResult.Document ??
                       throw new InvalidOperationException(
                           $"Could not load OpenAPI document {openApiDocumentFile.Path}");
-        
+
         var openApiUri = new JsonReference(openApi.BaseUri.ToString());
         var documentResolver = new PrepopulatedDocumentResolver();
         var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());

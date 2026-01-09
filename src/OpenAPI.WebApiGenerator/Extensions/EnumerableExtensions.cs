@@ -8,8 +8,12 @@ namespace OpenAPI.WebApiGenerator.Extensions;
 internal static class EnumerableExtensions
 {
     internal static string AggregateToString<T>(this IEnumerable<T> items, Func<T, string> convert) =>
+        items.AggregateToString(new StringBuilder().AppendLine(), convert);
+    internal static string AggregateToString<T>(this IEnumerable<T> items, string firstLine, Func<T, string> convert) =>
+        items.AggregateToString(new StringBuilder(firstLine), convert);
+    private static string AggregateToString<T>(this IEnumerable<T> items, StringBuilder stringBuilder, Func<T, string> convert) =>
         items
-            .Aggregate(new StringBuilder().AppendLine(), (builder, item) =>
+            .Aggregate(stringBuilder, (builder, item) =>
                 builder.AppendLine(convert(item)))
             .ToString()
             .TrimEnd();

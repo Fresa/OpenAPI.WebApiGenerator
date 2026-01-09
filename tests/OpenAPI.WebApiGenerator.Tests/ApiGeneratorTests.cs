@@ -62,6 +62,10 @@ public class ApiGeneratorTests
                     """
                       {
                         "swagger": "2.0",
+                        "info": {
+                          "title": "foo",
+                          "version": "1.0"
+                        },
                         "paths": {
                         "/foo": {
                             "put": {
@@ -156,6 +160,10 @@ public class ApiGeneratorTests
 """
 {
   "swagger": "2.0",
+  "info": {
+    "title": "foo",
+    "version": "1.0"
+  },
   "paths": {
     "/foo": {
       "delete": {
