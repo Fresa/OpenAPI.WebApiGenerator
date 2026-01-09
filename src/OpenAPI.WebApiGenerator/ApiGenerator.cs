@@ -96,7 +96,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             generationContext);
 
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
-        var openApiVisitor = OpenApiVisitor.V2(openApiReference);
+        var openApiVisitor = OpenApiVisitor.V(openApiVersion, openApiReference);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
         httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);

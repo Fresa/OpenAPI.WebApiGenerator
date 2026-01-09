@@ -4,9 +4,9 @@ using System.Net.Http;
 using Corvus.Json;
 using Microsoft.OpenApi;
 
-namespace OpenAPI.WebApiGenerator.OpenApi.Visitor.V2;
+namespace OpenAPI.WebApiGenerator.OpenApi.Visitor.V3;
 
-internal sealed partial class OpenApiV2Visitor
+internal sealed partial class OpenApiV3Visitor
 {
     private sealed partial class PathItemVisitor : 
         OpenApiVisitor<IOpenApiPathItem>, IOpenApiPathItemVisitor
@@ -19,14 +19,14 @@ internal sealed partial class OpenApiV2Visitor
             VisitParameters();
             VisitOperations();
         }
-
+        
         private void VisitParameters()
         {
             if (OpenApiDocument.Parameters == null)
             {
                 return;
             }
-
+            
             var parametersPointer = Visit("parameters");
             var parametersVisitor = ParametersVisitor.Visit(
                 new OpenApiReference<IList<IOpenApiParameter>>(
@@ -50,11 +50,11 @@ internal sealed partial class OpenApiV2Visitor
             }
         }
         
-        internal static PathItemVisitor Visit(OpenApiReference<IOpenApiPathItem> openApiReference) => 
-            new(openApiReference);
-
         public JsonReference GetSchemaReference(IOpenApiParameter parameter) => 
             _parameterSchemaReferences[parameter];
+
+        internal static PathItemVisitor Visit(OpenApiReference<IOpenApiPathItem> openApiReference) => 
+            new(openApiReference);
 
         public IOpenApiOperationVisitor Visit(HttpMethod httpMethod) =>
             _operations[httpMethod];
