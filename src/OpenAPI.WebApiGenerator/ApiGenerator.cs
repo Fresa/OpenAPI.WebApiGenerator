@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
-using Corvus.Json.SourceGeneratorTools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.OpenApi;
@@ -31,35 +29,21 @@ public sealed class ApiGenerator : IIncrementalGenerator
         
         var openapiDocumentProvider = provider.Select((array, _) => array.First());
         
-        // Get global options
-        var globalOptions =
-            context.AnalyzerConfigOptionsProvider.Select((optionsProvider, token) =>
-                new SourceGeneratorHelpers.GlobalOptions(
-                    fallbackVocabulary: Corvus.Json.CodeGeneration.Draft4.VocabularyAnalyser.DefaultVocabulary,
-                    optionalAsNullable: true,
-                    useOptionalNameHeuristics: true,
-                    alwaysAssertFormat: true,
-                    ImmutableArray<string>.Empty));
-
-        var openApiProvider = globalOptions
-            .Combine(openapiDocumentProvider)
+        var openApiProvider = openapiDocumentProvider
             .Combine(context.CompilationProvider)
             .Select((tuple, _) => (
-                Options: tuple.Left.Left,
-                OpenApiDocument: tuple.Left.Right,
+                OpenApiDocument: tuple.Left,
                 Compilation: tuple.Right
             ));
 
         context.RegisterSourceOutput(openApiProvider,
-            WithExceptionReporting<(SourceGeneratorHelpers.GlobalOptions, AdditionalText, Compilation)>(GenerateCode));
+            WithExceptionReporting<(AdditionalText, Compilation)>(GenerateCode));
     }
 
     private static void GenerateCode(SourceProductionContext context, (
-        SourceGeneratorHelpers.GlobalOptions Options, 
         AdditionalText OpenApiDocument, 
         Compilation Compilation) generatorContext)
     {
-        var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
         
@@ -82,6 +66,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                       throw new InvalidOperationException(
                           $"Could not load OpenAPI document {openApiDocumentFile.Path}");
 
+        
         var openApiUri = new JsonReference(openApi.BaseUri.ToString());
         var documentResolver = new PrepopulatedDocumentResolver();
         var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());
@@ -89,11 +74,11 @@ public sealed class ApiGenerator : IIncrementalGenerator
         {
             throw new InvalidOperationException("Could not add OpenApi document");
         }
-        var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
-        var schemaGenerator = new SchemaGenerator(
-            rootNamespace,
-            context,
-            generationContext);
+        var schemaGenerator = SchemaGenerator.For(
+            openApiVersion,
+            documentResolver, 
+            rootNamespace, 
+            context);
 
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
         var openApiVisitor = OpenApiVisitor.V(openApiVersion, openApiReference);
