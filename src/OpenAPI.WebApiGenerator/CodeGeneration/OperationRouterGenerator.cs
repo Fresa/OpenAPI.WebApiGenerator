@@ -22,11 +22,12 @@ $"""
         return app;
     }
     
-    internal static WebApplicationBuilder AddOperations(this WebApplicationBuilder builder)
+    internal static WebApplicationBuilder AddOperations(this WebApplicationBuilder builder, WebApiConfiguration? configuration = null)
     {{{operations.AggregateToString(operation => 
 $"""
         builder.Services.AddScoped<{operation.Namespace}.Operation>();
 """)}}
+        builder.Services.AddSingleton(configuration ?? new());
         return builder;
     }
 }

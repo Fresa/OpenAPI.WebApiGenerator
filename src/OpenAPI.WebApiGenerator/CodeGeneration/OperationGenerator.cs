@@ -34,7 +34,8 @@ internal partial class Operation
 
     internal static async Task HandleAsync(
         HttpContext context, 
-        [FromServices] Operation operation, 
+        [FromServices] Operation operation,
+        [FromServices] WebApiConfiguration configuration, 
         CancellationToken cancellationToken)
     {
         var request = await Request.BindAsync(context, cancellationToken)
@@ -43,7 +44,7 @@ internal partial class Operation
         var validationContext = request.Validate(ValidationLevel.Detailed);
         if (!validationContext.IsValid)
         {
-            operation.HandleValidationError(validationContext.Results)
+            operation.HandleValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
                 .WriteTo(context.Response);
             return;
         }
