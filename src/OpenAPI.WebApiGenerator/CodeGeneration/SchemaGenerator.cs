@@ -102,24 +102,9 @@ internal sealed class SchemaGenerator(
                 return [];
             }
 
-            string schemaFile = spec.Location;
+            var schemaFile = spec.Location;
             JsonReference reference = new(schemaFile);
-            TypeDeclaration rootType;
-            try
-            {
-                rootType = typeBuilder.AddTypeDeclarations(reference, typesToGenerate.FallbackVocabulary, spec.RebaseToRootPath, context.CancellationToken);
-            }
-            catch (Exception ex)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        Crv1001ErrorGeneratingCSharpCode,
-                        Location.None,
-                        reference,
-                        ex.Message));
-
-                return [];
-            }
+            var rootType = typeBuilder.AddTypeDeclarations(reference, typesToGenerate.FallbackVocabulary, spec.RebaseToRootPath, context.CancellationToken);
             
             typeDeclarationsToGenerate.Add(rootType);
 
@@ -164,27 +149,11 @@ internal sealed class SchemaGenerator(
 
         var languageProvider = CSharpLanguageProvider.DefaultWithOptions(options);
 
-        IReadOnlyCollection<GeneratedCodeFile> generatedCode;
-
-        try
-        {
-            generatedCode =
-                typeBuilder.GenerateCodeUsing(
-                    languageProvider,
-                    context.CancellationToken,
-                    typeDeclarationsToGenerate);
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    Crv1001ErrorGeneratingCSharpCode,
-                    Location.None,
-                    ex.Message));
-
-            return [];
-        }
-
+        var generatedCode = typeBuilder.GenerateCodeUsing(
+            languageProvider,
+            context.CancellationToken,
+            typeDeclarationsToGenerate);
+        
         foreach (var codeFile in generatedCode)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
@@ -209,14 +178,4 @@ internal sealed class SchemaGenerator(
             .Select(declaration => declaration.ReducedTypeDeclaration().ReducedType)
             .ToList();
     }
-    
-    private static readonly DiagnosticDescriptor Crv1001ErrorGeneratingCSharpCode =
-        new(
-            id: "CRV1001",
-            title: "JSON Schema Type Generator Error",
-            messageFormat: "Error generating C# code: {0}: {1}",
-            category: "JsonSchemaCodeGenerator",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
-
 }
