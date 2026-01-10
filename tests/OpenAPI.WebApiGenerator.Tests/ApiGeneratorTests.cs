@@ -17,8 +17,9 @@ public class ApiGeneratorTests
     private CancellationToken Cancellation => TestContext.Current.CancellationToken;
     
     [Theory]
-    [InlineData("OpenApiSpecs/file.json")]
-    [InlineData("OpenApiSpecs/openapi-v3.json")]
+    [InlineData("openapi-v2.json")]
+    [InlineData("openapi-v3.json")]
+    [InlineData("openapi-v3.1.json")]
     public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated(string specFile)
     {
         var generator = new ApiGenerator();
@@ -27,7 +28,7 @@ public class ApiGeneratorTests
 
         driver = driver.AddAdditionalTexts(
             [
-                new TestAdditionalFile(specFile)
+                new TestAdditionalFile($"OpenApiSpecs/{specFile}")
             ]
         );
 

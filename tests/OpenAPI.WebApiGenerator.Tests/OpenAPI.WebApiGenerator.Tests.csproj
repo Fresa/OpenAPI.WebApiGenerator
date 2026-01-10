@@ -22,10 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="OpenApiSpecs/file.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-      <Content Include="OpenApiSpecs/openapi-v3.json">
+      <Content Include="OpenApiSpecs/*.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

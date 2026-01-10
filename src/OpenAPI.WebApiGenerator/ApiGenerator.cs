@@ -164,10 +164,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
                     
                     var responseContent =
-                        // OpenAPI.NET is incorrectly adding content when there is none defined. 
+                        // OpenAPI.NET is incorrectly adding content where there is none defined. 
                         // No content definition means NO content.
-                        (openApiResponseVisitor.HasContent() ? response.Content : null) ??
-                        new Dictionary<string, OpenApiMediaType>();
+                        response.Content?.Where(content => 
+                            openApiResponseVisitor.HasContent(content.Value)) ?? [];
                     var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;

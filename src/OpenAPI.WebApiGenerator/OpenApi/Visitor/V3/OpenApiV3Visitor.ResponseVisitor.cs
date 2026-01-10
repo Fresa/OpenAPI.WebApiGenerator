@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Corvus.Json;
 using Microsoft.OpenApi;
 
@@ -32,15 +31,11 @@ internal sealed partial class OpenApiV3Visitor
 
             foreach (var content in OpenApiDocument.Content)
             {
-                _contentReferences.Add(content.Value, new JsonReference(Reference.Uri,
-                    Pointer
-                        .Append(
-                            "content",
-                            content.Key,
-                            "schema"
-                        )
-                        .ToString()
-                        .AsSpan()));
+                if (TryVisit(["content", content.Key, "schema"], out var schemaPointer))
+                {
+                    _contentReferences.Add(content.Value, new JsonReference(Reference.Uri,
+                        schemaPointer.ToString().AsSpan()));
+                }
             }
         }
 
@@ -53,22 +48,19 @@ internal sealed partial class OpenApiV3Visitor
             
             foreach (var openApiHeader in OpenApiDocument.Headers)
             {
-                var reference = new JsonReference(Reference.Uri,
-                    Pointer
-                        .Append(
-                            "headers",
-                            openApiHeader.Key,
-                            "schema")
-                        .ToString()
-                        .AsSpan());
-                _headerReferences.Add(openApiHeader.Value, reference);
+                if (TryVisit(["headers", openApiHeader.Key, "schema"], out var schemaPointer))
+                {
+                    _headerReferences.Add(openApiHeader.Value, new JsonReference(Reference.Uri,
+                        schemaPointer.ToString().AsSpan()));
+                }
             }
         }
         
         public JsonReference GetSchemaReference(OpenApiMediaType mediaType) => 
             _contentReferences[mediaType];
 
-        public bool HasContent() => _contentReferences.Any();
+        public bool HasContent(OpenApiMediaType mediaType) => 
+            _contentReferences.ContainsKey(mediaType);
         
         public JsonReference GetSchemaReference(IOpenApiHeader header) => 
             _headerReferences[header];
