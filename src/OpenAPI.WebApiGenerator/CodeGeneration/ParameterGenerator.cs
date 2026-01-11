@@ -41,9 +41,9 @@ internal sealed class ParameterGenerator(
         textWriter.Flush();
 
         return $"{PropertyName} = {httpRequestExtensionsGenerator.CreateBindParameterInvocation(
-            requestVariableName,
-            FullyQualifiedTypeDeclarationIdentifier,
-            textWriter.GetStringBuilder().ToString(),
-            IsParameterRequired).Indent(4).TrimStart()}{(IsParameterRequired ? "" : ".AsOptional()")},";
+                requestVariableName,
+                FullyQualifiedTypeDeclarationIdentifier,
+                textWriter.GetStringBuilder().ToString())
+            .Indent(4).TrimStart()}{(IsParameterRequired ? "" : ".AsOptional()")},";
     }
 }

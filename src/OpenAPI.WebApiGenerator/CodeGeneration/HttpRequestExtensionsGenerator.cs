@@ -8,8 +8,7 @@ internal sealed class HttpRequestExtensionsGenerator(
     internal string CreateBindParameterInvocation(
         string requestVariableName, 
         string bindingTypeName,
-        string parameterSpecificationAsJson,
-        bool isRequired)
+        string parameterSpecificationAsJson)
     {
         return
             $""""
@@ -17,20 +16,18 @@ internal sealed class HttpRequestExtensionsGenerator(
             {requestVariableName},
             """
             {parameterSpecificationAsJson}
-            """,
-            {isRequired.ToString().ToLowerInvariant()})
+            """)
             """";
     }
     
     internal string CreateBindBodyInvocation(
         string requestVariableName, 
-        string bindingTypeName,
-        bool isRequired)
+        string bindingTypeName)
     {
         return
 $"""
 await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeName}>(
-    {requestVariableName}, {isRequired.ToString().ToLowerInvariant()}, cancellationToken)
+    {requestVariableName}, cancellationToken)
 .ConfigureAwait(false)
 """;
     }
@@ -62,8 +59,7 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
             /// <returns></returns>
             /// <exception cref="BadHttpRequestException"></exception>
             internal static T Bind<T>(this HttpRequest request, 
-                string parameterSpecificationAsJson,
-                bool isRequired)
+                string parameterSpecificationAsJson)
                 where T : struct, IJsonValue<T>
             {
                 var parameter = Parameter.FromOpenApi20ParameterSpecification(parameterSpecificationAsJson);
@@ -76,8 +72,7 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 };
             }
 
-            internal static async Task<T> BindBodyAsync<T>(this HttpRequest request, 
-                bool isRequired,
+            internal static async Task<T> BindBodyAsync<T>(this HttpRequest request,
                 CancellationToken cancellationToken)
                 where T : struct, IJsonValue<T>
             {

@@ -19,13 +19,13 @@ internal sealed class RequestBodyContentGenerator(
 
     internal string ContentType => contentType;
     
-    internal string GenerateRequestBindingDirective(bool isRequired) =>
+    internal string GenerateRequestBindingDirective() =>
 $"""
 {PropertyName} = 
     ({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
-        "request", 
-        FullyQualifiedTypeDeclarationIdentifier,
-        isRequired).Indent(8).Trim()})
+            "request", 
+            FullyQualifiedTypeDeclarationIdentifier)
+        .Indent(8).Trim()})
     .AsOptional()
 """;
 

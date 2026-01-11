@@ -87,7 +87,7 @@ $$"""
             case "{{content.ContentType.ToLower()}}":
                 return new RequestContent
                 {
-{{content.GenerateRequestBindingDirective(_body.Required).Indent(20)}}
+{{content.GenerateRequestBindingDirective().Indent(20)}}
                 };
 """)}}{{(_body.Required ? "" :
 """
