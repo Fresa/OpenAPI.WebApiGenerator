@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -33,15 +31,12 @@ internal sealed class RequestBodyGenerator
     internal string GenerateRequestBindingDirective(string propertyName, string requestVariableName, out bool isAsync)
     {
         isAsync = _body is not null;
-        if (_body is null)
-        {
-            return string.Empty;
-        }
-
-        return $"""
-                {propertyName} = await RequestContent.BindAsync({requestVariableName}, cancellationToken)
-                    .ConfigureAwait(false)
-                """;
+        return _body is null
+            ? string.Empty
+            : $"""
+               {propertyName} = await RequestContent.BindAsync({requestVariableName}, cancellationToken)
+                   .ConfigureAwait(false)
+               """;
     }
     
     internal string GenerateValidateDirective(string propertyName, string validationContextVariableName, string validationLevelVariableName)

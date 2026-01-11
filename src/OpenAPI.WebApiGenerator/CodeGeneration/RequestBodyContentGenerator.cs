@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Corvus.Json.CodeGeneration;
+﻿using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -29,10 +28,8 @@ $"""
     .AsOptional()
 """;
 
-    public string GenerateRequestProperty()
-    {
-        return $$"""
-                 internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
-                 """;
-    }
+    public string GenerateRequestProperty() =>
+        $$"""
+          internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
+          """;
 }
