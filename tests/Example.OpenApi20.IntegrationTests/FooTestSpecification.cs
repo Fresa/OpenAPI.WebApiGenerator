@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Example.Api.IntegrationTests;
+namespace Example.OpenApi20.IntegrationTests;
 
 public abstract class FooTestSpecification
 {

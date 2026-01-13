@@ -2,7 +2,7 @@
 using AwesomeAssertions;
 using Json.Pointer;
 
-namespace Example.Api.IntegrationTests.Json;
+namespace Example.OpenApi20.IntegrationTests.Json;
 
 internal static class JsonNodeExtensions
 {

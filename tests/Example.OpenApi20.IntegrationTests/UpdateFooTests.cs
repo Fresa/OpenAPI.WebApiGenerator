@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
 using AwesomeAssertions;
-using Example.Api.IntegrationTests.Http;
-using Example.Api.IntegrationTests.Json;
+using Example.OpenApi20.IntegrationTests.Http;
+using Example.OpenApi20.IntegrationTests.Json;
 
-namespace Example.Api.IntegrationTests;
+namespace Example.OpenApi20.IntegrationTests;
 
 public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, IClassFixture<FooApplicationFactory>
 {

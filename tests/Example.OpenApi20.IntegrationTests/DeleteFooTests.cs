@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using AwesomeAssertions;
 
-namespace Example.Api.IntegrationTests;
+namespace Example.OpenApi20.IntegrationTests;
 
 public class DeleteFooTests(FooApplicationFactory app) : FooTestSpecification, IClassFixture<FooApplicationFactory>
 {

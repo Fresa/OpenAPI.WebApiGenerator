@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 
-namespace Example.Api.IntegrationTests.Http;
+namespace Example.OpenApi20.IntegrationTests.Http;
 
 internal static class HttpContentExtensions
 {
