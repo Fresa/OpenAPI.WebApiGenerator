@@ -34,11 +34,11 @@ https://www.nuget.org/packages/WebApiGenerator.OpenAPI
 ```
 <ItemGroup>
     <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.3.13" />
-    <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.1.0" />
+    <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
 </ItemGroup>
 ```
 * Corvus.Json.ExtendedTypes >= 4.0.0
-* ParameterStyleParsers.OpenAPI >= 1.1.0
+* ParameterStyleParsers.OpenAPI >= 1.4.0
 
 4. Compile the project.
 

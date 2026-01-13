@@ -1,9 +1,21 @@
-﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
+﻿using System;
+using Microsoft.OpenApi;
+
+namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpRequestExtensionsGenerator(
+    OpenApiSpecVersion openApiVersion,
     string @namespace)
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
+
+    private readonly string _openApiVersion = openApiVersion switch
+    {
+        OpenApiSpecVersion.OpenApi2_0 => "2.0",
+        OpenApiSpecVersion.OpenApi3_0 => "3.0",
+        OpenApiSpecVersion.OpenApi3_1 => "3.1",
+        _ => throw new ArgumentOutOfRangeException(nameof(openApiVersion), openApiVersion, "Unknown OpenAPI version")
+    };
     
     internal string CreateBindParameterInvocation(
         string requestVariableName, 
@@ -14,6 +26,7 @@ internal sealed class HttpRequestExtensionsGenerator(
             $""""
             {@namespace}.{HttpRequestExtensionsClassName}.Bind<{bindingTypeName}>(
             {requestVariableName},
+            "{_openApiVersion}",
             """
             {parameterSpecificationAsJson}
             """)
@@ -37,37 +50,39 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
         $$$""""
         #nullable enable
         using System.Collections.Concurrent;
+        using System.Diagnostics.CodeAnalysis;
         using System.Text.Json;
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
         using Microsoft.Extensions.Primitives;
-        using OpenAPI.ParameterStyleParsers.OpenApi20;
-        using OpenAPI.ParameterStyleParsers.OpenApi20.ParameterParsers;
+        using OpenAPI.ParameterStyleParsers;
 
         namespace {{{@namespace}}};
 
         internal static class {{{HttpRequestExtensionsClassName}}}
         {
-            private static readonly ConcurrentDictionary<Parameter, ParameterValueParser> ParserCache = new();
+            private static readonly ConcurrentDictionary<IParameter, IParameterValueParser> ParserCache = new();
+            private static IParameterValueParser GetParser(IParameter parameter) => ParserCache.GetOrAdd(parameter, _ => parameter.CreateParameterValueParser());
 
             /// <summary>
             /// Binds an http parameter to a json type
             /// </summary>
             /// <param name="request"></param>
-            /// <param name="parameterSpecificationAsJson"></param>
-            /// <typeparam name="T"></typeparam>
-            /// <returns></returns>
+            /// <param name="openApiVersion">OpenAPI Version of the specification</param>
+            /// <param name="parameterSpecificationAsJson">OpenAPI parameter specification formatted as json</param>
+            /// <typeparam name="T">The type to bind</typeparam>
+            /// <returns>The bound instance</returns>
             /// <exception cref="BadHttpRequestException"></exception>
             internal static T Bind<T>(this HttpRequest request, 
+                string openApiVersion,
                 string parameterSpecificationAsJson)
                 where T : struct, IJsonValue<T>
             {
-                var parameter = Parameter.FromOpenApi20ParameterSpecification(parameterSpecificationAsJson);
+                var parameter = ParameterFactory.OpenApi(openApiVersion, parameterSpecificationAsJson);
                 return parameter switch
                 {
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),
-                    _ when TryGetValue(request, parameter, out var stringValue) =>
-                        Parse<T>(parameter, stringValue),
+                    _ when TryParse<T>(request, parameter, out var value) => value.Value,
                     _ => T.Undefined
                 };
             }
@@ -82,79 +97,90 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 return T.FromJson(document.RootElement.Clone());
             }
            
-
-            private static T Parse<T>(Parameter parameter, string? stringValue)
-                where T : struct, IJsonValue<T>
-            {
-                var parser = ParserCache.GetOrAdd(parameter, ParameterValueParser.Create);
-                if (!parser.TryParse(stringValue, out var instance, out var error))
-                {
-                    throw new BadHttpRequestException(error);
-                }
-
-                return instance == null ? T.Null : T.Parse(instance.ToJsonString());
-            } 
-
-            private static bool TryGetValue(this HttpRequest request, Parameter parameter, out string? stringValue) =>
+            private static bool TryParse<T>(this HttpRequest request, IParameter parameter, [NotNullWhen(true)] out T? value) 
+                where T : struct, IJsonValue<T> =>
                 parameter switch
                 {
-                    _ when parameter.InHeader => TryGetHeaderValue(request.Headers, parameter, out stringValue),
-                    _ when parameter.InFormData => TryGetFormDataValue(request.Form, parameter, out stringValue),
-                    _ when parameter.InPath => TryGetPathValue(request.RouteValues, parameter, out stringValue),
-                    _ when parameter.InQuery => TryGetQueryValue(request.Query, parameter, out stringValue),
+                    _ when parameter.InHeader => TryParseHeader<T>(request.Headers, parameter, out value),
+                    _ when parameter.InFormData => TryParseForm<T>(request.Form, parameter, out value),
+                    _ when parameter.InPath => TryParsePath<T>(request.RouteValues, parameter, out value),
+                    _ when parameter.InQuery => TryParseQuery<T>(request.Query, parameter, out value),
                     _ => throw new InvalidOperationException($"Parameter {parameter.Name} has an unknown location")
                 };
 
-            private static bool TryGetQueryValue(IQueryCollection query, Parameter parameter, out string? stringValue)
+            private static bool TryParseQuery<T>(IQueryCollection query, IParameter parameter, [NotNullWhen(true)] out T? value)
+                where T : struct, IJsonValue<T>
             {
-                stringValue = null;
+                value = null;
                 return query.TryGetValue(parameter.Name, out var values) &&
-                       TryGetValue(values, parameter, out stringValue);
+                       TryParse<T>(values, parameter, out value);
             }
 
-            private static bool TryGetPathValue(RouteValueDictionary requestPath, Parameter parameter, out string? stringValue)
+            private static bool TryParsePath<T>(RouteValueDictionary requestPath, IParameter parameter, [NotNullWhen(true)] out T? value)
+                where T : struct, IJsonValue<T>
             {
-                if (!requestPath.TryGetValue(parameter.Name, out var value))
+                if (!requestPath.TryGetValue(parameter.Name, out var objValue))
                 {
-                    stringValue = null;
+                    value = default;
                     return false;
                 }
 
-                stringValue = value switch
+                var stringValue = objValue switch
                 {
                     null => null,
                     string strValue => strValue,
                     _ => throw new InvalidOperationException(
-                        $"Route value of '{value}' with type '{value.GetType()}' is not supported")
+                        $"Route value of '{objValue}' with type '{objValue.GetType()}' is not supported")
                 };
+                
+                var parser = GetParser(parameter);
+                value = Parse<T>(parser, stringValue);
                 return true;
             }
 
-            private static bool TryGetFormDataValue(IFormCollection requestForm, Parameter parameter, out string? stringValue)
+            private static bool TryParseForm<T>(IFormCollection requestForm, IParameter parameter, [NotNullWhen(true)] out T? value)
+                where T : struct, IJsonValue<T>
             {
-                stringValue = null;
-                return requestForm.TryGetValue(parameter.Name, out var values) && TryGetValue(values, parameter, out stringValue);
+                value = default;
+                return requestForm.TryGetValue(parameter.Name, out var values) && TryParse<T>(values, parameter, out value);
             }
 
-            private static bool TryGetHeaderValue(IHeaderDictionary headers, Parameter parameter, out string? stringValue)
+            private static bool TryParseHeader<T>(IHeaderDictionary headers, IParameter parameter, [NotNullWhen(true)] out T? value)
+                where T : struct, IJsonValue<T>
             {
-                stringValue = null;
+                value = default;
                 return headers.TryGetValue(parameter.Name, out var values) &&
-                       TryGetValue(values, parameter, out stringValue);
+                       TryParse<T>(values, parameter, out value);
             }
 
-            private static bool TryGetValue(StringValues values, Parameter parameter, out string? stringValue)
+            private static bool TryParse<T>(StringValues values, IParameter parameter, [NotNullWhen(true)] out T? value)
+                where T : struct, IJsonValue<T>
             {
                 if (values.Count == 0)
                 {
-                    stringValue = null;
+                    value = default;
                     return false;
                 }
-                stringValue = parameter.ValueIncludesKey
+                
+                var parser = GetParser(parameter);
+                var stringValue = parser.ValueIncludesParameterName
                     ? string.Join('&', values.Select(value => $"{parameter.Name}=${value}"))
                     : values.Single();
+                
+                value = Parse<T>(parser, stringValue);
                 return true;
             }
+            
+            private static T Parse<T>(IParameterValueParser parser, string? value)
+                where T : struct, IJsonValue<T>
+            {
+                if (!parser.TryParse(value, out var instance, out var error))
+                {
+                    throw new BadHttpRequestException(error);
+                }
+            
+                return instance == null ? T.Null : T.Parse(instance.ToJsonString());
+            } 
         }
         #nullable restore
         """");

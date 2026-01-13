@@ -83,7 +83,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
         var openApiVisitor = OpenApiVisitor.V(openApiVersion, openApiReference);
 
-        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
+        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
+            openApiVersion,
+            rootNamespace);
         httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);
         
         var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
@@ -106,8 +108,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
             {
                 var schemaReference = openApiPathVisitor.GetSchemaReference(parameter);
                 var typeDeclaration = schemaGenerator.Generate(schemaReference);
-                pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
-                    httpRequestExtensionsGenerator);
+                pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] =
+                    new ParameterGenerator(typeDeclaration,
+                        parameter,
+                        httpRequestExtensionsGenerator);
             }
 
             foreach (var openApiOperation in path.Value.GetOperations())
@@ -124,8 +128,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 {
                     var schemaReference = openApiOperationVisitor.GetSchemaReference(parameter);
                     var typeDeclaration = schemaGenerator.Generate(schemaReference);
-                    operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
-                        httpRequestExtensionsGenerator);
+                    operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] =
+                        new ParameterGenerator(typeDeclaration,
+                            parameter,
+                            httpRequestExtensionsGenerator);
                 }
 
                 var body = operation.RequestBody;
