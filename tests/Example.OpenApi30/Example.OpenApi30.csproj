@@ -4,7 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>Example.OpenApi20</RootNamespace>
+        <RootNamespace>Example.OpenApi30</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
