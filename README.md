@@ -52,9 +52,9 @@ app.MapOperations();
 app.Run();
 ```
 
-See [Example.Api](tests/Example.Api) as an example.
+See [Example.OpenApi20](tests/Example.OpenApi20) as an example.
 
-**Note**: The Example.Api references the generator through a project reference. Use a package reference instead as described above.  
+**Note**: The Example.OpenApi20 references the generator through a project reference. Use a package reference instead as described above.  
 
 ## Implementing an [API Operation](https://swagger.io/specification/#operation-object)
 The generator generates stubbed partial classes for any operation handlers (`Foo.Bar.Operation.Handler.cs`) if there are none existing in the project and logs it with a compiler warning (AF1001). The classes should be copied into source control and the operation methods implemented. The operation methods have a familiar request/response design:

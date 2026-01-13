@@ -1,4 +1,4 @@
-using Example.Api;
+using Example.OpenApi20;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());

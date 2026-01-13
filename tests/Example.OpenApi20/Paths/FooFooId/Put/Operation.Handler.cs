@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Corvus.Json;
 
-namespace Example.Api.Paths.FooFooId.Put;
+namespace Example.OpenApi20.Paths.FooFooId.Put;
 
 internal partial class Operation
 {

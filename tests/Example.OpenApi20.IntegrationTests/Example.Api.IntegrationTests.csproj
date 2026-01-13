@@ -26,7 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Example.Api\Example.Api.csproj" />
+      <ProjectReference Include="..\Example.OpenApi20\Example.OpenApi20.csproj" />
     </ItemGroup>
 
 </Project>
