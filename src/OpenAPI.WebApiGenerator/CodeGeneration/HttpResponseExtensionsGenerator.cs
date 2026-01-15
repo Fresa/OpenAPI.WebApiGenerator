@@ -1,30 +1,45 @@
-﻿using OpenAPI.WebApiGenerator.Extensions;
+﻿using System;
+using System.IO;
+using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpResponseExtensionsGenerator(
+    OpenApiSpecVersion openApiVersion,
     string @namespace)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
 
-    internal string CreateWriteHeaderInvocation(
-        string responseVariableName, 
-        string headerSpecificationAsJson,
-        string headerName,
-        string headerValueVariableName,
-        bool isRequired)
+    internal string GetResponseHeaderSpecificationAsJson(
+        IOpenApiHeader header, 
+        string name)
     {
-        return
-            $""""
-            {responseVariableName}.WriteResponseHeader(
-                """
-                {headerSpecificationAsJson.Indent(4)}
-                """,
-                "{headerName}",
-                {headerValueVariableName},
-                {isRequired.ToString().ToLowerInvariant()})
-            """";
+        using var textWriter = new StringWriter();
+        var jsonWriter = new OpenApiJsonWriter(textWriter, new OpenApiJsonWriterSettings
+        {
+            InlineLocalReferences = true
+        });
+        Action<IOpenApiWriter> serialize = openApiVersion switch
+        {
+            OpenApiSpecVersion.OpenApi3_1 => header.SerializeAsV31,
+            OpenApiSpecVersion.OpenApi3_0 => header.SerializeAsV3,
+            OpenApiSpecVersion.OpenApi2_0 => header.SerializeAsV2,
+            _ => throw new NotSupportedException(
+                $"OpenAPI version {Enum.GetName(typeof(OpenApiSpecVersion), openApiVersion)} not supported")
+        };
+        serialize(jsonWriter);
+        textWriter.Flush();
+
+        // Response header specification is a subset of the parameter specification, so we add the missing properties to be able to use the parameter value parser 
+        return 
+            $$"""
+              {
+                "name": "{{name}}",
+                "in": "header",
+                {{textWriter.GetStringBuilder().ToString().TrimStart('{').TrimStart()}} 
+              """;
     }
     
     internal string CreateWriteBodyInvocation(
