@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
-using Microsoft.OpenApi;
-using OpenAPI.WebApiGenerator.Extensions;
+﻿using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -11,47 +9,25 @@ internal sealed class HttpResponseExtensionsGenerator(
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
-
+    
     internal string GetResponseHeaderSpecificationAsJson(
         IOpenApiHeader header, 
-        string name)
-    {
-        using var textWriter = new StringWriter();
-        var jsonWriter = new OpenApiJsonWriter(textWriter, new OpenApiJsonWriterSettings
-        {
-            InlineLocalReferences = true
-        });
-        Action<IOpenApiWriter> serialize = openApiVersion switch
-        {
-            OpenApiSpecVersion.OpenApi3_1 => header.SerializeAsV31,
-            OpenApiSpecVersion.OpenApi3_0 => header.SerializeAsV3,
-            OpenApiSpecVersion.OpenApi2_0 => header.SerializeAsV2,
-            _ => throw new NotSupportedException(
-                $"OpenAPI version {Enum.GetName(typeof(OpenApiSpecVersion), openApiVersion)} not supported")
-        };
-        serialize(jsonWriter);
-        textWriter.Flush();
-
+        string name) =>
         // Response header specification is a subset of the parameter specification, so we add the missing properties to be able to use the parameter value parser 
-        return 
-            $$"""
-              {
-                "name": "{{name}}",
-                "in": "header",
-                {{textWriter.GetStringBuilder().ToString().TrimStart('{').TrimStart()}} 
-              """;
-    }
-    
-    internal string CreateWriteBodyInvocation(
+        $$"""
+          {
+            "name": "{{name}}",
+            "in": "header",
+            {{header.Serialize(openApiVersion).ToString().TrimStart('{').TrimStart()}} 
+          """;
+
+    internal static string CreateWriteBodyInvocation(
         string responseVariableName, 
-        string contentVariableName)
-    {
-        return
-            $"""
-             {responseVariableName}.WriteResponseBody({contentVariableName})
-             """;
-    }
-    
+        string contentVariableName) =>
+        $"""
+         {responseVariableName}.WriteResponseBody({contentVariableName})
+         """;
+
     internal SourceCode GenerateHttpResponseExtensionsClass() =>
         new($"{HttpResponseExtensionsClassName}.g.cs",
         $$$""""
@@ -62,17 +38,18 @@ internal sealed class HttpResponseExtensionsGenerator(
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
         using Microsoft.Extensions.Primitives;
-        using OpenAPI.ParameterStyleParsers.OpenApi20;
-        using OpenAPI.ParameterStyleParsers.OpenApi20.ParameterParsers;
+        using OpenAPI.ParameterStyleParsers;
         using JsonObject = System.Text.Json.Nodes.JsonObject;
         
         namespace {{{@namespace}}};
 
         internal static class {{{HttpResponseExtensionsClassName}}}
         {
-            private static readonly ConcurrentDictionary<Parameter, ParameterValueParser> ParserCache = new();
-        
-            internal static void WriteResponseHeader<TValue>(this HttpResponse response, 
+            private static readonly ConcurrentDictionary<IParameter, IParameterValueParser> ParserCache = new();
+            private static IParameterValueParser GetParser(IParameter parameter) => ParserCache.GetOrAdd(parameter, _ => parameter.CreateParameterValueParser());
+            
+            internal static void WriteResponseHeader<TValue>(this HttpResponse response,
+                string openApiVersion, 
                 string headerSpecificationAsJson, 
                 string name, 
                 TValue value,
@@ -86,7 +63,7 @@ internal sealed class HttpResponseExtensionsGenerator(
                 
                 Validate(value);
         
-                var parameter = Parameter.FromOpenApi20ParameterSpecification(headerSpecificationAsJson);
+                var parameter = ParameterFactory.OpenApi(openApiVersion, headerSpecificationAsJson);
                 var serializedValue = Serialize(parameter, name, value);
                 response.Headers[name] = serializedValue;
             }
@@ -100,10 +77,10 @@ internal sealed class HttpResponseExtensionsGenerator(
                 value.WriteTo(jsonWriter);
             }
             
-            private static string? Serialize<TValue>(Parameter parameter, string name, TValue jsonValue)
+            private static string? Serialize<TValue>(IParameter parameter, string name, TValue jsonValue)
                 where TValue : struct, IJsonValue
             {
-                var parser = ParserCache.GetOrAdd(parameter, ParameterValueParser.Create);
+                var parser = GetParser(parameter);
                 var value = jsonValue.Serialize();
         
                 return parser.Serialize(JsonNode.Parse(value));

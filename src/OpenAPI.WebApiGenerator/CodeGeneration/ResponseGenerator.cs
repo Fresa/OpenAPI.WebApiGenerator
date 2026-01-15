@@ -1,10 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
+using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseBodyGenerators, HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
+internal sealed class ResponseGenerator(
+    List<ResponseContentGenerator> responseBodyGenerators, 
+    HttpResponseExtensionsGenerator httpResponseExtensionsGenerator,
+    OpenApiSpecVersion openApiSpecVersion)
 {
     public SourceCode GenerateResponseClass(string @namespace, string path)
     {
@@ -18,7 +23,9 @@ using {{httpResponseExtensionsGenerator.Namespace}};
 namespace {{@namespace}};
 
 internal abstract partial class Response
-{{{Enumerable.Range(1, 5).AggregateToString(i => 
+{
+    private const string OpenApiVersion = "{{openApiSpecVersion.GetParameterVersion()}}";
+{{Enumerable.Range(1, 5).AggregateToString(i => 
 $$"""
     protected int Validate{{i}}xxStatusCode(int code) 
         => (code >= {{i}}00 && code <= {{i}}99) ? code : throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");

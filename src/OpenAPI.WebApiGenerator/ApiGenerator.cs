@@ -195,12 +195,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
                         responseBodyGenerators,
-                        responseHeaderGenerators,
-                        httpResponseExtensionsGenerator);
+                        responseHeaderGenerators);
                 }).ToList();
                 
                 var responseGenerator = new ResponseGenerator(
-                    responseBodyGenerators, httpResponseExtensionsGenerator);
+                    responseBodyGenerators, 
+                    httpResponseExtensionsGenerator,
+                    openApiVersion);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
                         operationNamespace,

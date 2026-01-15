@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -10,46 +11,21 @@ internal sealed class HttpRequestExtensionsGenerator(
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
 
-    private readonly string _openApiVersion = openApiVersion switch
-    {
-        OpenApiSpecVersion.OpenApi2_0 => "2.0",
-        OpenApiSpecVersion.OpenApi3_0 => "3.0",
-        OpenApiSpecVersion.OpenApi3_1 => "3.1",
-        _ => throw new NotSupportedException($"OpenAPI version {Enum.GetName(typeof(OpenApiSpecVersion), openApiVersion)} not supported")
-    };
+    private readonly string _openApiVersion = openApiVersion.GetParameterVersion();
     
     internal string CreateBindParameterInvocation(
         string requestVariableName, 
         string bindingTypeName,
-        IOpenApiParameter parameter)
-    {
-        using var textWriter = new StringWriter();
-        var jsonWriter = new OpenApiJsonWriter(textWriter, new OpenApiJsonWriterSettings()
-        {
-            InlineLocalReferences = true
-        });
-        Action<IOpenApiWriter> serialize = openApiVersion switch
-        {
-            OpenApiSpecVersion.OpenApi3_1 => parameter.SerializeAsV31,
-            OpenApiSpecVersion.OpenApi3_0 => parameter.SerializeAsV3,
-            OpenApiSpecVersion.OpenApi2_0 => parameter.SerializeAsV2,
-            _ => throw new NotSupportedException(
-                $"OpenAPI version {Enum.GetName(typeof(OpenApiSpecVersion), openApiVersion)} not supported")
-        };
-        serialize(jsonWriter);
-        textWriter.Flush();
-        
-        return
-            $""""
-            {@namespace}.{HttpRequestExtensionsClassName}.Bind<{bindingTypeName}>(
-            {requestVariableName},
-            "{_openApiVersion}",
-            """
-            {textWriter.GetStringBuilder()}
-            """)
-            """";
-    }
-    
+        IOpenApiParameter parameter) =>
+        $""""
+         {@namespace}.{HttpRequestExtensionsClassName}.Bind<{bindingTypeName}>(
+         {requestVariableName},
+         "{_openApiVersion}",
+         """
+         {parameter.Serialize(openApiVersion)}
+         """)
+         """";
+
     internal string CreateBindBodyInvocation(
         string requestVariableName, 
         string bindingTypeName)

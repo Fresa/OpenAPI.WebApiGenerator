@@ -31,6 +31,7 @@ internal sealed class ResponseHeaderGenerator(
         return
             $""""
              {responseVariableName}.WriteResponseHeader(
+                 OpenApiVersion,
                  """
                  {headerSpecificationAsJson.Indent(4).TrimStart()}
                  """,

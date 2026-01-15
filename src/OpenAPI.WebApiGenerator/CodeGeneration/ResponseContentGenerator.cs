@@ -10,15 +10,12 @@ internal sealed class ResponseContentGenerator
 {
     private readonly List<ResponseBodyContentGenerator> _contentGenerators = [];
     private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
-    private readonly HttpResponseExtensionsGenerator _httpResponseExtensionsGenerator;
     private readonly string _responseClassName;
     private readonly string _responseStatusCodePattern;
 
     private ResponseContentGenerator(
-        string responseStatusCodePattern,
-        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
+        string responseStatusCodePattern)
     {
-        _httpResponseExtensionsGenerator = httpResponseExtensionsGenerator;
         var classNamePrefix = Enum.TryParse<HttpStatusCode>(responseStatusCodePattern, out var statusCode)
             ? statusCode.ToString()
             : responseStatusCodePattern.First() switch
@@ -39,8 +36,7 @@ internal sealed class ResponseContentGenerator
     public ResponseContentGenerator(
         string responseStatusCodePattern,
         List<ResponseBodyContentGenerator> contentGenerators,
-        List<ResponseHeaderGenerator> headerGenerators,
-        HttpResponseExtensionsGenerator httpResponseExtensionsGenerator) : this(responseStatusCodePattern, httpResponseExtensionsGenerator)
+        List<ResponseHeaderGenerator> headerGenerators) : this(responseStatusCodePattern)
     {
         _contentGenerators = contentGenerators;
         _headerGenerators = headerGenerators;
@@ -99,7 +95,7 @@ $$"""
         {{{_contentGenerators.AggregateToString(generator => 
 $"""
             case true when {generator.ContentPropertyName} is not null:
-                {_httpResponseExtensionsGenerator.CreateWriteBodyInvocation(
+                {HttpResponseExtensionsGenerator.CreateWriteBodyInvocation(
                     responseVariableName, 
                     $"{generator.ContentPropertyName}.Value")};
                 break;
