@@ -100,7 +100,7 @@ $$"""
         {{{_contentGenerators.AggregateToString(content => 
 $"""
             case true when {content.PropertyName} is not null:
-                return {content.PropertyName}!.Value.Validate(validationContext, validationLevel);
+                return {content.PropertyName}!.Value.Validate("{content.SchemaLocation}", true, validationContext, validationLevel);
 """)}}
             default:
                 {{(_body.Required ? 

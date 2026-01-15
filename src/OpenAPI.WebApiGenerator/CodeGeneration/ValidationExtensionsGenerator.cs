@@ -2,7 +2,7 @@
 
 internal sealed class ValidationExtensionsGenerator(string @namespace)
 {
-    private const string ClassName = "ValidationResultsExtensions";
+    private const string ClassName = "ValidationExtensions";
     internal SourceCode GenerateClass() => new($"{ClassName}.g.cs", 
 $$"""
 #nullable enable
@@ -34,6 +34,23 @@ internal static class {{ClassName}}
             return location;
         var schemaLocation = new JsonReference(uri.AsSpan(), location.Value.SchemaLocation.Fragment);
         return (location.Value.ValidationLocation, schemaLocation, location.Value.DocumentLocation);
+    }
+    
+    internal static ValidationContext Validate<T>(this T value,
+        string schemaLocation, 
+        bool isRequired,
+        ValidationContext validationContext,
+        ValidationLevel validationLevel) 
+        where T : struct, IJsonValue<T>
+    {
+        if (!isRequired && value.IsUndefined())
+        {
+            return validationContext;
+        }
+      
+        var context = validationContext.PushSchemaLocation(schemaLocation);
+        context = value.Validate(context, validationLevel);
+        return context.PopLocation();
     }
 }
 #nullable restore

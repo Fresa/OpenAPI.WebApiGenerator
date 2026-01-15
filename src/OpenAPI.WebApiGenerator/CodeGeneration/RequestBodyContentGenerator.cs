@@ -17,7 +17,8 @@ internal sealed class RequestBodyContentGenerator(
     internal string PropertyName { get; } = contentType.ToPascalCase();
 
     internal string ContentType => contentType;
-    
+
+    internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     internal string GenerateRequestBindingDirective() =>
 $"""
 {PropertyName} = 
