@@ -88,7 +88,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
             rootNamespace);
         httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);
         
-        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(openApiVersion, rootNamespace);
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
         var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);
@@ -189,7 +189,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var responseHeaderSchema = openApiResponseVisitor.GetSchemaReference(header);
                         var typeDeclaration = schemaGenerator.Generate(responseHeaderSchema);
                         return new ResponseHeaderGenerator(name, header, typeDeclaration,
-                            httpResponseExtensionsGenerator);
+                            openApiVersion);
                     }).ToList() ?? [];
 
                     return new ResponseContentGenerator(
@@ -200,8 +200,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 
                 var responseGenerator = new ResponseGenerator(
                     responseBodyGenerators, 
-                    httpResponseExtensionsGenerator,
-                    openApiVersion);
+                    httpResponseExtensionsGenerator);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
                         operationNamespace,

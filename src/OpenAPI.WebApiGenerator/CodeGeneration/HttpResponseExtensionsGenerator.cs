@@ -1,26 +1,12 @@
-﻿using Microsoft.OpenApi;
-using OpenAPI.WebApiGenerator.OpenApi;
-
-namespace OpenAPI.WebApiGenerator.CodeGeneration;
+﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpResponseExtensionsGenerator(
-    OpenApiSpecVersion openApiVersion,
     string @namespace)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
     
-    internal string GetResponseHeaderSpecificationAsJson(
-        IOpenApiHeader header, 
-        string name) =>
-        // Response header specification is a subset of the parameter specification, so we add the missing properties to be able to use the parameter value parser 
-        $$"""
-          {
-            "name": "{{name}}",
-            "in": "header",
-            {{header.Serialize(openApiVersion).ToString().TrimStart('{').TrimStart()}} 
-          """;
-
+    
     internal static string CreateWriteBodyInvocation(
         string responseVariableName, 
         string contentVariableName) =>

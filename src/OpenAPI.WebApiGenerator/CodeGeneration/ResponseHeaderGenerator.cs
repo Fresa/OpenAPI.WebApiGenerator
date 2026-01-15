@@ -2,6 +2,7 @@
 using Corvus.Json.CodeGeneration.CSharp;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
+using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -9,7 +10,7 @@ internal sealed class ResponseHeaderGenerator(
     string name, 
     IOpenApiHeader header, 
     TypeDeclaration typeDeclaration, 
-    HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
+    OpenApiSpecVersion openApiSpecVersion)
 {
     private readonly string _propertyName = name.ToPascalCase();
     private readonly string _requiredDirective = header.Required ? "required" : string.Empty;
@@ -27,11 +28,19 @@ internal sealed class ResponseHeaderGenerator(
     
     internal string GenerateWriteDirective(string responseVariableName)
     {
-        var headerSpecificationAsJson = httpResponseExtensionsGenerator.GetResponseHeaderSpecificationAsJson(header, name);
+        // Response header specification is a subset of the parameter specification, so we add the missing properties to be able to use the parameter value parser 
+        var headerSpecificationAsJson = 
+            $$"""
+              {
+                "name": "{{name}}",
+                "in": "header",
+                {{header.Serialize(openApiSpecVersion).ToString().TrimStart('{').TrimStart()}} 
+              """;
+
         return
             $""""
              {responseVariableName}.WriteResponseHeader(
-                 OpenApiVersion,
+                 "{openApiSpecVersion.GetParameterVersion()}",
                  """
                  {headerSpecificationAsJson.Indent(4).TrimStart()}
                  """,
