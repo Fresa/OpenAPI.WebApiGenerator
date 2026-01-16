@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{F4FDC271-0
 		README.md = README.md
 		.github\workflows\cd.yml = .github\workflows\cd.yml
 		LICENSE = LICENSE
+		.github\workflows\lint-openapi.yml = .github\workflows\lint-openapi.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.OpenApi31", "tests\Example.OpenApi31\Example.OpenApi31.csproj", "{FF8E3B7A-20A5-4702-871C-D8ABC6D82F09}"
