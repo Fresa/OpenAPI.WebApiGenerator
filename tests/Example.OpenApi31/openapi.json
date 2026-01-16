@@ -2,7 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Example API",
-    "version": "2025-11-05"
+    "version": "2025-11-05",
+    "description": "Foo API"
   },
   "paths": {
     "/foo/{FooId}": {
