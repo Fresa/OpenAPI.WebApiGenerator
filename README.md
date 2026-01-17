@@ -4,6 +4,17 @@ Generates scaffolding for Web APIs from OpenAPI specifications.
 
 The generated functionality will route, serialize/deserialize and validate payloads according to the specification.
 
+Supported OpenAPI version:
+- [2.0](https://spec.openapis.org/oas/v2.0.html)
+- [3.0.0](https://spec.openapis.org/oas/v3.0.0.html)
+- [3.0.1](https://spec.openapis.org/oas/v3.0.1.html)
+- [3.0.2](https://spec.openapis.org/oas/v3.0.2.html)
+- [3.0.3](https://spec.openapis.org/oas/v3.0.3.html)
+- [3.0.4](https://spec.openapis.org/oas/v3.0.4.html)
+- [3.1.0](https://spec.openapis.org/oas/v3.1.0.html)
+- [3.1.1](https://spec.openapis.org/oas/v3.1.1.html)
+- [3.1.2](https://spec.openapis.org/oas/v3.1.2.html)
+
 API frameworks supported:
 - [Minimal API](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis)
 
@@ -52,9 +63,14 @@ app.MapOperations();
 app.Run();
 ```
 
-See [Example.OpenApi20](tests/Example.OpenApi20) as an example.
+Examples:
+- [OpenAPI 2.0](tests/Example.OpenApi20)
+- [OpenAPI 3.0](tests/Example.OpenApi30)
+- [OpenAPI 3.1](tests/Example.OpenApi31)
 
-**Note**: The Example.OpenApi20 references the generator through a project reference. Use a package reference instead as described above.  
+All specifications mostly generate similar abstractions. What might differ is the location of generated resources, which follows the respective structure of the OpenAPI specification, and the JSON types, which are based on the respective schema version. 
+
+**Note**: The Examples reference the generator through a project reference. Use a package reference instead as described above.  
 
 ## Implementing an [API Operation](https://swagger.io/specification/#operation-object)
 The generator generates stubbed partial classes for any operation handlers (`Foo.Bar.Operation.Handler.cs`) if there are none existing in the project and logs it with a compiler warning (AF1001). The classes should be copied into source control and the operation methods implemented. The operation methods have a familiar request/response design:
