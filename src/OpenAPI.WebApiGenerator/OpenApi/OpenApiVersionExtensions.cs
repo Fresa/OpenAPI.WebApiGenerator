@@ -12,11 +12,13 @@ internal static class OpenApiVersionExtensions
         OpenApiSpecVersion.OpenApi2_0 => "2.0",
         OpenApiSpecVersion.OpenApi3_0 => "3.0",
         OpenApiSpecVersion.OpenApi3_1 => "3.1",
+        OpenApiSpecVersion.OpenApi3_2 => "3.2",
         _ => throw new NotSupportedException($"OpenAPI version {Enum.GetName(typeof(OpenApiSpecVersion), version)} not supported")
     };
 
     internal static Action<IOpenApiWriter> GetSerializer(this IOpenApiSerializable parameter, OpenApiSpecVersion version) => version switch
     {
+        OpenApiSpecVersion.OpenApi3_2 => parameter.SerializeAsV32,
         OpenApiSpecVersion.OpenApi3_1 => parameter.SerializeAsV31,
         OpenApiSpecVersion.OpenApi3_0 => parameter.SerializeAsV3,
         OpenApiSpecVersion.OpenApi2_0 => parameter.SerializeAsV2,

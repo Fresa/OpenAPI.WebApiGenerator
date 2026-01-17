@@ -141,8 +141,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 {
                     var contentGenerators = body.GetContent().Select(pair =>
                     {
-                        var requestBodyContent = pair.Value;
-                        var schemaReference = openApiOperationVisitor.GetSchemaReference(requestBodyContent);
+                        var mediaType = pair.Value;
+                        var schemaReference = openApiOperationVisitor.GetSchemaReference(mediaType);
                         var typeDeclaration = schemaGenerator.Generate(schemaReference);
                         return new RequestBodyContentGenerator(
                             pair.Key,

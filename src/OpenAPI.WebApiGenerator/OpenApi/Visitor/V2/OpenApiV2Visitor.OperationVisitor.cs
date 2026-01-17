@@ -15,7 +15,8 @@ internal sealed partial class OpenApiV2Visitor
             private Dictionary<IOpenApiParameter, JsonReference> _parameterSchemaReferences = new();
             private JsonReference? _bodySchemaReference;
             private readonly Dictionary<IOpenApiResponse, IOpenApiResponseVisitor> _responseVisitors = new();
-            
+            private JsonReference? _formDataSchemaReference;
+
             private OperationVisitor(OpenApiReference<OpenApiOperation> openApiReference) : base(openApiReference)
             {
                 VisitParameters();
@@ -36,6 +37,7 @@ internal sealed partial class OpenApiV2Visitor
                         new JsonReference(Reference.Uri, parametersPointer.ToString().AsSpan())));
                 _parameterSchemaReferences = parametersVisitor.Schemas;
                 _bodySchemaReference = parametersVisitor.BodySchema;
+                _formDataSchemaReference = parametersVisitor.FormData;
             }
 
             private void VisitResponses()
@@ -58,8 +60,8 @@ internal sealed partial class OpenApiV2Visitor
             public JsonReference GetSchemaReference(IOpenApiParameter parameter) =>
                 _parameterSchemaReferences[parameter];
 
-            public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent) => 
-                _bodySchemaReference ?? throw new InvalidOperationException("Operation doesn't define a body");
+            public JsonReference GetSchemaReference(IOpenApiMediaType mediaType) =>
+                _bodySchemaReference ?? _formDataSchemaReference ?? throw new InvalidOperationException($"Operation {Pointer} doesn't define a body or formData");
 
             public IOpenApiResponseVisitor Visit(IOpenApiResponse response) => 
                 _responseVisitors[response];

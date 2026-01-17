@@ -17,6 +17,7 @@ internal sealed partial class OpenApiV2Visitor
 
         internal Dictionary<IOpenApiParameter, JsonReference> Schemas { get; } = new();
         internal JsonReference? BodySchema { get; private set; }
+        internal JsonReference? FormData { get; private set; }
         
         internal static ParametersVisitor Visit(OpenApiReference<IList<IOpenApiParameter>> openApiReference) => 
             new(openApiReference);
@@ -45,11 +46,16 @@ internal sealed partial class OpenApiV2Visitor
 
                 parameters.Add((parameterName, parameterLocation),
                     new JsonReference(Reference.Uri, schemaPointer.ToString().AsSpan()));
-                if (parameterLocation == "body")
+                switch (parameterLocation)
                 {
-                    BodySchema = parameters[(parameterName, parameterLocation)];
+                    case "body":
+                        BodySchema = parameters[(parameterName, parameterLocation)];
+                        break;
+                    case "formData":
+                        FormData = parameters[(parameterName, parameterLocation)];
+                        break;
                 }
-                
+
                 parameterIndex++;
             }
 

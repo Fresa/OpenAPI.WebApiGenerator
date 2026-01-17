@@ -12,7 +12,7 @@ using Xunit;
 
 namespace OpenAPI.WebApiGenerator.Tests;
 
-public class ApiGeneratorTests
+public partial class ApiGeneratorTests
 {
     private CancellationToken Cancellation => TestContext.Current.CancellationToken;
     
@@ -20,6 +20,7 @@ public class ApiGeneratorTests
     [InlineData("openapi-v2.json")]
     [InlineData("openapi-v3.json")]
     [InlineData("openapi-v3.1.json")]
+    [InlineData("openapi-v3.2.json")]
     public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated(string specFile)
     {
         var generator = new ApiGenerator();
@@ -52,8 +53,11 @@ public class ApiGeneratorTests
         generatedFiles.Should().ContainMatch("*.Operation.g.cs");
     }
 
-    [Fact]
-    public void GivenAImplementedOperation_WhenGeneratingAPI_NoOperationHandlerStubsShouldBeGenerated()
+    
+    [Theory]
+    [MemberData(nameof(OpenApiSpecsWithOperations))]
+    public void GivenAImplementedOperation_WhenGeneratingAPI_NoOperationHandlerStubsShouldBeGenerated(
+        string _, string openApiSpec)
     {
         var generator = new ApiGenerator();
 
@@ -61,46 +65,7 @@ public class ApiGeneratorTests
 
         driver = driver.AddAdditionalTexts(
             [
-                new InMemoryAdditionalText("openapi.json",
-                    """
-                      {
-                        "swagger": "2.0",
-                        "info": {
-                          "title": "foo",
-                          "version": "1.0"
-                        },
-                        "paths": {
-                        "/foo": {
-                            "put": {
-                            "operationId": "Service_SetProperties",
-                            "description": "Sets properties for a storage account's File service endpoint, including properties for Storage Analytics metrics and CORS (Cross-Origin Resource Sharing) rules.",
-                            "parameters": [
-                                {
-                                "name": "StorageServiceProperties",
-                                "in": "body",
-                                "description": "The StorageService properties.",
-                                "required": true,
-                                "schema": {
-                                  "description": "Storage service properties.",
-                                  "type": "object",
-                                  "properties": {
-                                    "HourMetrics": {
-                                      "description": "A summary of request statistics grouped by API in hourly aggregates for files.",
-                                      "type": "string"
-                                    }
-                                  }
-                                }
-                            }],
-                            "responses": {
-                              "202": {
-                                "description": "Success (Accepted)"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    """)
+                new InMemoryAdditionalText("openapi.json", openApiSpec)
             ]
         );
 
@@ -156,32 +121,11 @@ public class ApiGeneratorTests
         generatedFiles.Should().HaveCountGreaterThan(0);
     }
 
-    [Fact]
-    public void NoResponseContent_Generating_DefaultResponseConstructor()
+    [Theory]
+    [MemberData(nameof(NoResponseContentSpecs))]
+    public void NoResponseContent_Generating_DefaultResponseConstructor(string _, string openApiSpec)
     {
-        const string openApiSpec =
-"""
-{
-  "swagger": "2.0",
-  "info": {
-    "title": "foo",
-    "version": "1.0"
-  },
-  "paths": {
-    "/foo": {
-      "delete": {
-        "operationId": "Delete",
-        "responses": {
-          "202": {
-            "description": "Success"
-          }
-        }
-      }
-    }
-  }
-}
-""";
-        var compilation = SetupGenerator(openApiSpec, 
+        var compilation = SetupGenerator(openApiSpec,
             out var diagnostics);
         HasOnlyMissingHandler(diagnostics);
         compilation.SyntaxTrees.Should().HaveCountGreaterThan(0);
@@ -194,7 +138,7 @@ public class ApiGeneratorTests
             .Parameters.Should().HaveCount(0);
     }
 
-    private void HasOnlyMissingHandler(ImmutableArray<Diagnostic> diagnostics)
+    private static void HasOnlyMissingHandler(ImmutableArray<Diagnostic> diagnostics)
     {
         diagnostics.Should().AllSatisfy(diagnostic =>
         {
@@ -224,5 +168,4 @@ public class ApiGeneratorTests
             Cancellation);
         return newCompilation;
     }
-
 }

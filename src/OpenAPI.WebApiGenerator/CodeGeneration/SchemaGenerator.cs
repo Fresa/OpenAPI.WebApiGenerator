@@ -38,6 +38,8 @@ internal sealed class SchemaGenerator(
                 Corvus.Json.CodeGeneration.OpenApi30.VocabularyAnalyser.DefaultVocabulary,
             OpenApiSpecVersion.OpenApi3_1 =>
                 Corvus.Json.CodeGeneration.Draft202012.VocabularyAnalyser.DefaultVocabulary,
+            OpenApiSpecVersion.OpenApi3_2 =>
+                Corvus.Json.CodeGeneration.Draft202012.VocabularyAnalyser.DefaultVocabulary,
             _ => throw new InvalidOperationException($"OpenAPI specification {openApiSpecVersion} is not supported")
         };
         var globalOptions =

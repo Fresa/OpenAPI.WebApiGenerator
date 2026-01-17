@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Example.OpenApi32</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.4.2" />
+        <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\OpenAPI.WebApiGenerator\OpenAPI.WebApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+    <ItemGroup>
+        <AdditionalFiles Include="openapi.json" />
+    </ItemGroup>
+
+</Project>

@@ -14,7 +14,7 @@ internal sealed partial class OpenApiV3Visitor
         {
             private Dictionary<IOpenApiParameter, JsonReference> _parameterSchemaReferences = new();
             private readonly Dictionary<IOpenApiResponse, IOpenApiResponseVisitor> _responseVisitors = new();
-            private readonly Dictionary<OpenApiMediaType, JsonReference> _requestContentSchemaReferences = new();
+            private readonly Dictionary<IOpenApiMediaType, JsonReference> _requestContentSchemaReferences = new();
             
             private OperationVisitor(OpenApiReference<OpenApiOperation> openApiReference) : base(openApiReference)
             {
@@ -78,8 +78,8 @@ internal sealed partial class OpenApiV3Visitor
             public JsonReference GetSchemaReference(IOpenApiParameter parameter) =>
                 _parameterSchemaReferences[parameter];
 
-            public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent) => 
-                _requestContentSchemaReferences[requestBodyContent];
+            public JsonReference GetSchemaReference(IOpenApiMediaType mediaType) => 
+                _requestContentSchemaReferences[mediaType];
 
             public IOpenApiResponseVisitor Visit(IOpenApiResponse response) => 
                 _responseVisitors[response];
