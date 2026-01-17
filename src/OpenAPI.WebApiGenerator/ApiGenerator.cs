@@ -88,7 +88,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
             rootNamespace);
         httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);
         
-        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace,
+            openApiVersion);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
         var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);

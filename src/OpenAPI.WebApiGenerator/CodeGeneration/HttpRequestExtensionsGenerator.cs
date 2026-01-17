@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using Microsoft.OpenApi;
+﻿using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
@@ -11,8 +9,6 @@ internal sealed class HttpRequestExtensionsGenerator(
 {
     private const string HttpRequestExtensionsClassName = "HttpRequestExtensions";
 
-    private readonly string _openApiVersion = openApiVersion.GetParameterVersion();
-    
     internal string CreateBindParameterInvocation(
         string requestVariableName, 
         string bindingTypeName,
@@ -20,7 +16,6 @@ internal sealed class HttpRequestExtensionsGenerator(
         $""""
          {@namespace}.{HttpRequestExtensionsClassName}.Bind<{bindingTypeName}>(
          {requestVariableName},
-         "{_openApiVersion}",
          """
          {parameter.Serialize(openApiVersion)}
          """)
@@ -54,27 +49,31 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
 
         internal static class {{{HttpRequestExtensionsClassName}}}
         {
+            private const string ParameterValueParserVersion = "{{{openApiVersion.GetParameterVersion()}}}";
+            
             private static readonly ConcurrentDictionary<IParameter, IParameterValueParser> ParserCache = new();
-            private static IParameterValueParser GetParser(IParameter parameter) => ParserCache.GetOrAdd(parameter, _ => parameter.CreateParameterValueParser());
+            private static IParameterValueParser GetParser(IParameter parameter) => 
+                ParserCache.GetOrAdd(parameter, _ => 
+                    parameter.CreateParameterValueParser());
             
             private static readonly ConcurrentDictionary<string, IParameter> ParameterCache = new();
-            private static IParameter GetParameter(string openApiVersion, string parameterSpecificationAsJson) => ParameterCache.GetOrAdd(parameterSpecificationAsJson, _ => ParameterFactory.OpenApi(openApiVersion, parameterSpecificationAsJson));
+            private static IParameter GetParameter(string parameterSpecificationAsJson) => 
+                ParameterCache.GetOrAdd(parameterSpecificationAsJson, _ => 
+                    ParameterFactory.OpenApi(ParameterValueParserVersion, parameterSpecificationAsJson));
 
             /// <summary>
             /// Binds an http parameter to a json type
             /// </summary>
             /// <param name="request"></param>
-            /// <param name="openApiVersion">OpenAPI Version of the specification</param>
             /// <param name="parameterSpecificationAsJson">OpenAPI parameter specification formatted as json</param>
             /// <typeparam name="T">The type to bind</typeparam>
             /// <returns>The bound instance</returns>
             /// <exception cref="BadHttpRequestException"></exception>
             internal static T Bind<T>(this HttpRequest request, 
-                string openApiVersion,
                 string parameterSpecificationAsJson)
                 where T : struct, IJsonValue<T>
             {
-                var parameter = GetParameter(openApiVersion, parameterSpecificationAsJson);
+                var parameter = GetParameter(parameterSpecificationAsJson);
                 return parameter switch
                 {
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),

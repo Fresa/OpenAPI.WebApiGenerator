@@ -1,7 +1,11 @@
-﻿namespace OpenAPI.WebApiGenerator.CodeGeneration;
+﻿using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.OpenApi;
+
+namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class HttpResponseExtensionsGenerator(
-    string @namespace)
+    string @namespace,
+    OpenApiSpecVersion openApiSpecVersion)
 {
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
@@ -31,9 +35,9 @@ internal sealed class HttpResponseExtensionsGenerator(
         internal static class {{{HttpResponseExtensionsClassName}}}
         {
             private static readonly ConcurrentDictionary<string, IParameterValueParser> ParserCache = new();
+            private const string ParameterValueParserVersion = "{{{openApiSpecVersion.GetParameterVersion()}}}";
             
             internal static void WriteResponseHeader<TValue>(this HttpResponse response,
-                string openApiVersion, 
                 string headerSpecificationAsJson, 
                 string name, 
                 TValue value)
@@ -45,7 +49,7 @@ internal sealed class HttpResponseExtensionsGenerator(
                 }
 
                 var parser = ParserCache.GetOrAdd(headerSpecificationAsJson, 
-                    _ => ParameterValueParserFactory.OpenApi(openApiVersion, headerSpecificationAsJson));        
+                    _ => ParameterValueParserFactory.OpenApi(ParameterValueParserVersion, headerSpecificationAsJson));        
                 var jsonValue = value.Serialize();
                 var serializedValue = parser.Serialize(JsonNode.Parse(jsonValue));
                 response.Headers[name] = serializedValue;

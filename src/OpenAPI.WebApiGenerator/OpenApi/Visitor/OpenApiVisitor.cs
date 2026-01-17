@@ -15,8 +15,8 @@ internal abstract class OpenApiVisitor
         version switch
         {
             OpenApiSpecVersion.OpenApi2_0 => OpenApiV2Visitor.Visit(openApiReference),
-            OpenApiSpecVersion.OpenApi3_0 or OpenApiSpecVersion.OpenApi3_1 => 
-                OpenApiV3Visitor.Visit(openApiReference),
+            OpenApiSpecVersion.OpenApi3_0 => OpenApiV3Visitor.Visit(openApiReference),
+            OpenApiSpecVersion.OpenApi3_1 => OpenApiV3Visitor.Visit(openApiReference),
             _ => throw new InvalidOperationException($"OpenAPI version {version} not supported")
         };
 }
