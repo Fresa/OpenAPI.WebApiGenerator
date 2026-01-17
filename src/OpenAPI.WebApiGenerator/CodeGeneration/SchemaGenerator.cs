@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Corvus.Json;
@@ -7,12 +8,14 @@ using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using Corvus.Json.SourceGeneratorTools;
 using Microsoft.CodeAnalysis;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.OpenApi;
 using JsonPointer = OpenAPI.WebApiGenerator.Json.JsonPointer;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class SchemaGenerator(string rootNamespace,
+internal sealed class SchemaGenerator(
+    string rootNamespace,
     SourceProductionContext context,
     SourceGeneratorHelpers.GenerationContext generationContext)
 {
@@ -20,6 +23,33 @@ internal sealed class SchemaGenerator(string rootNamespace,
     private static readonly VocabularyRegistry VocabularyRegistry = SourceGeneratorHelpers.CreateVocabularyRegistry(MetaSchemaResolver);
     private readonly Dictionary<string, TypeDeclaration> _typeCache = new();
     private readonly HashSet<string> _fileCache = [];
+
+    internal static SchemaGenerator For(
+        OpenApiSpecVersion openApiSpecVersion,
+        IDocumentResolver documentResolver,
+        string rootNamespace,
+        SourceProductionContext context)
+    {
+        var vocabulary = openApiSpecVersion switch
+        {
+            OpenApiSpecVersion.OpenApi2_0 =>
+                Corvus.Json.CodeGeneration.Draft4.VocabularyAnalyser.DefaultVocabulary,
+            OpenApiSpecVersion.OpenApi3_0 => 
+                Corvus.Json.CodeGeneration.OpenApi30.VocabularyAnalyser.DefaultVocabulary,
+            OpenApiSpecVersion.OpenApi3_1 =>
+                Corvus.Json.CodeGeneration.Draft202012.VocabularyAnalyser.DefaultVocabulary,
+            _ => throw new InvalidOperationException($"OpenAPI specification {openApiSpecVersion} is not supported")
+        };
+        var globalOptions =
+            new SourceGeneratorHelpers.GlobalOptions(
+                fallbackVocabulary: vocabulary,
+                optionalAsNullable: true,
+                useOptionalNameHeuristics: true,
+                alwaysAssertFormat: true,
+                ImmutableArray<string>.Empty);
+        var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
+        return new SchemaGenerator(rootNamespace, context, generationContext);
+    }
     
     internal TypeDeclaration Generate(JsonReference reference)
     {
@@ -72,24 +102,9 @@ internal sealed class SchemaGenerator(string rootNamespace,
                 return [];
             }
 
-            string schemaFile = spec.Location;
+            var schemaFile = spec.Location;
             JsonReference reference = new(schemaFile);
-            TypeDeclaration rootType;
-            try
-            {
-                rootType = typeBuilder.AddTypeDeclarations(reference, typesToGenerate.FallbackVocabulary, spec.RebaseToRootPath, context.CancellationToken);
-            }
-            catch (Exception ex)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        Crv1001ErrorGeneratingCSharpCode,
-                        Location.None,
-                        reference,
-                        ex.Message));
-
-                return [];
-            }
+            var rootType = typeBuilder.AddTypeDeclarations(reference, typesToGenerate.FallbackVocabulary, spec.RebaseToRootPath, context.CancellationToken);
             
             typeDeclarationsToGenerate.Add(rootType);
 
@@ -134,27 +149,11 @@ internal sealed class SchemaGenerator(string rootNamespace,
 
         var languageProvider = CSharpLanguageProvider.DefaultWithOptions(options);
 
-        IReadOnlyCollection<GeneratedCodeFile> generatedCode;
-
-        try
-        {
-            generatedCode =
-                typeBuilder.GenerateCodeUsing(
-                    languageProvider,
-                    context.CancellationToken,
-                    typeDeclarationsToGenerate);
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    Crv1001ErrorGeneratingCSharpCode,
-                    Location.None,
-                    ex.Message));
-
-            return [];
-        }
-
+        var generatedCode = typeBuilder.GenerateCodeUsing(
+            languageProvider,
+            context.CancellationToken,
+            typeDeclarationsToGenerate);
+        
         foreach (var codeFile in generatedCode)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
@@ -179,14 +178,4 @@ internal sealed class SchemaGenerator(string rootNamespace,
             .Select(declaration => declaration.ReducedTypeDeclaration().ReducedType)
             .ToList();
     }
-    
-    private static readonly DiagnosticDescriptor Crv1001ErrorGeneratingCSharpCode =
-        new(
-            id: "CRV1001",
-            title: "JSON Schema Type Generator Error",
-            messageFormat: "Error generating C# code: {0}: {1}",
-            category: "JsonSchemaCodeGenerator",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
-
 }

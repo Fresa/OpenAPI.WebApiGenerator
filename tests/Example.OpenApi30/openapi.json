@@ -1,0 +1,147 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Example API",
+    "version": "2025-11-05",
+    "description": "Foo API"
+  },
+  "paths": {
+    "/foo/{FooId}": {
+      "put": {
+        "operationId": "Update_Foo",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Bar"
+          },
+          {
+            "name": "Fee",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "required": false,
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FooProperties"
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated",
+            "headers": {
+              "Status": {
+                "description": "The Status of foo",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "Tag": {
+                "description": "An optional tag",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "Delete_Foo",
+        "responses": {
+          "200": {
+            "description": "Successfully deleted"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/FooId"
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "FooProperties": {
+        "description": "Foo properties.",
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name of foo",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "Bar": {
+        "name": "Bar",
+        "in": "header",
+        "schema": {
+          "type": "string"
+        },
+        "required": true
+      },
+      "FooId": {
+        "name": "FooId",
+        "in": "path",
+        "schema": {
+          "type": "integer"
+        },
+        "required": true
+      }
+    },
+    "requestBodies": {
+      "FooProperties": {
+        "description": "Foo properties.",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FooProperties"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Returned when the request has validation errors",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "error"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

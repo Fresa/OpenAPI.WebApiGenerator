@@ -20,9 +20,9 @@ internal readonly struct JsonPointer(params string[]? segments) : IEquatable<Jso
     
     internal string[] Segments => segments ?? [];
 
-    internal JsonPointer Append(string segment)
+    internal JsonPointer Append(params string[] segmentList)
     {
-        return new JsonPointer(Segments.Append(segment).ToArray());
+        return new JsonPointer(Segments.Concat(segmentList).ToArray());
     }
 
     public override string ToString() => 

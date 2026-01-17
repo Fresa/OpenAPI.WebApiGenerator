@@ -4,7 +4,9 @@ using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class ResponseGenerator(List<ResponseContentGenerator> responseBodyGenerators, HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
+internal sealed class ResponseGenerator(
+    List<ResponseContentGenerator> responseBodyGenerators, 
+    HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
 {
     public SourceCode GenerateResponseClass(string @namespace, string path)
     {
@@ -25,6 +27,7 @@ $$"""
 """)}}
     
     internal abstract void WriteTo(HttpResponse httpResponse);
+    internal abstract ValidationContext Validate(ValidationLevel validationLevel);
     {{
     responseBodyGenerators.AggregateToString(generator => 
         generator.GenerateResponseContentClass()).Indent(4)

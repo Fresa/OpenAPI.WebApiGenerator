@@ -1,9 +1,8 @@
-﻿using System.IO;
-using System.Linq;
-using Corvus.Json.CodeGeneration;
+﻿using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
+using OpenAPI.WebApiGenerator.OpenApi;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -11,10 +10,10 @@ internal sealed class ResponseHeaderGenerator(
     string name, 
     IOpenApiHeader header, 
     TypeDeclaration typeDeclaration, 
-    HttpResponseExtensionsGenerator httpResponseExtensionsGenerator)
+    OpenApiSpecVersion openApiSpecVersion)
 {
     private readonly string _propertyName = name.ToPascalCase();
-    private readonly string _requiredDirective = header.Required ? "required" : string.Empty;
+    private readonly string _requiredDirective = header.Required ? "required " : string.Empty;
     private string DefaultValueAssignment => header.Required ? "" : $" = {FullyQualifiedTypeName}.Undefined;";
     private string FullyQualifiedTypeName =>
         $"{_fullyQualifiedTypeDeclarationIdentifier}";
@@ -24,33 +23,33 @@ internal sealed class ResponseHeaderGenerator(
     
     internal string GenerateProperty() =>
         $$"""
-          internal {{_requiredDirective}} {{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
+          internal {{_requiredDirective}}{{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
           """;
     
     internal string GenerateWriteDirective(string responseVariableName)
     {
-        using var textWriter = new StringWriter();
-        var jsonWriter = new OpenApiJsonWriter(textWriter, new OpenApiJsonWriterSettings
-        {
-            InlineLocalReferences = true
-        });
-        header.SerializeAsV2(jsonWriter);
-        textWriter.Flush();
-
         // Response header specification is a subset of the parameter specification, so we add the missing properties to be able to use the parameter value parser 
         var headerSpecificationAsJson = 
             $$"""
               {
                 "name": "{{name}}",
                 "in": "header",
-                {{textWriter.GetStringBuilder().ToString().TrimStart('{').TrimStart()}} 
+                {{header.Serialize(openApiSpecVersion).ToString().TrimStart('{').TrimStart()}} 
               """;
-        
-        return $"{httpResponseExtensionsGenerator.CreateWriteHeaderInvocation(
-            responseVariableName,
-            headerSpecificationAsJson,
-            name,
-            $"Headers.{_propertyName}",
-            header.Required)};";
+
+        return
+            $""""
+             {responseVariableName}.WriteResponseHeader(
+                 """
+                 {headerSpecificationAsJson.Indent(4).TrimStart()}
+                 """,
+                 "{name}",
+                 Headers.{_propertyName});
+             """";
     }
+
+    internal string GenerateValidateDirective() =>
+        $"""
+         validationContext = Headers.{_propertyName}.Validate("{typeDeclaration.RelativeSchemaLocation}", {header.Required.ToString().ToLowerInvariant()}, validationContext, validationLevel);
+         """;
 }

@@ -16,8 +16,11 @@ public class ApiGeneratorTests
 {
     private CancellationToken Cancellation => TestContext.Current.CancellationToken;
     
-    [Fact]
-    public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated()
+    [Theory]
+    [InlineData("openapi-v2.json")]
+    [InlineData("openapi-v3.json")]
+    [InlineData("openapi-v3.1.json")]
+    public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated(string specFile)
     {
         var generator = new ApiGenerator();
 
@@ -25,24 +28,24 @@ public class ApiGeneratorTests
 
         driver = driver.AddAdditionalTexts(
             [
-                new TestAdditionalFile("OpenApiSpecs/file.json")
+                new TestAdditionalFile($"OpenApiSpecs/{specFile}")
             ]
         );
 
         var compilation = CSharpCompilation.Create(nameof(ApiGeneratorTests));
-        driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics, TestContext.Current.CancellationToken);
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics, Cancellation);
 
         // Operation handler stubs should be generated with a warning
         diagnostics.Should().AllSatisfy(diagnostic =>
         {
             diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
             diagnostic.Id.Should().Be("AF1001", diagnostic.GetMessage());
-        }); 
+        });
 
         var generatedFiles = newCompilation.SyntaxTrees
             .Select(t => Path.GetFileName(t.FilePath))
             .ToArray();
-        
+
         generatedFiles.Should().HaveCountGreaterThan(0);
         generatedFiles.Should().ContainMatch("*.Request.g.cs");
         generatedFiles.Should().ContainMatch("*.Response.g.cs");
@@ -62,6 +65,10 @@ public class ApiGeneratorTests
                     """
                       {
                         "swagger": "2.0",
+                        "info": {
+                          "title": "foo",
+                          "version": "1.0"
+                        },
                         "paths": {
                         "/foo": {
                             "put": {
@@ -156,6 +163,10 @@ public class ApiGeneratorTests
 """
 {
   "swagger": "2.0",
+  "info": {
+    "title": "foo",
+    "version": "1.0"
+  },
   "paths": {
     "/foo": {
       "delete": {
@@ -213,4 +224,5 @@ public class ApiGeneratorTests
             Cancellation);
         return newCompilation;
     }
+
 }

@@ -47,7 +47,8 @@ internal sealed partial class OpenApiV2Visitor
         public JsonReference GetSchemaReference(OpenApiMediaType mediaType) => 
             _contentSchemaReference ?? throw new InvalidOperationException("Response has no content defined");
 
-        public bool HasContent() => _contentSchemaReference != null;
+        public bool HasContent(OpenApiMediaType mediaType) => 
+            _contentSchemaReference != null;
         
         public JsonReference GetSchemaReference(IOpenApiHeader header) => 
             _headerReferences[header];

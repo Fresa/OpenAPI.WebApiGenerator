@@ -61,24 +61,14 @@ $$"""
     
     internal ValidationContext Validate(ValidationLevel validationLevel)
     {
-        var validationContext = ValidationContext.ValidContext;{{
+        var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();{{
             bodyGenerator.GenerateValidateDirective("Body", "validationContext", "validationLevel").Indent(8)
         }}{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
             group.AggregateToString(generator =>
-        $"validationContext = Validate({group.Key}.{generator.AsRequired(generator.PropertyName)}, {generator.IsParameterRequired.ToString().ToLowerInvariant()});").Trim()).Indent(8)}}
+        $"""
+         validationContext = ({group.Key}.{generator.AsRequired(generator.PropertyName)}).Validate("{generator.SchemaLocation}", {generator.IsParameterRequired.ToString().ToLowerInvariant()}, validationContext, validationLevel);
+         """).Trim()).Indent(8)}}
         return validationContext;
-        
-        ValidationContext Validate<T>(T value, 
-            bool isRequired) 
-            where T : struct, IJsonValue<T>
-        {
-            if (!isRequired && value.IsUndefined())
-            {
-                return validationContext;
-            }
-          
-            return value.Validate(validationContext, validationLevel);
-        }
     }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
 $$"""
     internal sealed class {{group.Key}}Parameters

@@ -6,6 +6,7 @@ namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal interface IOpenApiPathItemVisitor : IVisitor
 {
-    public JsonReference GetSchemaReference(IOpenApiParameter parameter);
+    JsonReference GetSchemaReference(IOpenApiParameter parameter);
     IOpenApiOperationVisitor Visit(HttpMethod parameter);
+    
 }

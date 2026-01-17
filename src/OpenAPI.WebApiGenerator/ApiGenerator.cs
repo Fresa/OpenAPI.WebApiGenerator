@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using Corvus.Json;
-using Corvus.Json.SourceGeneratorTools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.OpenApi;
@@ -31,35 +29,21 @@ public sealed class ApiGenerator : IIncrementalGenerator
         
         var openapiDocumentProvider = provider.Select((array, _) => array.First());
         
-        // Get global options
-        var globalOptions =
-            context.AnalyzerConfigOptionsProvider.Select((optionsProvider, token) =>
-                new SourceGeneratorHelpers.GlobalOptions(
-                    fallbackVocabulary: Corvus.Json.CodeGeneration.Draft4.VocabularyAnalyser.DefaultVocabulary,
-                    optionalAsNullable: true,
-                    useOptionalNameHeuristics: true,
-                    alwaysAssertFormat: true,
-                    ImmutableArray<string>.Empty));
-
-        var openApiProvider = globalOptions
-            .Combine(openapiDocumentProvider)
+        var openApiProvider = openapiDocumentProvider
             .Combine(context.CompilationProvider)
             .Select((tuple, _) => (
-                Options: tuple.Left.Left,
-                OpenApiDocument: tuple.Left.Right,
+                OpenApiDocument: tuple.Left,
                 Compilation: tuple.Right
             ));
 
         context.RegisterSourceOutput(openApiProvider,
-            WithExceptionReporting<(SourceGeneratorHelpers.GlobalOptions, AdditionalText, Compilation)>(GenerateCode));
+            WithExceptionReporting<(AdditionalText, Compilation)>(GenerateCode));
     }
 
     private static void GenerateCode(SourceProductionContext context, (
-        SourceGeneratorHelpers.GlobalOptions Options, 
         AdditionalText OpenApiDocument, 
         Compilation Compilation) generatorContext)
     {
-        var globalOptions = generatorContext.Options;
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
         
@@ -68,9 +52,20 @@ public sealed class ApiGenerator : IIncrementalGenerator
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
         var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
-        var openApi = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json").Document ??
+        var openApiResult = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json");
+        var openApiVersion = openApiResult.Diagnostic?.SpecificationVersion ??
+                             throw new InvalidOperationException("Unknown openapi version");
+        if (openApiResult.Diagnostic.Errors.Any())
+        {
+            throw new InvalidOperationException(
+                openApiResult.Diagnostic.Errors.AggregateToString(
+                    "Errors while parsing OpenAPI specification: ",
+                    error => $"{(error.Pointer == null ? "" : $"{error.Pointer}: ")}{error.Message}"));
+        }
+        var openApi = openApiResult.Document ??
                       throw new InvalidOperationException(
                           $"Could not load OpenAPI document {openApiDocumentFile.Path}");
+
         
         var openApiUri = new JsonReference(openApi.BaseUri.ToString());
         var documentResolver = new PrepopulatedDocumentResolver();
@@ -79,19 +74,22 @@ public sealed class ApiGenerator : IIncrementalGenerator
         {
             throw new InvalidOperationException("Could not add OpenApi document");
         }
-        var generationContext = new SourceGeneratorHelpers.GenerationContext(documentResolver, globalOptions);
-        var schemaGenerator = new SchemaGenerator(
-            rootNamespace,
-            context,
-            generationContext);
+        var schemaGenerator = SchemaGenerator.For(
+            openApiVersion,
+            documentResolver, 
+            rootNamespace, 
+            context);
 
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
-        var openApiVisitor = OpenApiVisitor.V2(openApiReference);
+        var openApiVisitor = OpenApiVisitor.V(openApiVersion, openApiReference);
 
-        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(rootNamespace);
+        var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
+            openApiVersion,
+            rootNamespace);
         httpRequestExtensionsGenerator.GenerateHttpRequestExtensionsClass().AddTo(context);
         
-        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace);
+        var httpResponseExtensionsGenerator = new HttpResponseExtensionsGenerator(rootNamespace,
+            openApiVersion);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
         var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);
@@ -111,8 +109,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
             {
                 var schemaReference = openApiPathVisitor.GetSchemaReference(parameter);
                 var typeDeclaration = schemaGenerator.Generate(schemaReference);
-                pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
-                    httpRequestExtensionsGenerator);
+                pathParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] =
+                    new ParameterGenerator(typeDeclaration,
+                        parameter,
+                        httpRequestExtensionsGenerator);
             }
 
             foreach (var openApiOperation in path.Value.GetOperations())
@@ -129,8 +129,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 {
                     var schemaReference = openApiOperationVisitor.GetSchemaReference(parameter);
                     var typeDeclaration = schemaGenerator.Generate(schemaReference);
-                    operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] = new ParameterGenerator(typeDeclaration, parameter,
-                        httpRequestExtensionsGenerator);
+                    operationParameterGenerators[$"{parameter.GetName()}_{parameter.GetLocation()}"] =
+                        new ParameterGenerator(typeDeclaration,
+                            parameter,
+                            httpRequestExtensionsGenerator);
                 }
 
                 var body = operation.RequestBody;
@@ -169,10 +171,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
                     
                     var responseContent =
-                        // OpenAPI.NET is incorrectly adding content when there is none defined. 
+                        // OpenAPI.NET is incorrectly adding content where there is none defined. 
                         // No content definition means NO content.
-                        (openApiResponseVisitor.HasContent() ? response.Content : null) ??
-                        new Dictionary<string, OpenApiMediaType>();
+                        response.Content?.Where(content => 
+                            openApiResponseVisitor.HasContent(content.Value)) ?? [];
                     var responseBodyGenerators = responseContent.Select(valuePair =>
                     {
                         var content = valuePair.Value;
@@ -188,18 +190,18 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var responseHeaderSchema = openApiResponseVisitor.GetSchemaReference(header);
                         var typeDeclaration = schemaGenerator.Generate(responseHeaderSchema);
                         return new ResponseHeaderGenerator(name, header, typeDeclaration,
-                            httpResponseExtensionsGenerator);
+                            openApiVersion);
                     }).ToList() ?? [];
 
                     return new ResponseContentGenerator(
                         responseStatusCodePattern,
                         responseBodyGenerators,
-                        responseHeaderGenerators,
-                        httpResponseExtensionsGenerator);
+                        responseHeaderGenerators);
                 }).ToList();
                 
                 var responseGenerator = new ResponseGenerator(
-                    responseBodyGenerators, httpResponseExtensionsGenerator);
+                    responseBodyGenerators, 
+                    httpResponseExtensionsGenerator);
                 var responseSourceCode =
                     responseGenerator.GenerateResponseClass(
                         operationNamespace,

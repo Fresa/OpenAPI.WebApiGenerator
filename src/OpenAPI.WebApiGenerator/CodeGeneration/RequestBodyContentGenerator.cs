@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Corvus.Json.CodeGeneration;
+﻿using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -18,21 +17,20 @@ internal sealed class RequestBodyContentGenerator(
     internal string PropertyName { get; } = contentType.ToPascalCase();
 
     internal string ContentType => contentType;
-    
-    internal string GenerateRequestBindingDirective(bool isRequired) =>
+
+    internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
+    internal string GenerateRequestBindingDirective() =>
 $"""
 {PropertyName} = 
     ({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
-        "request", 
-        FullyQualifiedTypeDeclarationIdentifier,
-        isRequired).Indent(8).Trim()})
+            "request", 
+            FullyQualifiedTypeDeclarationIdentifier)
+        .Indent(8).Trim()})
     .AsOptional()
 """;
 
-    public string GenerateRequestProperty()
-    {
-        return $$"""
-                 internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
-                 """;
-    }
+    public string GenerateRequestProperty() =>
+        $$"""
+          internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
+          """;
 }

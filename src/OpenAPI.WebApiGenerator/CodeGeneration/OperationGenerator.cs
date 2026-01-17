@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -27,11 +28,30 @@ internal partial class Operation
     internal const string PathTemplate = "{{pathTemplate}}";
     internal const string Method = "{{method.Method}}";
 
-    {{HandleMethodSignature}};
+    /// <summary>
+    /// Set validation level for requests and responses
+    /// </summary>
+    internal ValidationLevel ValidationLevel { get; init; } = ValidationLevel.Detailed;
 
-    private Func<ImmutableList<ValidationResult>, Response> HandleValidationError { get; } = validationResult => 
+    /// <summary>
+    /// Should responses be validated?
+    /// If the response has already been validated, this can be disabled to avoid redundant validation.
+    /// </summary>
+    internal bool ValidateResponse { get; init; } = true;
+
+{{HandleMethodSignature.Indent(4)}};
+
+    /// <summary>
+    /// Set a custom delegate to handle request validation errors.
+    /// <exception cref="JsonValidationException"></exception>
+    /// </summary>
+    private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+    /// <summary>
+    /// Handle a operation.
+    /// <exception cref="JsonValidationException"></exception>
+    /// </summary>
     internal static async Task HandleAsync(
         HttpContext context, 
         [FromServices] Operation operation,
@@ -41,16 +61,25 @@ internal partial class Operation
         var request = await Request.BindAsync(context, cancellationToken)
             .ConfigureAwait(false);
         
-        var validationContext = request.Validate(ValidationLevel.Detailed);
+        var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
         {
-            operation.HandleValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
+            operation.HandleRequestValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
                 .WriteTo(context.Response);
             return;
         }
         
         var response = await operation.HandleAsync(request, cancellationToken)
             .ConfigureAwait(false);
+        if (operation.ValidateResponse)
+        {
+            validationContext = response.Validate(operation.ValidationLevel);
+            if (!validationContext.IsValid)
+            {
+                var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
+                {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
+            }
+        }
         response.WriteTo(context.Response);
     }
 }
@@ -71,7 +100,12 @@ internal partial class Operation
     }
 
     private const string HandleMethodSignature =
-        "internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)";
+        """
+        /// <summary>
+        /// Handles a request for this operation.
+        /// </summary>
+        internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)
+        """;
 
     private static bool HasImplementedHandleMethod(INamedTypeSymbol typeSymbol)
     {
