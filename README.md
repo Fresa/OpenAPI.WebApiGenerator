@@ -33,7 +33,7 @@ https://www.nuget.org/packages/WebApiGenerator.OpenAPI
 1. Add a reference to the generator in the project file where the API should exist:
 ```
 <ItemGroup>
-    <PackageReference Include="WebApiGenerator.OpenAPITest" Version="x.y.z" PrivateAssets="all" />
+    <PackageReference Include="WebApiGenerator.OpenAPI" Version="x.y.z" PrivateAssets="all" />
 </ItemGroup>
 ```
 2. Add a reference to your OpenAPI specification:
