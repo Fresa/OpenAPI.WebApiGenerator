@@ -39,10 +39,7 @@
               PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PkgCorvus_Json_SourceGeneratorTools)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-        <None Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-        <None Include="$(PkgSharpYaml)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PkgMicrosoft_Bcl_HashCode)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-        <None Include="$(PkgNodaTime)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PkgYaml2JsonNode)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PkgSystem_Text_Json)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
@@ -65,8 +62,6 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="SharpYaml" Version="2.1.1" OutputItemType="Analyzer" PrivateAssets="all" GeneratePathProperty="true" />
-        <PackageReference Include="NodaTime" Version="3.2.1" OutputItemType="Analyzer" PrivateAssets="all" GeneratePathProperty="true" />
         <PackageReference Include="System.Text.Json" Version="9.0.12" OutputItemType="Analyzer" PrivateAssets="all" GeneratePathProperty="true" />
         <PackageReference Include="Yaml2JsonNode" Version="2.2.0" OutputItemType="Analyzer" PrivateAssets="all" GeneratePathProperty="true" />
     </ItemGroup>
@@ -75,10 +70,7 @@
         <ItemGroup>
             <TargetPathWithTargetPlatformMoniker Include="$(PkgCorvus_Json_SourceGeneratorTools)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
             <TargetPathWithTargetPlatformMoniker Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgSharpYaml)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
             <TargetPathWithTargetPlatformMoniker Include="$(PkgMicrosoft_Bcl_HashCode)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgNodaTime)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
             <TargetPathWithTargetPlatformMoniker Include="$(PkgYaml2JsonNode)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
             <TargetPathWithTargetPlatformMoniker Include="$(PkgSystem_Text_Json)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
         </ItemGroup>
