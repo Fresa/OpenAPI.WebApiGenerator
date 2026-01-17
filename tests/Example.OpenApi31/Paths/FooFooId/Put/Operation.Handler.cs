@@ -7,7 +7,7 @@ internal partial class Operation
 {
     public Operation()
     {
-        HandleValidationError = HandleValidationErrors;
+        HandleRequestValidationError = HandleValidationErrors;
     }
 
     private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)

@@ -7,10 +7,11 @@ internal partial class Operation
 {
     public Operation()
     {
-        HandleValidationError = HandleValidationErrors;
+        HandleRequestValidationError = HandleValidationErrors;
+        ValidateResponse = true;
     }
 
-    private static Response HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
             Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(

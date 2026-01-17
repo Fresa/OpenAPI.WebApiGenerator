@@ -7,10 +7,11 @@ internal partial class Operation
 {
     public Operation()
     {
-        HandleValidationError = HandleValidationErrors;
+        HandleRequestValidationError = HandleValidationErrors;
+        ValidateResponse = false;
     }
 
-    private static Response HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
             Responses.BadRequest.RequiredErrorAndName.Create(
@@ -34,6 +35,9 @@ internal partial class Operation
                 Status = 2
             }
         };
-        return Task.FromResult<Response>(response);
+        var validationContext = response.Validate(ValidationLevel.Detailed);
+        return !validationContext.IsValid
+            ? throw new JsonValidationException("Response is not valid", validationContext.Results)
+            : Task.FromResult<Response>(response);
     }
 }
