@@ -58,7 +58,7 @@ internal sealed partial class OpenApiV2Visitor
             public JsonReference GetSchemaReference(IOpenApiParameter parameter) =>
                 _parameterSchemaReferences[parameter];
 
-            public JsonReference GetSchemaReference(OpenApiMediaType requestBodyContent) => 
+            public JsonReference GetSchemaReference(IOpenApiMediaType requestBodyContent) => 
                 _bodySchemaReference ?? throw new InvalidOperationException("Operation doesn't define a body");
 
             public IOpenApiResponseVisitor Visit(IOpenApiResponse response) => 

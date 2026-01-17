@@ -17,7 +17,7 @@ internal sealed partial class OpenApiV3Visitor
         }
 
         private readonly Dictionary<IOpenApiHeader, JsonReference> _headerReferences = new();
-        private readonly Dictionary<OpenApiMediaType, JsonReference> _contentReferences = new();
+        private readonly Dictionary<IOpenApiMediaType, JsonReference> _contentReferences = new();
 
         internal static ResponseVisitor Visit(OpenApiReference<IOpenApiResponse> openApiReference) =>
             new(openApiReference);
@@ -56,10 +56,10 @@ internal sealed partial class OpenApiV3Visitor
             }
         }
         
-        public JsonReference GetSchemaReference(OpenApiMediaType mediaType) => 
+        public JsonReference GetSchemaReference(IOpenApiMediaType mediaType) => 
             _contentReferences[mediaType];
 
-        public bool HasContent(OpenApiMediaType mediaType) => 
+        public bool HasContent(IOpenApiMediaType mediaType) => 
             _contentReferences.ContainsKey(mediaType);
         
         public JsonReference GetSchemaReference(IOpenApiHeader header) => 
