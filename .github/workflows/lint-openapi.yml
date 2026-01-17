@@ -18,4 +18,4 @@ jobs:
 
       - name: Lint OpenAPI specs
         run: |
-          vacuum lint --globbed-files="*/**/openapi.json" 
+          vacuum lint --globbed-files="tests/{*/,*/*/}openapi*.json" 
