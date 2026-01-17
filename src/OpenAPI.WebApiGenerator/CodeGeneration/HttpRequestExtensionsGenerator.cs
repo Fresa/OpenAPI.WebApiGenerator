@@ -56,6 +56,9 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
         {
             private static readonly ConcurrentDictionary<IParameter, IParameterValueParser> ParserCache = new();
             private static IParameterValueParser GetParser(IParameter parameter) => ParserCache.GetOrAdd(parameter, _ => parameter.CreateParameterValueParser());
+            
+            private static readonly ConcurrentDictionary<string, IParameter> ParameterCache = new();
+            private static IParameter GetParameter(string openApiVersion, string parameterSpecificationAsJson) => ParameterCache.GetOrAdd(parameterSpecificationAsJson, _ => ParameterFactory.OpenApi(openApiVersion, parameterSpecificationAsJson));
 
             /// <summary>
             /// Binds an http parameter to a json type
@@ -71,7 +74,7 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 string parameterSpecificationAsJson)
                 where T : struct, IJsonValue<T>
             {
-                var parameter = ParameterFactory.OpenApi(openApiVersion, parameterSpecificationAsJson);
+                var parameter = GetParameter(openApiVersion, parameterSpecificationAsJson);
                 return parameter switch
                 {
                     _ when parameter.InBody => T.Parse(request.BodyReader.AsStream()),
