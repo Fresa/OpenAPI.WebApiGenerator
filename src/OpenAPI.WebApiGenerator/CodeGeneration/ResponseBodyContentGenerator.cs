@@ -8,6 +8,7 @@ internal sealed class ResponseBodyContentGenerator(string contentType, TypeDecla
 {
     private readonly string _contentVariableName = contentType.ToCamelCase();
     public string ContentPropertyName { get; } = contentType.ToPascalCase();
+    internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     public string GenerateConstructor(string className, string contentTypeFieldName) =>
 $$"""
 public {{className}}({{typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}})

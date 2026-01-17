@@ -41,7 +41,8 @@ internal partial class Operation
         var request = await Request.BindAsync(context, cancellationToken)
             .ConfigureAwait(false);
         
-        var validationContext = request.Validate(ValidationLevel.Detailed);
+        var validationLevel = ValidationLevel.Detailed;
+        var validationContext = request.Validate(validationLevel);
         if (!validationContext.IsValid)
         {
             operation.HandleValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
@@ -51,6 +52,13 @@ internal partial class Operation
         
         var response = await operation.HandleAsync(request, cancellationToken)
             .ConfigureAwait(false);
+        validationContext = response.Validate(validationLevel);
+        if (!validationContext.IsValid)
+        {
+            var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
+            {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
+        }
+
         response.WriteTo(context.Response);
     }
 }

@@ -56,26 +56,26 @@ internal sealed class ResponseContentGenerator
         var needsStatusCodeValidation = !hasExplicitStatusCode && !hasDefaultStatusCode;
 
         return 
-$$"""
-internal sealed class {{_responseClassName}} : Response
+$$$"""
+internal sealed class {{{_responseClassName}}} : Response
 {
-    private string? {{contentTypeFieldName}} = null;{{
+    private string? {{{contentTypeFieldName}}} = null;{{{
     _contentGenerators.AggregateToString(generator =>
         generator.GenerateConstructor(_responseClassName, contentTypeFieldName)).Indent(4)
-    }}{{
+    }}}{{{
     _contentGenerators.AggregateToString(generator => 
         generator.GenerateContentProperty()).Indent(4)
-    }}
+    }}}
     
-    private int _statusCode{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}; 
+    private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}}; 
     internal int StatusCode
     { 
-        get => _statusCode;{{(hasExplicitStatusCode ? "" : 
+        get => _statusCode;{{{(hasExplicitStatusCode ? "" : 
 $"""
         init => _statusCode = {(needsStatusCodeValidation ? $"Validate{_responseStatusCodePattern.First()}xxStatusCode(value)" : "value")};
-""")}}
+""")}}}
     }
-{{(anyHeaders ? 
+{{{(anyHeaders ? 
 $$"""
 
     internal {{headerRequiredDirective}}ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
@@ -86,9 +86,9 @@ $$"""
             generator.GenerateProperty()).Indent(8)}}
     }
 
-""" : "")}}
-    internal override void WriteTo(HttpResponse {{responseVariableName}})
-    {{{(_contentGenerators.Any() ? 
+""" : "")}}}
+    internal override void WriteTo(HttpResponse {{{responseVariableName}}})
+    {{{{(_contentGenerators.Any() ? 
 $$"""
 
         switch (true)
@@ -104,11 +104,27 @@ $"""
                 throw new InvalidOperationException("No content was defined");         
         }
 
-""" : "")}}
-        {{responseVariableName}}.ContentType = {{contentTypeFieldName}};
-        {{responseVariableName}}.StatusCode = StatusCode;{{
+""" : "")}}}
+        {{{responseVariableName}}}.ContentType = {{{contentTypeFieldName}}};
+        {{{responseVariableName}}}.StatusCode = StatusCode;{{{
         _headerGenerators.AggregateToString(generator =>
-            generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}
+            generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}}
+    }
+    
+    internal override ValidationContext Validate(ValidationLevel validationLevel)
+    {
+        var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
+        validationContext = true switch
+        {{{{_contentGenerators.AggregateToString(generator => 
+$"""
+            true when {generator.ContentPropertyName} is not null =>
+                {generator.ContentPropertyName}.Value.Validate("{generator.SchemaLocation}", true, validationContext, validationLevel),
+""")}}}
+            _ => validationContext          
+        };
+        {{{_headerGenerators.AggregateToString(generator =>
+            generator.GenerateValidateDirective()).Indent(8)}}}
+        return validationContext;
     }
 }
 """;

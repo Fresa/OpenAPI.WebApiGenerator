@@ -6,7 +6,6 @@ internal sealed class HttpResponseExtensionsGenerator(
     private const string HttpResponseExtensionsClassName = "HttpResponseExtensions";
     public string Namespace => @namespace;
     
-    
     internal static string CreateWriteBodyInvocation(
         string responseVariableName, 
         string contentVariableName) =>
@@ -31,57 +30,32 @@ internal sealed class HttpResponseExtensionsGenerator(
 
         internal static class {{{HttpResponseExtensionsClassName}}}
         {
-            private static readonly ConcurrentDictionary<IParameter, IParameterValueParser> ParserCache = new();
-            private static IParameterValueParser GetParser(IParameter parameter) => ParserCache.GetOrAdd(parameter, _ => parameter.CreateParameterValueParser());
+            private static readonly ConcurrentDictionary<string, IParameterValueParser> ParserCache = new();
             
             internal static void WriteResponseHeader<TValue>(this HttpResponse response,
                 string openApiVersion, 
                 string headerSpecificationAsJson, 
                 string name, 
-                TValue value,
-                bool isRequired)
+                TValue value)
                 where TValue : struct, IJsonValue
             {
-                if (!isRequired && value.IsUndefined()) 
+                if (value.IsUndefined()) 
                 {
                     return;
                 }
-                
-                Validate(value);
-        
-                var parameter = ParameterFactory.OpenApi(openApiVersion, headerSpecificationAsJson);
-                var serializedValue = Serialize(parameter, name, value);
+
+                var parser = ParserCache.GetOrAdd(headerSpecificationAsJson, 
+                    _ => ParameterValueParserFactory.OpenApi(openApiVersion, headerSpecificationAsJson));        
+                var jsonValue = value.Serialize();
+                var serializedValue = parser.Serialize(JsonNode.Parse(jsonValue));
                 response.Headers[name] = serializedValue;
             }
         
             internal static void WriteResponseBody<TValue>(this HttpResponse response, TValue value)
                 where TValue : struct, IJsonValue<TValue>
             {
-                Validate(value);
-                
                 using var jsonWriter = new Utf8JsonWriter(response.BodyWriter);
                 value.WriteTo(jsonWriter);
-            }
-            
-            private static string? Serialize<TValue>(IParameter parameter, string name, TValue jsonValue)
-                where TValue : struct, IJsonValue
-            {
-                var parser = GetParser(parameter);
-                var value = jsonValue.Serialize();
-        
-                return parser.Serialize(JsonNode.Parse(value));
-            }
-            
-            private static void Validate<T>(T value)
-                where T : struct, IJsonValue
-            {
-                var validationContext = ValidationContext.ValidContext;
-                var validationLevel = ValidationLevel.Detailed;
-                validationContext = value.Validate(validationContext, validationLevel);
-                if (!validationContext.IsValid)
-                {
-                    throw new JsonValidationException($"Object of type {typeof(T)} is not valid", validationContext.Results);
-                }
             }
         }
         #nullable restore

@@ -27,6 +27,7 @@ $$"""
 """)}}
     
     internal abstract void WriteTo(HttpResponse httpResponse);
+    internal abstract ValidationContext Validate(ValidationLevel validationLevel);
     {{
     responseBodyGenerators.AggregateToString(generator => 
         generator.GenerateResponseContentClass()).Indent(4)

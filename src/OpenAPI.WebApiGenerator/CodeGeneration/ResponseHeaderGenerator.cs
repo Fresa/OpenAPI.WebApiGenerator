@@ -45,8 +45,12 @@ internal sealed class ResponseHeaderGenerator(
                  {headerSpecificationAsJson.Indent(4).TrimStart()}
                  """,
                  "{name}",
-                 Headers.{_propertyName},
-                 {header.Required.ToString().ToLowerInvariant()});
+                 Headers.{_propertyName});
              """";
     }
+
+    internal string GenerateValidateDirective() =>
+        $"""
+         validationContext = Headers.{_propertyName}.Validate("{typeDeclaration.RelativeSchemaLocation}", {header.Required.ToString().ToLowerInvariant()}, validationContext, validationLevel);
+         """;
 }
