@@ -53,8 +53,11 @@ public class ApiGeneratorTests
         generatedFiles.Should().ContainMatch("*.Operation.g.cs");
     }
 
-    [Fact]
-    public void GivenAImplementedOperation_WhenGeneratingAPI_NoOperationHandlerStubsShouldBeGenerated()
+    
+    [Theory]
+    [MemberData(nameof(OpenApiSpecsWithOperations))]
+    public void GivenAImplementedOperation_WhenGeneratingAPI_NoOperationHandlerStubsShouldBeGenerated(
+        string _, string openApiSpec)
     {
         var generator = new ApiGenerator();
 
@@ -62,46 +65,7 @@ public class ApiGeneratorTests
 
         driver = driver.AddAdditionalTexts(
             [
-                new InMemoryAdditionalText("openapi.json",
-                    """
-                      {
-                        "swagger": "2.0",
-                        "info": {
-                          "title": "foo",
-                          "version": "1.0"
-                        },
-                        "paths": {
-                        "/foo": {
-                            "put": {
-                            "operationId": "Service_SetProperties",
-                            "description": "Sets properties for a storage account's File service endpoint, including properties for Storage Analytics metrics and CORS (Cross-Origin Resource Sharing) rules.",
-                            "parameters": [
-                                {
-                                "name": "StorageServiceProperties",
-                                "in": "body",
-                                "description": "The StorageService properties.",
-                                "required": true,
-                                "schema": {
-                                  "description": "Storage service properties.",
-                                  "type": "object",
-                                  "properties": {
-                                    "HourMetrics": {
-                                      "description": "A summary of request statistics grouped by API in hourly aggregates for files.",
-                                      "type": "string"
-                                    }
-                                  }
-                                }
-                            }],
-                            "responses": {
-                              "202": {
-                                "description": "Success (Accepted)"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    """)
+                new InMemoryAdditionalText("openapi.json", openApiSpec)
             ]
         );
 
@@ -225,5 +189,137 @@ public class ApiGeneratorTests
             Cancellation);
         return newCompilation;
     }
+
+    public static TheoryData<string, string> OpenApiSpecsWithOperations => new()
+    {
+        {
+            "Swagger 2.0",
+            """
+            {
+              "swagger": "2.0",
+              "info": { "title": "foo", "version": "1.0" },
+              "paths": {
+                "/foo": {
+                  "put": {
+                    "operationId": "Service_SetProperties",
+                    "parameters": [
+                      {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "HourMetrics": { "type": "string" }
+                          }
+                        }
+                      }
+                    ],
+                    "responses": {
+                      "202": { "description": "Success (Accepted)" }
+                    }
+                  }
+                }
+              }
+            }
+            """
+        },
+        {
+            "OpenAPI 3.0",
+            """
+            {
+              "openapi": "3.0.3",
+              "info": { "title": "foo", "version": "1.0" },
+              "paths": {
+                "/foo": {
+                  "put": {
+                    "operationId": "Service_SetProperties",
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "HourMetrics": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "202": { "description": "Success (Accepted)" }
+                    }
+                  }
+                }
+              }
+            }
+            """
+        },
+        {
+            "OpenAPI 3.1",
+            """
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "foo", "version": "1.0" },
+              "paths": {
+                "/foo": {
+                  "put": {
+                    "operationId": "Service_SetProperties",
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "HourMetrics": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "202": { "description": "Success (Accepted)" }
+                    }
+                  }
+                }
+              }
+            }
+            """
+        },
+        {
+            "OpenAPI 3.2",
+            """
+            {
+              "openapi": "3.2.0",
+              "info": { "title": "foo", "version": "1.0" },
+              "paths": {
+                "/foo": {
+                  "put": {
+                    "operationId": "Service_SetProperties",
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "HourMetrics": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "202": { "description": "Success (Accepted)" }
+                    }
+                  }
+                }
+              }
+            }
+            """
+        }
+    };
 
 }
