@@ -13,7 +13,7 @@ internal sealed class ResponseHeaderGenerator(
     OpenApiSpecVersion openApiSpecVersion)
 {
     private readonly string _propertyName = name.ToPascalCase();
-    private readonly string _requiredDirective = header.Required ? "required" : string.Empty;
+    private readonly string _requiredDirective = header.Required ? "required " : string.Empty;
     private string DefaultValueAssignment => header.Required ? "" : $" = {FullyQualifiedTypeName}.Undefined;";
     private string FullyQualifiedTypeName =>
         $"{_fullyQualifiedTypeDeclarationIdentifier}";
@@ -23,7 +23,7 @@ internal sealed class ResponseHeaderGenerator(
     
     internal string GenerateProperty() =>
         $$"""
-          internal {{_requiredDirective}} {{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
+          internal {{_requiredDirective}}{{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
           """;
     
     internal string GenerateWriteDirective(string responseVariableName)
