@@ -20,6 +20,7 @@ public class ApiGeneratorTests
     [InlineData("openapi-v2.json")]
     [InlineData("openapi-v3.json")]
     [InlineData("openapi-v3.1.json")]
+    [InlineData("openapi-v3.2.json")]
     public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated(string specFile)
     {
         var generator = new ApiGenerator();
