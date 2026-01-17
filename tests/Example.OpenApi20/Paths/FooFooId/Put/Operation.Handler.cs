@@ -9,6 +9,7 @@ internal partial class Operation
     {
         HandleRequestValidationError = HandleValidationErrors;
         ValidateResponse = false;
+        ValidationLevel = ValidationLevel.Detailed;
     }
 
     private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
@@ -35,7 +36,8 @@ internal partial class Operation
                 Status = 2
             }
         };
-        var validationContext = response.Validate(ValidationLevel.Detailed);
+        
+        var validationContext = response.Validate(ValidationLevel);
         return !validationContext.IsValid
             ? throw new JsonValidationException("Response is not valid", validationContext.Results)
             : Task.FromResult<Response>(response);

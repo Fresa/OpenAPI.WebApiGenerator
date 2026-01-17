@@ -29,6 +29,11 @@ internal partial class Operation
     internal const string Method = "{{method.Method}}";
 
     /// <summary>
+    /// Set validation level for requests and responses
+    /// </summary>
+    internal ValidationLevel ValidationLevel { get; init; } = ValidationLevel.Detailed;
+
+    /// <summary>
     /// Should responses be validated?
     /// If the response has already been validated, this can be disabled to avoid redundant validation.
     /// </summary>
@@ -56,8 +61,7 @@ internal partial class Operation
         var request = await Request.BindAsync(context, cancellationToken)
             .ConfigureAwait(false);
         
-        var validationLevel = ValidationLevel.Detailed;
-        var validationContext = request.Validate(validationLevel);
+        var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
         {
             operation.HandleRequestValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
@@ -69,7 +73,7 @@ internal partial class Operation
             .ConfigureAwait(false);
         if (operation.ValidateResponse)
         {
-            validationContext = response.Validate(validationLevel);
+            validationContext = response.Validate(operation.ValidationLevel);
             if (!validationContext.IsValid)
             {
                 var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
