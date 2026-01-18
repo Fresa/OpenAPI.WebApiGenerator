@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Corvus.Json;
 using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
@@ -25,12 +26,11 @@ internal sealed class SchemaGenerator(
     private readonly HashSet<string> _fileCache = [];
 
     internal static SchemaGenerator For(
-        OpenApiSpecVersion openApiSpecVersion,
-        IDocumentResolver documentResolver,
+        OpenApiSpecification openApiSpecification, 
         string rootNamespace,
         SourceProductionContext context)
     {
-        var vocabulary = openApiSpecVersion switch
+        var vocabulary = openApiSpecification.Version switch
         {
             OpenApiSpecVersion.OpenApi2_0 =>
                 Corvus.Json.CodeGeneration.Draft4.VocabularyAnalyser.DefaultVocabulary,
@@ -40,8 +40,14 @@ internal sealed class SchemaGenerator(
                 Corvus.Json.CodeGeneration.Draft202012.VocabularyAnalyser.DefaultVocabulary,
             OpenApiSpecVersion.OpenApi3_2 =>
                 Corvus.Json.CodeGeneration.Draft202012.VocabularyAnalyser.DefaultVocabulary,
-            _ => throw new InvalidOperationException($"OpenAPI specification {openApiSpecVersion} is not supported")
+            _ => throw new InvalidOperationException($"OpenAPI specification {openApiSpecification.Version} is not supported")
         };
+        var documentResolver = new PrepopulatedDocumentResolver();
+        if (!documentResolver.AddDocument(openApiSpecification.Url, openApiSpecification.JsonDocument))
+        {
+            throw new InvalidOperationException("Could not add OpenApi document");
+        }
+
         var globalOptions =
             new SourceGeneratorHelpers.GlobalOptions(
                 fallbackVocabulary: vocabulary,
