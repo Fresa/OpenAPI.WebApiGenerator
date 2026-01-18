@@ -42,6 +42,11 @@ https://www.nuget.org/packages/WebApiGenerator.OpenAPI
     <AdditionalFiles Include="path/to/OpenAPI_Specification.json"/>
 </ItemGroup>
 ```
+Supported formats/file extensions are:
+* json
+* yaml
+* yml
+
 3. Add references to [Corvus.Json.ExtendedTypes](https://github.com/corvus-dotnet/Corvus.JsonSchema?tab=readme-ov-file#corvusjsonextendedtypes) and [ParameterStyleParsers.OpenAPI](https://github.com/Fresa/OpenAPI.ParameterStyleParsers). 
 ```
 <ItemGroup>
