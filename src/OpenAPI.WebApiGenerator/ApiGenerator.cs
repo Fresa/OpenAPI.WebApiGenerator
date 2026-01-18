@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
-using Corvus.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
@@ -56,7 +54,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var schemaGenerator = SchemaGenerator.For(
             openApiSpecification, rootNamespace, context);
 
-        var openApiVisitor = OpenApiVisitor.V(openApiSpecification);
+        var openApiVisitor = OpenApiVisitor.ForSpecification(openApiSpecification);
 
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);

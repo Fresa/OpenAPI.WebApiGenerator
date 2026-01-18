@@ -11,7 +11,7 @@ namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal abstract class OpenApiVisitor
 {
-    public static IOpenApiVisitor V(OpenApiSpecification openApiSpecification)
+    public static IOpenApiVisitor ForSpecification(OpenApiSpecification openApiSpecification)
     {
         var openApiReference = new OpenApiReference<OpenApiDocument>(openApiSpecification.Document,
             openApiSpecification.JsonDocument, openApiSpecification.Url);

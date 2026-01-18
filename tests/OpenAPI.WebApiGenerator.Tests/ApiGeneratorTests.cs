@@ -21,6 +21,7 @@ public partial class ApiGeneratorTests
     [InlineData("openapi-v3.json")]
     [InlineData("openapi-v3.1.json")]
     [InlineData("openapi-v3.2.json")]
+    [InlineData("openapi-v3.2.yaml")]
     public void GivenAnOpenAPISpec_WhenGeneratingAPI_ExpectedClassesShouldHaveBeenGenerated(string specFile)
     {
         var generator = new ApiGenerator();
@@ -40,7 +41,7 @@ public partial class ApiGeneratorTests
         diagnostics.Should().AllSatisfy(diagnostic =>
         {
             diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
-            diagnostic.Id.Should().Be("AF1001", diagnostic.GetMessage());
+            diagnostic.Id.Should().Be("AF1001", diagnostic.GetFormattedMessage());
         });
 
         var generatedFiles = newCompilation.SyntaxTrees
@@ -143,7 +144,7 @@ public partial class ApiGeneratorTests
         diagnostics.Should().AllSatisfy(diagnostic =>
         {
             diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
-            diagnostic.Id.Should().Be("AF1001", diagnostic.GetMessage());
+            diagnostic.Id.Should().Be("AF1001", diagnostic.GetFormattedMessage());
         });
     }
     
