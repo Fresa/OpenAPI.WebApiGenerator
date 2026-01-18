@@ -22,9 +22,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="OpenApiSpecs/*.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+        <Content Include="OpenApiSpecs/*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="OpenApiSpecs/*.yaml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

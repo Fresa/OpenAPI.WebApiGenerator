@@ -11,15 +11,20 @@ namespace OpenAPI.WebApiGenerator.OpenApi.Visitor;
 
 internal abstract class OpenApiVisitor
 {
-    public static IOpenApiVisitor V(OpenApiSpecVersion version, OpenApiReference<OpenApiDocument> openApiReference) =>
-        version switch
+    public static IOpenApiVisitor ForSpecification(OpenApiSpecification openApiSpecification)
+    {
+        var openApiReference = new OpenApiReference<OpenApiDocument>(openApiSpecification.Document,
+            openApiSpecification.JsonDocument, openApiSpecification.Url);
+   
+        return openApiSpecification.Version switch
         {
             OpenApiSpecVersion.OpenApi2_0 => OpenApiV2Visitor.Visit(openApiReference),
             OpenApiSpecVersion.OpenApi3_0 => OpenApiV3Visitor.Visit(openApiReference),
             OpenApiSpecVersion.OpenApi3_1 => OpenApiV3Visitor.Visit(openApiReference),
             OpenApiSpecVersion.OpenApi3_2 => OpenApiV3Visitor.Visit(openApiReference),
-            _ => throw new InvalidOperationException($"OpenAPI version {version} not supported")
+            _ => throw new InvalidOperationException($"OpenAPI version {openApiSpecification.Version} not supported")
         };
+    }
 }
 
 internal abstract class OpenApiVisitor<T>(

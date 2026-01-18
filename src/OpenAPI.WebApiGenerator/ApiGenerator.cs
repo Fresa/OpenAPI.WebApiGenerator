@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
-using Corvus.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
@@ -22,12 +18,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Debugger.Launch();
-
         var provider = context.AdditionalTextsProvider
-            .Where(additionalText => Path.GetFileName(additionalText.Path).EndsWith(".json"))
+            .Where(additionalText => additionalText.IsOpenApiFileFormat())
             .Collect();
         
-        var openapiDocumentProvider = provider.Select((array, _) => array.First());
+        var openapiDocumentProvider = provider.Select((array, _) => 
+            array.FirstOrDefault() ?? 
+            throw new InvalidOperationException($"No OpenAPI specification found in AdditionalFiles. Expected any file with extension {string.Join(" ,", AdditionalTextExtensions.OpenApiFileExtensions)}"));
         
         var openApiProvider = openapiDocumentProvider
             .Combine(context.CompilationProvider)
@@ -48,40 +45,21 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var rootNamespace = compilation.Assembly.Name;
         
         var openApiDocumentFile = generatorContext.OpenApiDocument;
+        var openApiDocumentStream = openApiDocumentFile.AsOpenApiStream();
+
+        var openApiSpecification = openApiDocumentStream.LoadOpenApiDocument();
+        var openApiVersion = openApiSpecification.Version;
+        var openApi = openApiSpecification.Document;
+
+        var schemaGenerator = SchemaGenerator.For(
+            openApiSpecification, rootNamespace, context);
+
+        var openApiVisitor = OpenApiVisitor.ForSpecification(openApiSpecification);
+
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
         var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
-        var openApiResult = OpenApiDocument.Load(openApiDocumentFile.AsStream(), "json");
-        var openApiVersion = openApiResult.Diagnostic?.SpecificationVersion ??
-                             throw new InvalidOperationException("Unknown openapi version");
-        if (openApiResult.Diagnostic.Errors.Any())
-        {
-            throw new InvalidOperationException(
-                openApiResult.Diagnostic.Errors.AggregateToString(
-                    "Errors while parsing OpenAPI specification: ",
-                    error => $"{(error.Pointer == null ? "" : $"{error.Pointer}: ")}{error.Message}"));
-        }
-        var openApi = openApiResult.Document ??
-                      throw new InvalidOperationException(
-                          $"Could not load OpenAPI document {openApiDocumentFile.Path}");
-
-        
-        var openApiUri = new JsonReference(openApi.BaseUri.ToString());
-        var documentResolver = new PrepopulatedDocumentResolver();
-        var openApiDocument = JsonDocument.Parse(generatorContext.OpenApiDocument.AsStream());
-        if (!documentResolver.AddDocument(openApiUri, openApiDocument))
-        {
-            throw new InvalidOperationException("Could not add OpenApi document");
-        }
-        var schemaGenerator = SchemaGenerator.For(
-            openApiVersion,
-            documentResolver, 
-            rootNamespace, 
-            context);
-
-        var openApiReference = new OpenApiReference<OpenApiDocument>(openApi, openApiDocument, openApiUri);
-        var openApiVisitor = OpenApiVisitor.V(openApiVersion, openApiReference);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
             openApiVersion,
