@@ -39,13 +39,14 @@ https://www.nuget.org/packages/WebApiGenerator.OpenAPI
 2. Add a reference to your OpenAPI specification:
 ```
 <ItemGroup>
-    <AdditionalFiles Include="path/to/OpenAPI_Specification.json"/>
+    <AdditionalFiles Include="path/to/openapi.json"/>
 </ItemGroup>
 ```
-Supported formats/file extensions are:
-* json
-* yaml
-* yml
+The first file containing the word "openapi" and have an ending of .json, .yaml or .yml will be read.
+
+Supported data formats are:
+* JSON
+* YAML
 
 3. Add references to [Corvus.Json.ExtendedTypes](https://github.com/corvus-dotnet/Corvus.JsonSchema?tab=readme-ov-file#corvusjsonextendedtypes) and [ParameterStyleParsers.OpenAPI](https://github.com/Fresa/OpenAPI.ParameterStyleParsers). 
 ```
@@ -134,6 +135,26 @@ These handlers will not be generated in subsequent compilations as the generator
 ```
 ## Dependency Injection
 Operations are registered as scoped dependencies. Any dependencies can be injected into them as usual via the app builder's `IServiceCollection`. 
+
+## Options
+To configure the generator add a configuration file:
+```
+<ItemGroup>
+    <AdditionalFiles Include="path/to/OpenAPI.WebApiGenerator.json"/>
+</ItemGroup>
+```
+Supported configuration:
+* ValidationLevel  
+Description: Sets global validation level  
+Values: Flag|Basic|Detailed|Verbose  
+Default: Detailed
+
+Example:
+```
+{
+    "ValidationLevel": "Verbose"
+}
+```
 
 # Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

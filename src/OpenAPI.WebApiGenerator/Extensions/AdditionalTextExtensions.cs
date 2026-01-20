@@ -31,7 +31,7 @@ internal static class AdditionalTextExtensions
         OpenApiFilePattern.IsMatch(text.Path);
 
     internal static bool IsOptionsFile(this AdditionalText text) =>
-        text.Path.EndsWith("OpenAPI.WebApiGenerator.json");
+        text.Path.EndsWith("OpenAPI.WebApiGenerator.json", StringComparison.InvariantCultureIgnoreCase);
 
     internal static Options LoadOptions(this AdditionalText? text) => 
         text == null ? Options.Default : Options.From(text);
