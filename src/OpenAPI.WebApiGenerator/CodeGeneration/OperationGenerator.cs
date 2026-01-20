@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using Corvus.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using OpenAPI.WebApiGenerator.Extensions;
@@ -8,7 +10,8 @@ using OpenAPI.WebApiGenerator.Extensions;
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class OperationGenerator(Compilation compilation,
-    JsonValidationExceptionGenerator jsonValidationExceptionGenerator)
+    JsonValidationExceptionGenerator jsonValidationExceptionGenerator,
+    Options options)
 {
     private readonly List<(string Namespace, string Path)> _missingHandlers = [];
 
@@ -31,7 +34,7 @@ internal partial class Operation
     /// <summary>
     /// Set validation level for requests and responses
     /// </summary>
-    internal ValidationLevel ValidationLevel { get; init; } = ValidationLevel.Detailed;
+    internal ValidationLevel ValidationLevel { get; init; } = ValidationLevel.{{Enum.GetName(typeof(ValidationLevel), options.ValidationLevel)}};
 
     /// <summary>
     /// Should responses be validated?
