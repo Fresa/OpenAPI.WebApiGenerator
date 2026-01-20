@@ -18,18 +18,19 @@ public sealed class ApiGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Debugger.Launch();
-        var provider = context.AdditionalTextsProvider
-            .Where(additionalText => additionalText.IsOpenApiFileFormat())
-            .Collect();
+        var openapiDocumentProvider = context.AdditionalTextsProvider
+            .Where(text => text.IsOpenApiFile())
+            .Collect()
+            .Select((array, _) =>
+                array.FirstOrDefault() ??
+                throw new InvalidOperationException(
+                    $"No OpenAPI specification found in AdditionalFiles matching {AdditionalTextExtensions.OpenApiFilePattern}"));
         
-        var openapiDocumentProvider = provider.Select((array, _) => 
-            array.FirstOrDefault() ?? 
-            throw new InvalidOperationException($"No OpenAPI specification found in AdditionalFiles. Expected any file with extension {string.Join(" ,", AdditionalTextExtensions.OpenApiFileExtensions)}"));
         
         var openApiProvider = openapiDocumentProvider
             .Combine(context.CompilationProvider)
             .Select((tuple, _) => (
-                OpenApiDocument: tuple.Left,
+                OpenApiSpecification: tuple.Left,
                 Compilation: tuple.Right
             ));
 
@@ -37,17 +38,15 @@ public sealed class ApiGenerator : IIncrementalGenerator
             WithExceptionReporting<(AdditionalText, Compilation)>(GenerateCode));
     }
 
-    private static void GenerateCode(SourceProductionContext context, (
-        AdditionalText OpenApiDocument, 
-        Compilation Compilation) generatorContext)
+    private static void GenerateCode(SourceProductionContext context,
+        (AdditionalText OpenApiDocument,
+            Compilation Compilation) generatorContext)
     {
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
         
-        var openApiDocumentFile = generatorContext.OpenApiDocument;
-        var openApiDocumentStream = openApiDocumentFile.AsOpenApiStream();
+        var openApiSpecification = generatorContext.OpenApiDocument.LoadOpenApiSpecification();
 
-        var openApiSpecification = openApiDocumentStream.LoadOpenApiDocument();
         var openApiVersion = openApiSpecification.Version;
         var openApi = openApiSpecification.Document;
 
