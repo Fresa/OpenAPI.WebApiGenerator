@@ -52,11 +52,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var compilation = generatorContext.Compilation;
         var rootNamespace = compilation.Assembly.Name;
 
-        var optionsContent = generatorContext.Options?.GetText();
-        var options = optionsContent == null
-            ? new Options()
-            : System.Text.Json.JsonSerializer.Deserialize<Options>(optionsContent.ToString());
-        
+        var options = generatorContext.Options.LoadOptions();
         var openApiSpecification = generatorContext.OpenApiDocument.LoadOpenApiSpecification();
 
         var openApiVersion = openApiSpecification.Version;
@@ -70,7 +66,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
-        var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator);
+        var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator, options);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
             openApiVersion,

@@ -32,6 +32,15 @@ internal static class AdditionalTextExtensions
 
     internal static bool IsOptionsFile(this AdditionalText text) =>
         text.Path.EndsWith("OpenAPI.WebApiGenerator.json");
+
+    internal static Options LoadOptions(this AdditionalText? text)
+    {
+        var optionsContent = text?.GetText();
+        var options = optionsContent == null
+            ? null
+            : JsonSerializer.Deserialize<Options>(optionsContent.ToString());
+        return options ?? new Options();
+    }
     
     private static MemoryStream AsStream(this AdditionalText text)
     {
