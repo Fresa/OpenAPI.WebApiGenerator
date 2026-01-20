@@ -30,6 +30,9 @@ internal static class AdditionalTextExtensions
     internal static bool IsOpenApiFile(this AdditionalText text) => 
         OpenApiFilePattern.IsMatch(text.Path);
 
+    internal static bool IsOptionsFile(this AdditionalText text) =>
+        text.Path.EndsWith("OpenAPI.WebApiGenerator.json");
+    
     private static MemoryStream AsStream(this AdditionalText text)
     {
         var content = text.GetText();
