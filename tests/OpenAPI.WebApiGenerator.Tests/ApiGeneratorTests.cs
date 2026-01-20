@@ -30,7 +30,13 @@ public partial class ApiGeneratorTests
 
         driver = driver.AddAdditionalTexts(
             [
-                new TestAdditionalFile($"OpenApiSpecs/{specFile}")
+                new TestAdditionalFile($"OpenApiSpecs/{specFile}"),
+                new InMemoryAdditionalText("Configuration/OpenAPI.WebApiGenerator.json", 
+                    """
+                    {
+                        "ValidationLevel": "Detailed"
+                    }
+                    """)
             ]
         );
 
