@@ -28,6 +28,7 @@
         "operationId": "listPets",
         "summary": "List all pets",
         "tags": ["pets"],
+        "security": [],
         "parameters": [
           {
             "name": "limit",
@@ -143,6 +144,7 @@
         "operationId": "createPet",
         "summary": "Create a pet",
         "tags": ["pets"],
+        "security": [{"bearerAuth": []}, {"apiKey": []}],
         "requestBody": {
           "description": "Pet to create",
           "required": true,
@@ -269,6 +271,7 @@
         "operationId": "deletePet",
         "summary": "Delete a pet",
         "tags": ["pets"],
+        "security": [{"bearerAuth": [], "apiKey": []}],
         "parameters": [
           {
             "name": "X-Api-Key",
@@ -353,6 +356,7 @@
         "operationId": "placeOrder",
         "summary": "Place an order",
         "tags": ["store"],
+        "security": [{"oauth2": ["write:pets"]}],
         "requestBody": {
           "required": true,
           "content": {
@@ -449,6 +453,7 @@
         "operationId": "getInventory",
         "summary": "Get store inventory",
         "tags": ["store"],
+        "security": [{"oauth2": ["read:pets"]}, {"apiKey": []}],
         "responses": {
           "200": {
             "description": "Inventory counts by status",
@@ -897,6 +902,19 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Api-Key"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://example.com/oauth/authorize",
+            "tokenUrl": "https://example.com/oauth/token",
+            "scopes": {
+              "read:pets": "Read access to pets",
+              "write:pets": "Write access to pets"
+            }
+          }
+        }
       }
     }
   },

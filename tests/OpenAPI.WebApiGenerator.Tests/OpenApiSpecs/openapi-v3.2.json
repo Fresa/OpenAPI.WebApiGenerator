@@ -30,6 +30,7 @@
         "operationId": "listPets",
         "summary": "List all pets",
         "tags": ["pets"],
+        "security": [],
         "parameters": [
           {"$ref": "#/components/parameters/LimitParam"},
           {"$ref": "#/components/parameters/OffsetParam"},
@@ -98,6 +99,10 @@
         "operationId": "createPet",
         "summary": "Create a pet",
         "tags": ["pets"],
+        "security": [
+          {"bearerAuth": []},
+          {"apiKey": []}
+        ],
         "requestBody": {"$ref": "#/components/requestBodies/NewPetBody"},
         "responses": {
           "201": {
@@ -169,6 +174,9 @@
         "operationId": "deletePet",
         "summary": "Delete a pet",
         "tags": ["pets"],
+        "security": [
+          {"bearerAuth": [], "apiKey": []}
+        ],
         "parameters": [
           {
             "name": "X-Api-Key",
@@ -244,6 +252,9 @@
         "operationId": "placeOrder",
         "summary": "Place an order",
         "tags": ["store"],
+        "security": [
+          {"oauth2": ["write:pets"]}
+        ],
         "requestBody": {"$ref": "#/components/requestBodies/OrderBody"},
         "responses": {
           "201": {"$ref": "#/components/responses/OrderResponse"},
@@ -305,6 +316,10 @@
         "operationId": "getInventory",
         "summary": "Get store inventory",
         "tags": ["store"],
+        "security": [
+          {"oauth2": ["read:pets"]},
+          {"apiKey": []}
+        ],
         "responses": {
           "200": {
             "description": "Inventory counts by status",
@@ -854,6 +869,20 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Api-Key"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.example.com/authorize",
+            "tokenUrl": "https://auth.example.com/token",
+            "scopes": {
+              "read:pets": "Read pets",
+              "write:pets": "Write pets",
+              "admin": "Admin access"
+            }
+          }
+        }
       }
     }
   },
