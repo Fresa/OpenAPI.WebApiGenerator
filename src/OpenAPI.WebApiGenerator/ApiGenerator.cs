@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
@@ -83,7 +84,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
         validationExtensionsGenerator.GenerateClass().AddTo(context);
         
-        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
+        var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -193,7 +194,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         operationDirectory);
                 responseSourceCode.AddTo(context);
 
-                operations.Add((operationNamespace, operationMethod));
+                operations.Add((operationNamespace, openApiOperation));
                 var endpointSource = endpointGenerator
                     .Generate(operationNamespace,
                         operationDirectory,
@@ -213,7 +214,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
             }
         }
 
-        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace);
+        var authGenerator = new AuthGenerator(openApi);
+        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }
  
