@@ -17,7 +17,7 @@ namespace {{@namespace}};
 
 internal static class OperationRouter
 {
-    internal static WebApplication MapOperations(this WebApplication app)
+    internal static WebApplication MapOperations(this WebApplication app, string scopeClaim = "scope")
     {
 {{operations.AggregateToString(
 """
@@ -50,6 +50,8 @@ $"""
     }
     
 {{authGenerator.GenerateIsAuthenticatedExtensionMethod().Indent(4)}}
+
+{{authGenerator.GenerateScopeClaimExtensionMethod().Indent(4)}}
 }
 #nullable restore
 """);

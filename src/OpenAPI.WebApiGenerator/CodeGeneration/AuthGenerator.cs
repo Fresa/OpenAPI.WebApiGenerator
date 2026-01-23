@@ -9,7 +9,7 @@ namespace OpenAPI.WebApiGenerator.CodeGeneration;
 internal sealed class AuthGenerator
 {
     private readonly IDictionary<string, IOpenApiSecurityScheme> _securitySchemes;
-    private readonly string[][] _topLevelSecuritySchemeGroups;
+    private readonly Dictionary<string, List<string>>[] _topLevelSecuritySchemeGroups;
 
     public AuthGenerator(OpenApiDocument securitySchemes)
     {
@@ -37,6 +37,7 @@ internal static class SecuritySchemes
         var scheme = pair.Value;
         return scheme.Type == null ? string.Empty : 
 $$"""
+    internal const string {{className}}Key = "{{pair.Key}}";
     internal static class {{className}}
     {{{new []
     {
@@ -47,7 +48,7 @@ $$"""
         GenerateConst(nameof(scheme.Scheme), scheme.Scheme),
         GenerateConst(nameof(scheme.BearerFormat), scheme.BearerFormat),
         GenerateConst(nameof(scheme.OpenIdConnectUrl), scheme.OpenIdConnectUrl?.ToString()),
-        GenerateConst(nameof(scheme.Deprecated), scheme.Deprecated.ToString().ToLowerInvariant()),
+        $"internal const bool {nameof(scheme.Deprecated)} = {scheme.Deprecated.ToString().ToLowerInvariant()};",
         GenerateFlowsObject(nameof(scheme.Flows), scheme.Flows)
     }.RemoveEmptyLines().AggregateToString().Indent(8)}}
     }                                            
@@ -111,7 +112,7 @@ $"""
             GetSecuritySchemeGroups(securityRequirements) ?? _topLevelSecuritySchemeGroups;
         
         var uniqueSecuritySchemes = requiredSecuritySchemeGroups
-            .SelectMany(schemes => schemes)
+            .SelectMany(schemes => schemes.Select(pair => pair.Key))
             .Distinct();
         return
 $$"""
@@ -126,10 +127,11 @@ $$"""
 """;
     }
 
-    private static string GenerateAuthenticationConditions(string[] schemes) =>
+    private static string GenerateAuthenticationConditions(Dictionary<string, List<string>> schemes) =>
         schemes.Any()
             ? string.Join(" && ", schemes.Select(scheme =>
-                $"""context.IsAuthenticated("{scheme}")"""))
+                $"context.IsAuthenticated(\"{scheme.Key}\") && " +
+                $"context.ClaimContainsScopes(scopeClaim, {scheme.Value.AsParams()})"))
             : "true";
 
     internal string GenerateIsAuthenticatedExtensionMethod()
@@ -140,12 +142,23 @@ $$"""
         """;
     }
 
-    private string[][]? GetSecuritySchemeGroups(IList<OpenApiSecurityRequirement>? securityRequirements) =>
+    internal string GenerateScopeClaimExtensionMethod()
+    {
+        return """
+               private static bool ClaimContainsScopes(this AuthorizationHandlerContext context, string claim, params string[] scopes)
+               { 
+                   var foundScopes = context.User.FindFirst(claim)?.Value?.Split(' ') ?? [];
+                   return scopes.Aggregate(true, (result, scope) => result && foundScopes.Contains(scope));
+                }
+               """;
+    }
+
+    private Dictionary<string, List<string>>[]? GetSecuritySchemeGroups(IList<OpenApiSecurityRequirement>? securityRequirements) =>
         securityRequirements?
             .Select(requirement =>
-                requirement.Keys
-                    .Select(GetSecuritySchemeName)
-                    .ToArray())
+                requirement.ToDictionary(
+                    pair => GetSecuritySchemeName(pair.Key), 
+                    pair => pair.Value))
             .ToArray();
     private string GetSecuritySchemeName(OpenApiSecuritySchemeReference reference)
         => _securitySchemes.First(pair => pair.Value == reference.Target).Key;
