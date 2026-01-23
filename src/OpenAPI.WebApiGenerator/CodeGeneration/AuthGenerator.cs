@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
@@ -20,7 +18,7 @@ internal sealed class AuthGenerator
         _topLevelSecuritySchemeGroups = GetSecuritySchemeGroups(securitySchemes.Security) ?? [];
     }
 
-    internal SourceCode? GenerateSecuritySchemeClass()
+    internal SourceCode? GenerateSecuritySchemeClass(string @namespace)
     {
         if (!_securitySchemes.Any())
         {
@@ -28,6 +26,10 @@ internal sealed class AuthGenerator
         }
         return new SourceCode("SecuritySchemes.g.cs", 
 $$"""
+using System.Collections.Immutable;
+
+namespace {{@namespace}};
+
 internal static class SecuritySchemes 
 {{{_securitySchemes.AggregateToString(pair =>
     {
@@ -92,8 +94,8 @@ internal static class {{className}}
     GenerateConst(nameof(flow.TokenUrl), flow.TokenUrl?.ToString()),
     flow.Scopes == null ? string.Empty : 
 $$"""
-internal static readonly System.Collections.Immutable.ImmutableDictionary<string, string> {{nameof(flow.Scopes)}} = 
-    System.Collections.Immutable.ImmutableDictionary.CreateRange<string, string>([{{flow.Scopes.AggregateToString(scope => 
+internal static readonly ImmutableDictionary<string, string> {{nameof(flow.Scopes)}} = 
+    ImmutableDictionary.CreateRange<string, string>([{{flow.Scopes.AggregateToString(scope => 
 $"""
         new("{scope.Key}", "{scope.Value}"),
 """).TrimEnd(',')}}
