@@ -215,6 +215,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         }
 
         var authGenerator = new AuthGenerator(openApi);
+        authGenerator.GenerateSecuritySchemeClass()?.AddTo(context);
         var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }

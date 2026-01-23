@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.OpenApi;
+using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
@@ -15,6 +19,89 @@ internal sealed class AuthGenerator
                            new Dictionary<string, IOpenApiSecurityScheme>();
         _topLevelSecuritySchemeGroups = GetSecuritySchemeGroups(securitySchemes.Security) ?? [];
     }
+
+    internal SourceCode? GenerateSecuritySchemeClass()
+    {
+        if (!_securitySchemes.Any())
+        {
+            return null;
+        }
+        return new SourceCode("SecuritySchemes.g.cs", 
+$$"""
+internal static class SecuritySchemes 
+{{{_securitySchemes.AggregateToString(pair =>
+    {
+        var className = pair.Key.ToPascalCase();
+        var scheme = pair.Value;
+        return scheme.Type == null ? string.Empty : 
+$$"""
+    internal static class {{className}}
+    {{{new []
+    {
+        GenerateConst(nameof(scheme.Description), scheme.Description), 
+        GenerateConst(nameof(scheme.Type), GetEnumName(scheme.Type)),
+        GenerateConst(nameof(scheme.Name), scheme.Name),
+        GenerateConst(nameof(scheme.In), GetEnumName(scheme.In)),
+        GenerateConst(nameof(scheme.Scheme), scheme.Scheme),
+        GenerateConst(nameof(scheme.BearerFormat), scheme.BearerFormat),
+        GenerateConst(nameof(scheme.OpenIdConnectUrl), scheme.OpenIdConnectUrl?.ToString()),
+        GenerateConst(nameof(scheme.Deprecated), scheme.Deprecated.ToString().ToLowerInvariant()),
+        GenerateFlowsObject(nameof(scheme.Flows), scheme.Flows)
+    }.RemoveEmptyLines().AggregateToString().Indent(8)}}
+    }                                            
+""";
+    })}}
+}
+""");
+    }
+
+    private static string? GetEnumName<T>(T? value) where T : struct, Enum => 
+        value == null ? null : Enum.GetName(typeof(T), value);
+
+    private static string GenerateConst(string name, string? value) =>
+        value == null
+            ? string.Empty
+            : $"""
+               internal const string {name} = "{value}";
+               """;
+
+    private static string GenerateFlowsObject(string className, OpenApiOAuthFlows? flows) =>
+        flows == null ? string.Empty : 
+$$"""
+internal static class {{className}}
+{{{new []
+{
+    GenerateFlowObject(nameof(flows.AuthorizationCode), flows.AuthorizationCode),
+    GenerateFlowObject(nameof(flows.ClientCredentials), flows.ClientCredentials),
+    GenerateFlowObject(nameof(flows.DeviceAuthorization), flows.DeviceAuthorization),
+    GenerateFlowObject(nameof(flows.Implicit), flows.Implicit),
+    GenerateFlowObject(nameof(flows.Password), flows.Password)
+}.RemoveEmptyLines().AggregateToString().Indent(4)}}
+}
+""";
+
+    private static string GenerateFlowObject(string className, OpenApiOAuthFlow? flow) =>
+        flow == null ? string.Empty : 
+$$"""
+internal static class {{className}}
+{{{new []
+{
+    GenerateConst(nameof(flow.AuthorizationUrl), flow.AuthorizationUrl?.ToString()),
+    GenerateConst(nameof(flow.DeviceAuthorizationUrl), flow.DeviceAuthorizationUrl?.ToString()),
+    GenerateConst(nameof(flow.RefreshUrl), flow.RefreshUrl?.ToString()),
+    GenerateConst(nameof(flow.TokenUrl), flow.TokenUrl?.ToString()),
+    flow.Scopes == null ? string.Empty : 
+$$"""
+internal static readonly System.Collections.Immutable.ImmutableDictionary<string, string> {{nameof(flow.Scopes)}} = 
+    System.Collections.Immutable.ImmutableDictionary.CreateRange<string, string>([{{flow.Scopes.AggregateToString(scope => 
+$"""
+        new("{scope.Key}", "{scope.Value}"),
+""").TrimEnd(',')}}
+]);
+"""
+}.RemoveEmptyLines().AggregateToString().Indent(4)}}
+}
+""";
     
     internal string GenerateAuthorizationDirective(IList<OpenApiSecurityRequirement>? securityRequirements)
     {
