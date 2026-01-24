@@ -18,14 +18,13 @@ namespace {{@namespace}};
 internal static class OperationRouter
 {
     internal static WebApplication MapOperations(this WebApplication app)
-    {
-{{operations.AggregateToString(
-"""
+    {{{(authGenerator.HasSecuritySchemes ? 
+        """
+        
         app.UseAuthentication();
         app.UseAuthorization();
-
-""",
-        operation => 
+        """ : "")}}
+{{operations.AggregateToString(operation => 
 $"""
         app.MapMethods({operation.Namespace}.Operation.PathTemplate, ["{operation.Operation.Key.Method}"], {operation.Namespace}.Operation.HandleAsync){
                 authGenerator.GenerateAuthorizationDirective(operation.Operation.Value.Security).Indent(12)};
@@ -34,14 +33,16 @@ $"""
     }
     
     internal static WebApplicationBuilder AddOperations(this WebApplicationBuilder builder, WebApiConfiguration? configuration = null)
-    {
-{{operations.AggregateToString(
-"""
+    {{{(authGenerator.HasSecuritySchemes ? 
+        """
+        
         builder.Services.AddAuthentication();
         builder.Services.AddAuthorization();
-
-""",
-        operation => 
+        
+        builder.Services.AddHttpContextAccessor();                                               
+        builder.Services.AddSingleton<IAuthorizationHandler, SecurityRequirementHandler>(); 
+        """ : "")}}
+{{operations.AggregateToString(operation => 
 $"""
         builder.Services.AddScoped<{operation.Namespace}.Operation>();
 """)}}
