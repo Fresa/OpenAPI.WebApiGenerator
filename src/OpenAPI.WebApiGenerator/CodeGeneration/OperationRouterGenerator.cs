@@ -17,8 +17,12 @@ namespace {{@namespace}};
 
 internal static class OperationRouter
 {
-    internal static WebApplication MapOperations(this WebApplication app, string scopeClaim = "scope")
-    {
+    internal static WebApplication MapOperations(this WebApplication app{{(authGenerator.HasSecuritySchemes ? ", SecuritySchemeOptions? securitySchemeOptions = null" : "")}})
+    {{{(authGenerator.HasSecuritySchemes ? 
+"""
+        
+        securitySchemeOptions ??= new();
+""" : "")}}
 {{operations.AggregateToString(
 """
         app.UseAuthentication();
@@ -49,9 +53,11 @@ $"""
         return builder;
     }
     
-{{authGenerator.GenerateIsAuthenticatedExtensionMethod().Indent(4)}}
+{{$"""
+{authGenerator.GenerateIsAuthenticatedExtensionMethod().Indent(4)}
 
-{{authGenerator.GenerateScopeClaimExtensionMethod().Indent(4)}}
+{authGenerator.GenerateScopeClaimExtensionMethod().Indent(4)}
+""".TrimEnd()}}
 }
 #nullable restore
 """);

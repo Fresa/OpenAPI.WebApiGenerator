@@ -16,8 +16,10 @@ internal sealed class AuthGenerator
         _securitySchemes = securitySchemes.Components?.SecuritySchemes ??
                            new Dictionary<string, IOpenApiSecurityScheme>();
         _topLevelSecuritySchemeGroups = GetSecuritySchemeGroups(securitySchemes.Security) ?? [];
+        HasSecuritySchemes = _securitySchemes.Any();
     }
 
+    internal bool HasSecuritySchemes { get; }
     internal SourceCode? GenerateSecuritySchemeClass(string @namespace)
     {
         if (!_securitySchemes.Any())
@@ -131,7 +133,7 @@ $$"""
         schemes.Any()
             ? string.Join(" && ", schemes.Select(scheme =>
                 $"context.IsAuthenticated(\"{scheme.Key}\") && " +
-                $"context.ClaimContainsScopes(scopeClaim, {scheme.Value.AsParams()})"))
+                $"context.ClaimContainsScopes(securitySchemeOptions.{scheme.Key.ToPascalCase()}.Scope, {scheme.Value.AsParams()})"))
             : "true";
 
     internal string GenerateIsAuthenticatedExtensionMethod()
@@ -142,17 +144,62 @@ $$"""
         """;
     }
 
-    internal string GenerateScopeClaimExtensionMethod()
-    {
-        return """
-               private static bool ClaimContainsScopes(this AuthorizationHandlerContext context, string claim, params string[] scopes)
-               { 
-                   var foundScopes = context.User.FindFirst(claim)?.Value?.Split(' ') ?? [];
-                   return scopes.Aggregate(true, (result, scope) => result && foundScopes.Contains(scope));
-                }
-               """;
-    }
+    internal string GenerateScopeClaimExtensionMethod() =>
+        _securitySchemes.Any()
+            ? """
+              private static bool ClaimContainsScopes(this AuthorizationHandlerContext context, SecuritySchemeOptions.ScopeOptions scopeOptions, params string[] scopes)
+              {
+                  var foundScopes = scopeOptions.Format switch
+                  {
+                      SecuritySchemeOptions.ScopeOptions.ClaimFormat.SpaceDelimited => context.User.FindFirst(scopeOptions.Claim)?.Value?.Split(' ') ?? [],
+                      SecuritySchemeOptions.ScopeOptions.ClaimFormat.Array => context.User.FindAll(scopeOptions.Claim).Select(claim => claim.Value).ToArray(),
+                      _ => throw new InvalidOperationException($"{Enum.GetName(typeof(SecuritySchemeOptions.ScopeOptions.ClaimFormat), scopeOptions.Format)} not supported")
+                  };
+                  return scopes.Aggregate(true, (result, scope) => result && foundScopes.Contains(scope));
+               }
+              """
+            : string.Empty;
 
+    internal SourceCode? GenerateSecuritySchemeOptionsClass(string @namespace)
+    {
+        if (!_securitySchemes.Any())
+        {
+            return null;
+        }
+        return new SourceCode("SecuritySchemeOptions.g.cs", 
+$$"""
+namespace {{@namespace}};
+
+internal sealed class SecuritySchemeOptions 
+{{{_securitySchemes.AggregateToString(pair => 
+    $$"""
+    internal SecuritySchemeOption {{pair.Key.ToPascalCase()}} { get; init; } = new();
+    """).Indent(4)}}
+
+    internal sealed class SecuritySchemeOption
+    {
+        internal ScopeOptions Scope {get; init; } = new() 
+        {
+            Claim = "scope",
+            Format = ScopeOptions.ClaimFormat.SpaceDelimited
+        };
+    }
+    
+    internal sealed class ScopeOptions                                                                   
+    {
+        public string Claim { get; set; }
+        public ClaimFormat Format { get; set; }
+
+        internal enum ClaimFormat 
+        {
+            SpaceDelimited,
+            Array
+        }
+    }
+}
+""");
+    }
+    
     private Dictionary<string, List<string>>[]? GetSecuritySchemeGroups(IList<OpenApiSecurityRequirement>? securityRequirements) =>
         securityRequirements?
             .Select(requirement =>
