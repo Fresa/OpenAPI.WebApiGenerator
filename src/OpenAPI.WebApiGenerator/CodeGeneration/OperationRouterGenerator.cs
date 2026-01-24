@@ -12,7 +12,6 @@ internal sealed class OperationRouterGenerator(string @namespace, AuthGenerator 
 $$"""
 #nullable enable
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 namespace {{@namespace}};
 
@@ -28,8 +27,8 @@ internal static class OperationRouter
 """,
         operation => 
 $"""
-        app.MapMethods({operation.Namespace}.Operation.PathTemplate, ["{operation.Operation.Key.Method}"], {operation.Namespace}.Operation.HandleAsync)
-{authGenerator.GenerateAuthorizationDirective(operation.Operation.Value.Security).Indent(12)};
+        app.MapMethods({operation.Namespace}.Operation.PathTemplate, ["{operation.Operation.Key.Method}"], {operation.Namespace}.Operation.HandleAsync){
+                authGenerator.GenerateAuthorizationDirective(operation.Operation.Value.Security).Indent(12)};
 """)}}
         return app;
     }

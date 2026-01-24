@@ -112,29 +112,31 @@ $"""
     {
         var securityRequirementGroups =
             GetSecuritySchemeGroups(securityRequirements) ?? _topLevelSecuritySchemeGroups;
+        if (!securityRequirementGroups.Any())
+        {
+            return string.Empty;
+        }
         
         var uniqueSecuritySchemes = securityRequirementGroups
             .SelectMany(schemes => schemes.Select(pair => pair.Key))
             .Distinct();
         return
 $$"""
+
 .RequireAuthorization(policy =>
     policy
         .AddAuthenticationSchemes({{string.Join(", ", uniqueSecuritySchemes.Select(scheme => $"\"{scheme}\""))}})
-        .AddRequirements({{(securityRequirementGroups.Any() ? 
-$$"""
+        .AddRequirements(
             new SecurityRequirements
-            {
-{{securityRequirementGroups.Aggregate(string.Empty, (result, securityRequirementGroup) =>
-    result + securityRequirementGroup.AggregateToString(securityRequirement => 
+            {{{securityRequirementGroups.Aggregate(string.Empty, (result, securityRequirementGroup) =>
+                result + securityRequirementGroup.AggregateToString(securityRequirement => 
 $$"""
                 new SecurityRequirement
                 {
                     ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
                 }
 """))}}
-            }
-""" : "new AssertionRequirement(_ => true)")}}))
+            }))
 """;
     }
 
