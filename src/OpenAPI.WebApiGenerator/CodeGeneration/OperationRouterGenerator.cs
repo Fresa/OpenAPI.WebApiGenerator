@@ -12,17 +12,14 @@ internal sealed class OperationRouterGenerator(string @namespace, AuthGenerator 
 $$"""
 #nullable enable
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 namespace {{@namespace}};
 
 internal static class OperationRouter
 {
-    internal static WebApplication MapOperations(this WebApplication app{{(authGenerator.HasSecuritySchemes ? ", SecuritySchemeOptions? securitySchemeOptions = null" : "")}})
-    {{{(authGenerator.HasSecuritySchemes ? 
-"""
-        
-        securitySchemeOptions ??= new();
-""" : "")}}
+    internal static WebApplication MapOperations(this WebApplication app)
+    {
 {{operations.AggregateToString(
 """
         app.UseAuthentication();
@@ -52,12 +49,6 @@ $"""
         builder.Services.AddSingleton(configuration ?? new());
         return builder;
     }
-    
-{{$"""
-{authGenerator.GenerateIsAuthenticatedExtensionMethod().Indent(4)}
-
-{authGenerator.GenerateScopeClaimExtensionMethod().Indent(4)}
-""".TrimEnd()}}
 }
 #nullable restore
 """);

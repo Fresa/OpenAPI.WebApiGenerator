@@ -78,7 +78,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
             openApiVersion);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
-        var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);
+        var authGenerator = new AuthGenerator(openApi);
+        
+        var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace, authGenerator);
         apiConfigurationGenerator.GenerateClass().AddTo(context);
 
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
@@ -214,9 +216,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
             }
         }
 
-        var authGenerator = new AuthGenerator(openApi);
         authGenerator.GenerateSecuritySchemeClass(rootNamespace)?.AddTo(context);
         authGenerator.GenerateSecuritySchemeOptionsClass(rootNamespace)?.AddTo(context);
+        authGenerator.GenerateSecurityRequirementHandler(rootNamespace)?.AddTo(context);
         var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }

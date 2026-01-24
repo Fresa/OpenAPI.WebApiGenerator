@@ -110,10 +110,10 @@ $"""
     
     internal string GenerateAuthorizationDirective(IList<OpenApiSecurityRequirement>? securityRequirements)
     {
-        var requiredSecuritySchemeGroups =
+        var securityRequirementGroups =
             GetSecuritySchemeGroups(securityRequirements) ?? _topLevelSecuritySchemeGroups;
         
-        var uniqueSecuritySchemes = requiredSecuritySchemeGroups
+        var uniqueSecuritySchemes = securityRequirementGroups
             .SelectMany(schemes => schemes.Select(pair => pair.Key))
             .Distinct();
         return
@@ -121,44 +121,93 @@ $$"""
 .RequireAuthorization(policy =>
     policy
         .AddAuthenticationSchemes({{string.Join(", ", uniqueSecuritySchemes.Select(scheme => $"\"{scheme}\""))}})
-        .RequireAssertion(context => 
-            {{(requiredSecuritySchemeGroups.Any() 
-                ? string.Join(" || ", requiredSecuritySchemeGroups.Select(requirement => 
-                    $"({GenerateAuthenticationConditions(requirement)})"))
-                : "true")}}))
+        .AddRequirements({{(securityRequirementGroups.Any() ? 
+$$"""
+            new SecurityRequirements
+            {
+{{securityRequirementGroups.Aggregate(string.Empty, (result, securityRequirementGroup) =>
+    result + securityRequirementGroup.AggregateToString(securityRequirement => 
+$$"""
+                new SecurityRequirement
+                {
+                    ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
+                }
+"""))}}
+            }
+""" : "new AssertionRequirement(_ => true)")}}))
 """;
     }
 
-    private static string GenerateAuthenticationConditions(Dictionary<string, List<string>> schemes) =>
-        schemes.Any()
-            ? string.Join(" && ", schemes.Select(scheme =>
-                $"context.IsAuthenticated(\"{scheme.Key}\") && " +
-                $"context.ClaimContainsScopes(securitySchemeOptions.{scheme.Key.ToPascalCase()}.Scope, {scheme.Value.AsParams()})"))
-            : "true";
-
-    internal string GenerateIsAuthenticatedExtensionMethod()
+    internal SourceCode? GenerateSecurityRequirementHandler(string @namespace)
     {
-        return """
-        private static bool IsAuthenticated(this AuthorizationHandlerContext context, string authType) => 
-            context.User.Identities.Any(identity => identity.AuthenticationType == authType && identity.IsAuthenticated);
-        """;
-    }
+        if (!HasSecuritySchemes)
+        {
+            return null;
+        }
+        return new SourceCode("SecurityRequirementHandler.g.cs", 
+$$"""
+#nullable enable
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using System.Security.Claims;
 
-    internal string GenerateScopeClaimExtensionMethod() =>
-        _securitySchemes.Any()
-            ? """
-              private static bool ClaimContainsScopes(this AuthorizationHandlerContext context, SecuritySchemeOptions.ScopeOptions scopeOptions, params string[] scopes)
-              {
-                  var foundScopes = scopeOptions.Format switch
-                  {
-                      SecuritySchemeOptions.ScopeOptions.ClaimFormat.SpaceDelimited => context.User.FindFirst(scopeOptions.Claim)?.Value?.Split(' ') ?? [],
-                      SecuritySchemeOptions.ScopeOptions.ClaimFormat.Array => context.User.FindAll(scopeOptions.Claim).Select(claim => claim.Value).ToArray(),
-                      _ => throw new InvalidOperationException($"{Enum.GetName(typeof(SecuritySchemeOptions.ScopeOptions.ClaimFormat), scopeOptions.Format)} not supported")
-                  };
-                  return scopes.Aggregate(true, (result, scope) => result && foundScopes.Contains(scope));
-               }
-              """
-            : string.Empty;
+namespace {{@namespace}};
+ 
+internal sealed class SecurityRequirementHandler(IHttpContextAccessor httpContextAccessor, WebApiConfiguration configuration)
+    : AuthorizationHandler<SecurityRequirements>
+{
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        SecurityRequirements securityRequirements)
+    {
+        var httpContext = httpContextAccessor.HttpContext;
+
+        if (httpContext == null)
+        {
+            context.Fail(new AuthorizationFailureReason(this, "No HttpContext available"));
+            return;
+        }
+
+        // Only one of the security requirement objects need to be satisfied to authorize a request.
+        foreach (var securityRequirement in securityRequirements)
+        {
+            var allRequirementsPassed = true;
+            // Security Requirement Objects that contain multiple schemes require that all schemes MUST be satisfied for a request to be authorized.
+            foreach (var (scheme, scopes) in securityRequirement)
+            {
+                var authenticateResult = await httpContext.AuthenticateAsync(scheme)
+                    .ConfigureAwait(false);
+                allRequirementsPassed = authenticateResult.Succeeded && 
+                    ClaimContainsScopes(authenticateResult.Principal, configuration.SecuritySchemeOptions.GetScopeOptions(scheme), scopes);
+                if (!allRequirementsPassed)
+                {
+                    break;
+                }
+            }
+            if (allRequirementsPassed)
+            {
+                context.Succeed(securityRequirements);
+                return;
+            }
+        }
+    }                                                                                    
+     
+    private static bool ClaimContainsScopes(ClaimsPrincipal? principal, SecuritySchemeOptions.ScopeOptions scopeOptions, params string[] scopes)
+    {
+        var foundScopes = scopeOptions.Format switch
+        {
+            SecuritySchemeOptions.ScopeOptions.ClaimFormat.SpaceDelimited => principal?.FindFirst(scopeOptions.Claim)?.Value?.Split(' ') ?? [],
+            SecuritySchemeOptions.ScopeOptions.ClaimFormat.Array => principal?.FindAll(scopeOptions.Claim)?.Select(claim => claim.Value)?.ToArray() ?? [],
+            _ => throw new InvalidOperationException($"{Enum.GetName(typeof(SecuritySchemeOptions.ScopeOptions.ClaimFormat), scopeOptions.Format)} not supported")
+        };
+        
+        return scopes.All(scope => foundScopes.Contains(scope));
+    }                                                                             
+}
+#nullable restore
+""");
+    }
 
     internal SourceCode? GenerateSecuritySchemeOptionsClass(string @namespace)
     {
@@ -168,17 +217,27 @@ $$"""
         }
         return new SourceCode("SecuritySchemeOptions.g.cs", 
 $$"""
+#nullable enable
 namespace {{@namespace}};
 
 internal sealed class SecuritySchemeOptions 
 {{{_securitySchemes.AggregateToString(pair => 
     $$"""
-    internal SecuritySchemeOption {{pair.Key.ToPascalCase()}} { get; init; } = new();
+    public SecuritySchemeOption {{pair.Key.ToPascalCase()}} { get; init; } = new();
     """).Indent(4)}}
 
+    internal ScopeOptions GetScopeOptions(string scheme) =>
+        scheme switch 
+        {{{_securitySchemes.AggregateToString(pair =>
+$"""
+            "{pair.Key}" => {pair.Key.ToPascalCase()}.Scope,
+""")}}
+            _ => throw new InvalidOperationException($"Scheme {scheme} is unknown")
+        };
+    
     internal sealed class SecuritySchemeOption
     {
-        internal ScopeOptions Scope {get; init; } = new() 
+        public ScopeOptions Scope {get; init; } = new() 
         {
             Claim = "scope",
             Format = ScopeOptions.ClaimFormat.SpaceDelimited
@@ -187,8 +246,8 @@ internal sealed class SecuritySchemeOptions
     
     internal sealed class ScopeOptions                                                                   
     {
-        public string Claim { get; set; }
-        public ClaimFormat Format { get; set; }
+        public required string Claim { get; init; }
+        public required ClaimFormat Format { get; init; }
 
         internal enum ClaimFormat 
         {
@@ -197,6 +256,7 @@ internal sealed class SecuritySchemeOptions
         }
     }
 }
+#nullable restore
 """);
     }
     
