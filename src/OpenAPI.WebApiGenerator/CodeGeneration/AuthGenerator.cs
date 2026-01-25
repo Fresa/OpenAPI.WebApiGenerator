@@ -205,8 +205,11 @@ internal sealed class SecurityRequirementHandler(IHttpContextAccessor httpContex
         };
         
         return scopes.All(scope => foundScopes.Contains(scope));
-    }                                                                             
+    }
 }
+
+internal sealed class SecurityRequirements : List<SecurityRequirement>, IAuthorizationRequirement;
+internal sealed class SecurityRequirement : Dictionary<string, string[]>;
 #nullable restore
 """);
     }
