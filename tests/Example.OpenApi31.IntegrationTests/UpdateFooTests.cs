@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Example.OpenApi31.IntegrationTests.Http;
 using Example.OpenApi31.IntegrationTests.Json;
+using OpenAPI.IntegrationTestHelpers.Auth;
 
 namespace Example.OpenApi31.IntegrationTests;
 
@@ -11,7 +12,8 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     [Fact]
     public async Task When_Updating_Foo_It_Should_Return_Updated_Foo()
     {
-        using var client = app.CreateClient();
+        using var client = app.CreateClient()
+            .WithOAuth2ImplicitFlowAuthentication();
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
@@ -41,7 +43,8 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     [Fact]
     public async Task Given_invalid_request_When_Updating_Foo_It_Should_Return_400()
     {
-        using var client = app.CreateClient();
+        using var client = app.CreateClient()
+            .WithOAuth2ImplicitFlowAuthentication();
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/test"),
