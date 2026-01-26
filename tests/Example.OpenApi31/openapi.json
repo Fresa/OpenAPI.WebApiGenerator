@@ -59,7 +59,10 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "security": [{"petstore_auth":  []}]
+        "security": [
+          {"petstore_auth":  []},
+          {"secret_key":  []}
+        ]
       },
       "delete": {
         "operationId": "Delete_Foo",
@@ -156,6 +159,11 @@
             }
           }
         }
+      },
+      "secret_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "SecretKey"
       }
     }
   }

@@ -1,8 +1,9 @@
+using Example.OpenApi.Auth;
 using Example.OpenApi31;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddAuthentication()                                                          
+builder.Services.AddAuthentication()
     .AddJwtBearer(SecuritySchemes.PetstoreAuthKey, options =>
     {
         var authority =
@@ -10,10 +11,18 @@ builder.Services.AddAuthentication()
         options.Authority = authority;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidIssuer = authority,                                                      
+            ValidIssuer = authority,
             ValidAudience = authority,
         };
-    }); 
+    })
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+        SecuritySchemes.SecretKeyKey, 
+        options =>
+        {
+            options.In = SecuritySchemes.SecretKey.In;
+            options.Name = SecuritySchemes.SecretKey.Name;
+        });
+
 builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());
 var app = builder.Build();
 app.MapOperations();

@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Example.OpenApi\Example.OpenApi.csproj" />
         <ProjectReference Include="..\..\src\OpenAPI.WebApiGenerator\OpenAPI.WebApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
     <ItemGroup>

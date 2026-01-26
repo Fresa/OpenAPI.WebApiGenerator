@@ -44,9 +44,9 @@ $$"""
     {{{new []
     {
         GenerateConst(nameof(scheme.Description), scheme.Description), 
-        GenerateConst(nameof(scheme.Type), GetEnumName(scheme.Type)),
+        GenerateConst(nameof(scheme.Type), scheme.Type?.GetDisplayName()),
         GenerateConst(nameof(scheme.Name), scheme.Name),
-        GenerateConst(nameof(scheme.In), GetEnumName(scheme.In)),
+        GenerateConst(nameof(scheme.In), scheme.In?.GetDisplayName()),
         GenerateConst(nameof(scheme.Scheme), scheme.Scheme),
         GenerateConst(nameof(scheme.BearerFormat), scheme.BearerFormat),
         GenerateConst(nameof(scheme.OpenIdConnectUrl), scheme.OpenIdConnectUrl?.ToString()),
@@ -59,9 +59,6 @@ $$"""
 }
 """);
     }
-
-    private static string? GetEnumName<T>(T? value) where T : struct, Enum => 
-        value == null ? null : Enum.GetName(typeof(T), value);
 
     private static string GenerateConst(string name, string? value) =>
         value == null
@@ -128,14 +125,14 @@ $$"""
         .AddAuthenticationSchemes({{string.Join(", ", uniqueSecuritySchemes.Select(scheme => $"\"{scheme}\""))}})
         .AddRequirements(
             new SecurityRequirements
-            {{{securityRequirementGroups.Aggregate(string.Empty, (result, securityRequirementGroup) =>
-                result + securityRequirementGroup.AggregateToString(securityRequirement => 
+            {{{string.Join(", ", securityRequirementGroups.Select(securityRequirementGroup =>
+                securityRequirementGroup.AggregateToString(securityRequirement => 
 $$"""
                 new SecurityRequirement
                 {
                     ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
                 }
-"""))}}
+""")))}}
             }))
 """;
     }
