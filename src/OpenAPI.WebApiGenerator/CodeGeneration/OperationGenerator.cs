@@ -20,6 +20,7 @@ internal sealed class OperationGenerator(Compilation compilation,
         var endpointSource =
 $$"""
 using Corvus.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Immutable;
 using System.Threading;
@@ -31,6 +32,8 @@ internal partial class Operation
     internal const string PathTemplate = "{{pathTemplate}}";
     internal const string Method = "{{method.Method}}";
 
+    private const string RequestItemKey = "OpenAPI.WebApiGenerator.Request";
+    
     /// <summary>
     /// Set validation level for requests and responses
     /// </summary>
@@ -51,6 +54,23 @@ internal partial class Operation
     private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+    internal sealed class BindRequestFilter(Operation operation) : IEndpointFilter
+    {
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+        {
+            var httpContext = context.HttpContext;
+            var cancellationToken = httpContext.RequestAborted;
+            
+            var request = await Request.BindAsync(httpContext, cancellationToken)
+                .ConfigureAwait(false);
+
+            httpContext.Items.Add(RequestItemKey, request);
+            
+            return await next(context)
+                .ConfigureAwait(false);
+        }
+    }
+
     /// <summary>
     /// Handle a operation.
     /// <exception cref="JsonValidationException"></exception>
@@ -61,8 +81,11 @@ internal partial class Operation
         [FromServices] WebApiConfiguration configuration, 
         CancellationToken cancellationToken)
     {
-        var request = await Request.BindAsync(context, cancellationToken)
-            .ConfigureAwait(false);
+        if (!context.Items.TryGetValue(RequestItemKey, out var requestObject))
+        {
+            throw new InvalidOperationException($"{RequestItemKey} is missing in request items");
+        }
+        var request = requestObject as Request ?? throw new InvalidOperationException("Request object is not the Request type");
         
         var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
