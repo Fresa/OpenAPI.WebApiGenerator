@@ -19,6 +19,7 @@ internal sealed class OperationGenerator(Compilation compilation,
     {
         var endpointSource =
 $$"""
+#nullable enable
 using Corvus.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -109,6 +110,7 @@ internal partial class Operation
         response.WriteTo(context.Response);
     }
 }
+#nullable restore
 """;
         
         var hasImplementedHandleMethod = compilation.GetSymbolsWithName("Operation", SymbolFilter.Type)
