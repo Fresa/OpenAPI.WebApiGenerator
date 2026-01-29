@@ -67,7 +67,12 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
-        var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator, options);
+        var authGenerator = new AuthGenerator(openApi);
+        var endpointGenerator = new OperationGenerator(
+            compilation, 
+            jsonValidationExceptionGenerator,
+            authGenerator,
+            options);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
             openApiVersion,
@@ -78,8 +83,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
             openApiVersion);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
-        var authGenerator = new AuthGenerator(openApi);
-        
         var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace, authGenerator);
         apiConfigurationGenerator.GenerateClass().AddTo(context);
 
@@ -109,7 +112,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var operationMetadata = TypeMetadata.From(openApiOperationVisitor.Pointer);
                 var operationDirectory = operationMetadata.Path;
                 var operationNamespace = $"{rootNamespace}.{operationMetadata.Namespace}.{operationMetadata.Name}";
-                var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationParameterGenerators = new Dictionary<string, ParameterGenerator>(pathParameterGenerators);
 
@@ -201,7 +203,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     .Generate(operationNamespace,
                         operationDirectory,
                         pathExpression,
-                        operationMethod);
+                        (openApiOperation.Key, openApiOperation.Value));
                 endpointSource
                     .AddTo(context);
             }
@@ -219,7 +221,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         authGenerator.GenerateSecuritySchemeClass(rootNamespace)?.AddTo(context);
         authGenerator.GenerateSecuritySchemeOptionsClass(rootNamespace)?.AddTo(context);
         authGenerator.GenerateSecurityRequirementHandler(rootNamespace)?.AddTo(context);
-        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
+        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }
  

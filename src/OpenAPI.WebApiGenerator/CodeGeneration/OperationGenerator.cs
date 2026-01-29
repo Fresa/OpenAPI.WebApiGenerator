@@ -5,25 +5,34 @@ using System.Net.Http;
 using Corvus.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class OperationGenerator(Compilation compilation,
     JsonValidationExceptionGenerator jsonValidationExceptionGenerator,
+    AuthGenerator authGenerator,
     Options options)
 {
     private readonly List<(string Namespace, string Path)> _missingHandlers = [];
 
-    internal SourceCode Generate(string @namespace, string path, string pathTemplate, HttpMethod method)
+    internal SourceCode Generate(
+        string @namespace, 
+        string path, 
+        string pathTemplate, 
+        (HttpMethod Method, OpenApiOperation Operation) operation)
     {
         var endpointSource =
 $$"""
 #nullable enable
 using Corvus.Json;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Immutable;
+using System.Security.Claims;
 using System.Threading;
 
 namespace {{@namespace}};
@@ -31,7 +40,7 @@ namespace {{@namespace}};
 internal partial class Operation
 {
     internal const string PathTemplate = "{{pathTemplate}}";
-    internal const string Method = "{{method.Method}}";
+    internal const string Method = "{{operation.Method}}";
 
     private const string RequestItemKey = "OpenAPI.WebApiGenerator.Request";
     
@@ -55,6 +64,16 @@ internal partial class Operation
     private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+    /// <summary>
+    /// Set a custom delegate to handle unauthorized responses.
+    /// </summary>
+    private Func<Response> HandleUnauthorized { get; } = () => new Response.Unauthorized();
+
+    /// <summary>
+    /// Set a custom delegate to handle forbidden responses.
+    /// </summary>
+    private Func<Response> HandleForbidden { get; } = () => new Response.Forbidden();
+
     internal sealed class BindRequestFilter(Operation operation) : IEndpointFilter
     {
         public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -72,6 +91,8 @@ internal partial class Operation
         }
     }
 
+{{authGenerator.GenerateAuthFilter(operation.Operation).Indent(4)}}
+    
     /// <summary>
     /// Handle a operation.
     /// <exception cref="JsonValidationException"></exception>

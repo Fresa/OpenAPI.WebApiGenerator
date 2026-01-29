@@ -105,10 +105,10 @@ $"""
 }
 """;
     
-    internal string GenerateAuthorizationDirective(IList<OpenApiSecurityRequirement>? securityRequirements)
+    internal string GenerateAuthorizationDirective(OpenApiOperation operation)
     {
         var securityRequirementGroups =
-            GetSecuritySchemeGroups(securityRequirements) ?? _topLevelSecuritySchemeGroups;
+            GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
         if (!securityRequirementGroups.Any())
         {
             return string.Empty;
@@ -211,6 +211,105 @@ internal sealed class SecurityRequirement : Dictionary<string, string[]>;
 """);
     }
 
+    internal string GenerateAuthFilter(OpenApiOperation operation)
+    {
+        var securityRequirementGroups =
+            GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
+        
+        return  
+$$"""
+internal sealed class SecurityRequirementsFilter(Operation operation, WebApiConfiguration configuration) : IEndpointFilter
+{
+    private static readonly SecurityRequirements Requirements = new()
+    {{{string.Join(", ", 
+        securityRequirementGroups.Select(securityRequirementGroup =>
+            securityRequirementGroup.AggregateToString(securityRequirement => 
+$$"""
+        new SecurityRequirement
+        {
+            ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
+        }
+""")))}}
+    };
+
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var httpContext = context.HttpContext;
+        var cancellationToken = httpContext.RequestAborted;
+        
+        var principal = httpContext.User ??= new();
+        
+        var passed = true;
+        var passedAuthentication = true;
+        // Only one of the security requirement objects need to be satisfied to authorize a request.
+        foreach (var securityRequirement in Requirements)
+        {
+            var authenticated = true;
+            var authorized = true;
+            // Security Requirement Objects that contain multiple schemes require that all schemes MUST be satisfied for a request to be authorized.
+            foreach (var (scheme, scopes) in securityRequirement)
+            {
+                var authenticateResult = await httpContext.AuthenticateAsync(scheme)
+                    .ConfigureAwait(false);
+                
+                if (authenticateResult.Succeeded)
+                {
+                    principal.AddIdentities(authenticateResult.Principal.Identities);
+                } 
+                else
+                {
+                    authenticated = false;
+                    break;
+                } 
+             
+                authorized &= ClaimContainsScopes(authenticateResult.Principal, configuration.SecuritySchemeOptions.GetScopeOptions(scheme), scopes);
+                if (!authorized)
+                    break;
+            }
+            
+            passedAuthentication |= authenticated;
+            passed |= (authenticated && authorized);
+        }
+
+        if (passed)
+        {
+            if (!principal.Identities.Any())
+            {
+                // Anonymous
+                principal.AddIdentity(new ClaimsIdentity());
+            }
+            return await next(context)
+                .ConfigureAwait(false);
+        }        
+    
+        if (passedAuthentication)
+        {
+            operation.HandleForbidden().WriteTo(httpContext.Response);
+            return null;    
+        }
+        
+        operation.HandleUnauthorized().WriteTo(httpContext.Response);
+        return null;
+    }                                                                                    
+     
+    private static bool ClaimContainsScopes(ClaimsPrincipal? principal, SecuritySchemeOptions.ScopeOptions scopeOptions, params string[] scopes)
+    {
+        var foundScopes = scopeOptions.Format switch
+        {
+            SecuritySchemeOptions.ScopeOptions.ClaimFormat.SpaceDelimited => principal?.FindFirst(scopeOptions.Claim)?.Value?.Split(' ') ?? [],
+            SecuritySchemeOptions.ScopeOptions.ClaimFormat.Array => principal?.FindAll(scopeOptions.Claim)?.Select(claim => claim.Value)?.ToArray() ?? [],
+            _ => throw new InvalidOperationException($"{Enum.GetName(typeof(SecuritySchemeOptions.ScopeOptions.ClaimFormat), scopeOptions.Format)} not supported")
+        };
+        
+        return scopes.All(scope => foundScopes.Contains(scope));
+    }
+    
+    private class SecurityRequirements : List<SecurityRequirement>, IAuthorizationRequirement;
+    private class SecurityRequirement : Dictionary<string, string[]>;
+}
+""";
+    }
+    
     internal SourceCode? GenerateSecuritySchemeOptionsClass(string @namespace)
     {
         if (!_securitySchemes.Any())
