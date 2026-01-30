@@ -29,25 +29,7 @@ $$"""
     internal abstract void WriteTo(HttpResponse httpResponse);
     internal abstract ValidationContext Validate(ValidationLevel validationLevel);
     
-    internal sealed class Unauthorized : Response
-    {
-        internal override void WriteTo(HttpResponse httpResponse)
-        {
-            httpResponse.StatusCode = 401;
-        }
-
-        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
-    }
     
-    internal sealed class Forbidden : Response
-    {
-        internal override void WriteTo(HttpResponse httpResponse)
-        {
-            httpResponse.StatusCode = 403;
-        }
-
-        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
-    }
     {{
     responseBodyGenerators.AggregateToString(generator => 
         generator.GenerateResponseContentClass()).Indent(4)

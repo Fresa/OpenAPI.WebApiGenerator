@@ -133,7 +133,32 @@ internal partial class Operation
         }
         response.WriteTo(context.Response);
     }
+}{{(requiresAuth ? 
+"""
+
+internal abstract partial class Response
+{
+    internal sealed class Unauthorized : Response
+    {
+        internal override void WriteTo(HttpResponse httpResponse)
+        {
+            httpResponse.StatusCode = 401;
+        }
+
+        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
+    }
+
+    internal sealed class Forbidden : Response
+    {
+        internal override void WriteTo(HttpResponse httpResponse)
+        {
+            httpResponse.StatusCode = 403;
+        }
+
+        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
+    }
 }
+""" : "")}}
 #nullable restore
 """;
         
