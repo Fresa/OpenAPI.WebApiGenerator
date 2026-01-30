@@ -104,27 +104,47 @@ $"""
 }
 """;
     
-    internal string GenerateAuthFilter(OpenApiOperation operation)
+    internal SourceCode GenerateSecurityRequirementsFilter(string @namespace)
     {
-        var securityRequirementGroups =
-            GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
-        
-        return  
-$$"""
-internal sealed class SecurityRequirementsFilter(Operation operation, WebApiConfiguration configuration) : IEndpointFilter
-{
-    private static readonly SecurityRequirements Requirements = new()
-    {{{string.Join(", ", 
-        securityRequirementGroups.Select(securityRequirementGroup =>
-            securityRequirementGroup.AggregateToString(securityRequirement => 
-$$"""
-        new SecurityRequirement
+        if (!_securitySchemes.Any())
         {
-            ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
-        }
-""")))}}
-    };
+            return new SourceCode("SecurityRequirementsFilter.g.cs", 
+$$"""
+#nullable enable
+using System.Security.Claims;
 
+namespace {{@namespace}};
+
+internal sealed class AnonymousFilter() : IEndpointFilter
+{
+    internal static readonly AnonymousFilter Instance = new AnonymousFilter();
+    public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        // Anonymous
+        context.HttpContext.User ??= new(new ClaimsIdentity());;
+        return next(context);
+    }
+}
+#nullable restore        
+""");
+        }
+        
+        return new SourceCode("SecurityRequirementsFilter.g.cs", 
+$$"""
+#nullable enable
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
+namespace {{@namespace}};
+
+internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration configuration) : IEndpointFilter
+{
+    protected abstract SecurityRequirements Requirements { get; }
+
+    protected abstract void HandleForbidden(HttpResponse response);
+    protected abstract void HandleUnauthorized(HttpResponse response);
+    
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var httpContext = context.HttpContext;
@@ -177,11 +197,11 @@ $$"""
     
         if (passedAuthentication)
         {
-            operation.HandleForbidden().WriteTo(httpContext.Response);
+            HandleForbidden(httpContext.Response);
             return null;    
         }
         
-        operation.HandleUnauthorized().WriteTo(httpContext.Response);
+        HandleUnauthorized(httpContext.Response);
         return null;
     }                                                                                    
      
@@ -197,8 +217,51 @@ $$"""
         return scopes.All(scope => foundScopes.Contains(scope));
     }
     
-    private class SecurityRequirements : List<SecurityRequirement>, IAuthorizationRequirement;
-    private class SecurityRequirement : Dictionary<string, string[]>;
+    internal class SecurityRequirements : List<SecurityRequirement>, IAuthorizationRequirement;
+    internal class SecurityRequirement : Dictionary<string, string[]>;
+}
+#nullable restore
+""");
+    }
+    
+    internal string GenerateAuthFilter(OpenApiOperation operation)
+    {
+        var securityRequirementGroups =
+            GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
+        if (!securityRequirementGroups.Any())
+        {
+            return 
+"""
+internal sealed class SecurityRequirementsFilter() : IEndpointFilter
+{
+    public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        // Anonymous
+        context.HttpContext.User ??= new(new ClaimsIdentity());;
+        return next(context);
+    }
+}
+""";
+        }
+
+        return  
+$$"""
+internal sealed class SecurityRequirementsFilter(Operation operation, WebApiConfiguration configuration) : BaseSecurityRequirementsFilter(configuration)
+{
+    protected override SecurityRequirements Requirements { get; } = new()
+    {{{string.Join(", ", 
+        securityRequirementGroups.Select(securityRequirementGroup =>
+            securityRequirementGroup.AggregateToString(securityRequirement => 
+$$"""
+        new SecurityRequirement
+        {
+            ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
+        }
+""")))}}
+    };
+    
+    protected override void HandleUnauthorized(HttpResponse response) => operation.HandleUnauthorized().WriteTo(response);
+    protected override void HandleForbidden(HttpResponse response) => operation.HandleForbidden().WriteTo(response);
 }
 """;
     }
