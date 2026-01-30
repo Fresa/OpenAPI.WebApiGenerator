@@ -122,16 +122,21 @@ internal partial class Operation
         
         var response = await operation.HandleAsync(request, cancellationToken)
             .ConfigureAwait(false);
-        if (operation.ValidateResponse)
-        {
-            validationContext = response.Validate(operation.ValidationLevel);
-            if (!validationContext.IsValid)
-            {
-                var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
-                {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
-            }
-        }
-        response.WriteTo(context.Response);
+        operation.Validate(response, configuration)
+            .WriteTo(context.Response);
+    }
+    
+    internal Response Validate(Response response, WebApiConfiguration configuration)
+    {
+        if (!ValidateResponse)
+            return response;
+        
+        var validationContext = response.Validate(ValidationLevel);
+        if (validationContext.IsValid)
+            return response;
+        
+        var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
+        {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
     }
 }{{(requiresAuth ? 
 """

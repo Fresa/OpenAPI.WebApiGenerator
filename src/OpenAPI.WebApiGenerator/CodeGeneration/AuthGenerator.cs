@@ -243,8 +243,8 @@ $$"""
 """)))}}
     };
     
-    protected override void HandleUnauthorized(HttpResponse response) => operation.HandleUnauthorized().WriteTo(response);
-    protected override void HandleForbidden(HttpResponse response) => operation.HandleForbidden().WriteTo(response);
+    protected override void HandleUnauthorized(HttpResponse response) => operation.Validate(operation.HandleUnauthorized(), configuration).WriteTo(response);
+    protected override void HandleForbidden(HttpResponse response) => operation.Validate(operation.HandleForbidden(), configuration).WriteTo(response);
 }
 """;
     }
