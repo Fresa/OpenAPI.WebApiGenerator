@@ -64,16 +64,21 @@ internal partial class Operation
     private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+{{authGenerator.GenerateAuthFilter(operation.Operation, out var requiresAuth).Indent(4)}}
+{{(requiresAuth ? 
+"""
+
     /// <summary>
     /// Set a custom delegate to handle unauthorized responses.
     /// </summary>
     private Func<Response> HandleUnauthorized { get; } = () => new Response.Unauthorized();
-
+    
     /// <summary>
     /// Set a custom delegate to handle forbidden responses.
     /// </summary>
     private Func<Response> HandleForbidden { get; } = () => new Response.Forbidden();
-
+    
+""" : "")}}
     internal sealed class BindRequestFilter(Operation operation) : IEndpointFilter
     {
         public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -91,8 +96,6 @@ internal partial class Operation
         }
     }
 
-{{authGenerator.GenerateAuthFilter(operation.Operation).Indent(4)}}
-    
     /// <summary>
     /// Handle a operation.
     /// <exception cref="JsonValidationException"></exception>

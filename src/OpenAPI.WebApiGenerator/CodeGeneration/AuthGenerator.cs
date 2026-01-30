@@ -104,29 +104,11 @@ $"""
 }
 """;
     
-    internal SourceCode GenerateSecurityRequirementsFilter(string @namespace)
+    internal SourceCode? GenerateSecurityRequirementsFilter(string @namespace)
     {
         if (!_securitySchemes.Any())
         {
-            return new SourceCode("SecurityRequirementsFilter.g.cs", 
-$$"""
-#nullable enable
-using System.Security.Claims;
-
-namespace {{@namespace}};
-
-internal sealed class AnonymousFilter() : IEndpointFilter
-{
-    internal static readonly AnonymousFilter Instance = new AnonymousFilter();
-    public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-    {
-        // Anonymous
-        context.HttpContext.User ??= new(new ClaimsIdentity());;
-        return next(context);
-    }
-}
-#nullable restore        
-""");
+            return null;
         }
         
         return new SourceCode("SecurityRequirementsFilter.g.cs", 
@@ -224,15 +206,16 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
 """);
     }
     
-    internal string GenerateAuthFilter(OpenApiOperation operation)
+    internal string GenerateAuthFilter(OpenApiOperation operation, out bool requiresAuth)
     {
         var securityRequirementGroups =
             GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
-        if (!securityRequirementGroups.Any())
+        requiresAuth = securityRequirementGroups.Any();
+        if (!requiresAuth)
         {
             return 
 """
-internal sealed class SecurityRequirementsFilter() : IEndpointFilter
+internal sealed class SecurityRequirementsFilter : IEndpointFilter
 {
     public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
