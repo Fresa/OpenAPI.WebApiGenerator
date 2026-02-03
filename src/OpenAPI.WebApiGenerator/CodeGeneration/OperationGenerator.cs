@@ -17,11 +17,11 @@ internal sealed class OperationGenerator(Compilation compilation,
 {
     private readonly List<(string Namespace, string Path)> _missingHandlers = [];
 
-    internal SourceCode Generate(
-        string @namespace, 
-        string path, 
-        string pathTemplate, 
-        (HttpMethod Method, OpenApiOperation Operation) operation)
+    internal SourceCode Generate(string @namespace,
+        string path,
+        string pathTemplate,
+        (HttpMethod Method, OpenApiOperation Operation) operation,
+        ParameterGenerator[] parameters)
     {
         var endpointSource =
 $$"""
@@ -64,7 +64,7 @@ internal partial class Operation
     private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
-{{authGenerator.GenerateAuthFilter(operation.Operation, out var requiresAuth).Indent(4)}}
+{{authGenerator.GenerateAuthFilters(operation.Operation, parameters, out var requiresAuth).Indent(4)}}
 {{(requiresAuth ? 
 """
 

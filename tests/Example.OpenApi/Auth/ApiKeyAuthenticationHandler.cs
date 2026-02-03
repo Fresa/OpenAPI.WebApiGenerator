@@ -14,19 +14,10 @@ public class ApiKeyAuthenticationHandler(
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var authenticated = Options.In switch
+        var apiKey = Options.GetApiKey();
+        if (apiKey != "password1")
         {
-            "header" => Request.Headers.TryGetValue(Options.Name, out var apiKey) &&
-                        !string.IsNullOrEmpty(apiKey),
-            "cookie" => Request.Cookies.TryGetValue(Options.Name, out var apiKey) &&
-                        !string.IsNullOrEmpty(apiKey),
-            "query" => Request.Query.TryGetValue(Options.Name, out var apiKey) &&
-                       !string.IsNullOrEmpty(apiKey),
-            _ => throw new InvalidOperationException($"Unknown location {Options.In}")
-        };
-        if (!authenticated)
-        {
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return Task.FromResult(AuthenticateResult.Fail("Invalid api key"));
         }
 
         var identity = new ClaimsIdentity(Scheme.Name);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -90,6 +91,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         validationExtensionsGenerator.GenerateClass().AddTo(context);
         
         var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();
+        var securityParameterGenerators = new ConcurrentDictionary<IOpenApiSecurityScheme, List<ParameterGenerator>>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -203,7 +205,8 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     .Generate(operationNamespace,
                         operationDirectory,
                         pathExpression,
-                        (openApiOperation.Key, openApiOperation.Value));
+                        (openApiOperation.Key, openApiOperation.Value),
+                        operationParameterGenerators.Values.ToArray());
                 endpointSource
                     .AddTo(context);
             }
@@ -221,7 +224,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
         authGenerator.GenerateSecuritySchemeClass(rootNamespace)?.AddTo(context);
         authGenerator.GenerateSecuritySchemeOptionsClass(rootNamespace)?.AddTo(context);
         authGenerator.GenerateSecurityRequirementsFilter(rootNamespace)?.AddTo(context);
-        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace);
+        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }
  

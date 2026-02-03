@@ -19,8 +19,10 @@ builder.Services.AddAuthentication()
         SecuritySchemes.SecretKeyKey, 
         options =>
         {
-            options.In = SecuritySchemes.SecretKey.In;
-            options.Name = SecuritySchemes.SecretKey.Name;
+            options.GetApiKey = context =>
+                SecuritySchemes.SecretKey.TryGetParameter(context, out var value)
+                    ? value.GetString()!
+                    : throw new InvalidOperationException("");
         });
 
 builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());

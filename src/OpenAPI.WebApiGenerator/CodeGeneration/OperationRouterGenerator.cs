@@ -5,7 +5,7 @@ using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
-internal sealed class OperationRouterGenerator(string @namespace)
+internal sealed class OperationRouterGenerator(string @namespace, AuthGenerator authGenerator)
 {
     internal SourceCode ForMinimalApi(List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)> operations) =>
         new("OperationRouter.g.cs",
@@ -22,7 +22,10 @@ internal static class OperationRouter
 $"""
         app.MapMethods({operation.Namespace}.Operation.PathTemplate, ["{operation.Operation.Key.Method}"], {operation.Namespace}.Operation.HandleAsync)
             .AddEndpointFilter<{operation.Namespace}.Operation.BindRequestFilter>()
-            .AddEndpointFilter<{operation.Namespace}.Operation.SecurityRequirementsFilter>();
+{authGenerator.GetSecurityFilterNames(operation.Operation.Value).AggregateToString(name => 
+$"""
+            .AddEndpointFilter<{operation.Namespace}.Operation.{name}>()
+""")};
 """)}}
         return app;
     }

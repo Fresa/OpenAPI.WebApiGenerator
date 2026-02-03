@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
@@ -10,11 +12,15 @@ internal sealed class AuthGenerator
     private readonly IDictionary<string, IOpenApiSecurityScheme> _securitySchemes;
     private readonly Dictionary<string, List<string>>[] _topLevelSecuritySchemeGroups;
 
-    public AuthGenerator(OpenApiDocument securitySchemes)
+    private readonly ConcurrentDictionary<string, HashSet<ParameterGenerator>> _securitySchemeParameters = new();
+
+    private readonly Dictionary<OpenApiOperation, string[]> _requestFilters = new();
+    
+    public AuthGenerator(OpenApiDocument openApiDocument)
     {
-        _securitySchemes = securitySchemes.Components?.SecuritySchemes ??
+        _securitySchemes = openApiDocument.Components?.SecuritySchemes ??
                            new Dictionary<string, IOpenApiSecurityScheme>();
-        _topLevelSecuritySchemeGroups = GetSecuritySchemeGroups(securitySchemes.Security) ?? [];
+        _topLevelSecuritySchemeGroups = GetSecuritySchemeGroups(openApiDocument.Security) ?? [];
         HasSecuritySchemes = _securitySchemes.Any();
     }
 
@@ -34,7 +40,8 @@ namespace {{@namespace}};
 internal static class SecuritySchemes 
 {{{_securitySchemes.AggregateToString(pair =>
     {
-        var className = pair.Key.ToPascalCase();
+        var schemeName = pair.Key;
+        var className = schemeName.ToPascalCase();
         var scheme = pair.Value;
         return scheme.Type == null ? string.Empty : 
 $$"""
@@ -44,11 +51,10 @@ $$"""
     {
         GenerateConst(nameof(scheme.Description), scheme.Description), 
         GenerateConst(nameof(scheme.Type), scheme.Type?.GetDisplayName()),
-        GenerateConst(nameof(scheme.Name), scheme.Name),
-        GenerateConst(nameof(scheme.In), scheme.In?.GetDisplayName()),
         GenerateConst(nameof(scheme.Scheme), scheme.Scheme),
         GenerateConst(nameof(scheme.BearerFormat), scheme.BearerFormat),
         GenerateConst(nameof(scheme.OpenIdConnectUrl), scheme.OpenIdConnectUrl?.ToString()),
+        GenerateGetParameterMethods(schemeName, scheme),
         $"internal const bool {nameof(scheme.Deprecated)} = {scheme.Deprecated.ToString().ToLowerInvariant()};",
         GenerateFlowsObject(nameof(scheme.Flows), scheme.Flows)
     }.RemoveEmptyLines().AggregateToString().Indent(8)}}
@@ -66,6 +72,50 @@ $$"""
                internal const string {name} = "{value}";
                """;
 
+    private string GenerateGetParameterMethods(string schemeName, IOpenApiSecurityScheme scheme)
+    {
+        if (scheme.Name == null || scheme.In == null)
+        {
+            return string.Empty;
+        }
+        return 
+$$"""
+private static bool TryGet<T>(HttpContext context, out T value) where T : struct
+{
+    if (TryGet(context, out T? nullableValue))
+    {
+        value = (T)nullableValue!;
+    }
+
+    value = default;
+    return false;
+}
+
+private static bool TryGet<T>(HttpContext context, out T? value) where T : struct
+{
+    var itemValue = context.Items["{{GetSecuritySchemeParameterKey(_securitySchemeParameters[schemeName].First())}}"];
+
+    switch (itemValue)
+    {
+        case T typedValue:
+            value = typedValue;
+            return true;
+        case null:
+            value = null;
+            return true;
+    }
+
+    value = null;
+    return false;
+}
+{{_securitySchemeParameters[schemeName].AggregateToString(generator =>
+$"""
+internal static bool TryGetParameter(HttpContext context, out {generator.FullyQualifiedTypeName} value) => 
+    TryGet(context, out value);
+""")}}
+""";
+    }
+    
     private static string GenerateFlowsObject(string className, OpenApiOAuthFlows? flows) =>
         flows == null ? string.Empty : 
 $$"""
@@ -104,6 +154,7 @@ $"""
 }
 """;
     
+    internal string[] GetSecurityFilterNames(OpenApiOperation operation) => _requestFilters[operation];
     internal SourceCode? GenerateSecurityRequirementsFilter(string @namespace)
     {
         if (!_securitySchemes.Any())
@@ -206,16 +257,21 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
 """);
     }
     
-    internal string GenerateAuthFilter(OpenApiOperation operation, out bool requiresAuth)
+    internal string GenerateAuthFilters(OpenApiOperation operation, ParameterGenerator[] parameters,
+        out bool requiresAuth)
     {
+        const string securitySchemeParameterFilterClassName = "SecuritySchemeParameterFilter";
+        const string securityRequirementsFilterClassName = "SecurityRequirementsFilter";
+
         var securityRequirementGroups =
             GetSecuritySchemeGroups(operation.Security) ?? _topLevelSecuritySchemeGroups;
         requiresAuth = securityRequirementGroups.Any();
         if (!requiresAuth)
         {
+            _requestFilters.Add(operation, [securityRequirementsFilterClassName]);
             return 
-"""
-internal sealed class SecurityRequirementsFilter : IEndpointFilter
+$$"""
+internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
 {
     public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
@@ -227,9 +283,53 @@ internal sealed class SecurityRequirementsFilter : IEndpointFilter
 """;
         }
 
-        return  
+        var securitySchemeParameters =
+            operation.Security?
+                .SelectMany(requirement =>
+                    requirement.Where(pair => pair.Key.In != null && pair.Key.Name != null)
+                        .Select(pair => pair.Key))
+                .Distinct()
+                .ToDictionary(reference => reference,
+                    reference =>
+                        parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference)) ??
+                        throw new InvalidOperationException(
+                            $"Operation {operation.OperationId} defines security scheme {GetSecuritySchemeName(reference)} that references parameter {reference.Name} in location {reference.In} which is not defined by the operation"))
+            ?? [];
+        
+        foreach (var securitySchemeParameter in securitySchemeParameters)
+        {
+            _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(securitySchemeParameter.Key),
+                _ => [securitySchemeParameter.Value],
+                (_, list) =>
+                {
+                    list.Add(securitySchemeParameter.Value);
+                    return list;
+                });
+        }
+
+        var hasSecuritySchemeParameters = securitySchemeParameters.Any();
+        _requestFilters.Add(operation,
+            hasSecuritySchemeParameters
+                ? [securitySchemeParameterFilterClassName, securityRequirementsFilterClassName]
+                : [securityRequirementsFilterClassName]);
+        return (hasSecuritySchemeParameters ? 
 $$"""
-internal sealed class SecurityRequirementsFilter(Operation operation, WebApiConfiguration configuration) : BaseSecurityRequirementsFilter(configuration)
+internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilter
+{
+    public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var httpContext = context.HttpContext;
+        var request = (Request) httpContext.Items[RequestItemKey]!;
+{{securitySchemeParameters.Values.Distinct().AggregateToString(parameterGenerator =>
+$"""
+        httpContext.Items.Add("{GetSecuritySchemeParameterKey(parameterGenerator)}", request.{parameterGenerator.Location.ToPascalCase()}.{parameterGenerator.PropertyName});
+""")}}
+        return next(context);
+    }
+}
+""" : string.Empty) +  
+$$"""
+internal sealed class {{securityRequirementsFilterClassName}}(Operation operation, WebApiConfiguration configuration) : BaseSecurityRequirementsFilter(configuration)
 {
     protected override SecurityRequirements Requirements { get; } = new()
     {{{string.Join(", ", 
@@ -309,4 +409,7 @@ $"""
             .ToArray();
     private string GetSecuritySchemeName(OpenApiSecuritySchemeReference reference)
         => _securitySchemes.First(pair => pair.Value == reference.Target).Key;
+
+    private static string GetSecuritySchemeParameterKey(ParameterGenerator generator) =>
+        $"OpenAPI.WebApiGenerator.SecurityScheme.{generator.Location}.{generator.PropertyName}";
 }

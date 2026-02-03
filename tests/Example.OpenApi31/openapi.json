@@ -163,7 +163,7 @@
       "secret_key": {
         "type": "apiKey",
         "in": "header",
-        "name": "SecretKey"
+        "name": "Bar"
       }
     }
   }
