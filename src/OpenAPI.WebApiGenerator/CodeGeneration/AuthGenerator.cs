@@ -293,30 +293,7 @@ internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
 """;
         }
 
-        var securitySchemeParameters =
-            operation.Security?
-                .SelectMany(requirement =>
-                    requirement.Where(pair => pair.Key.In != null && pair.Key.Name != null)
-                        .Select(pair => pair.Key))
-                .Distinct()
-                .Select(reference => (Scheme: reference,
-                    Parameter: parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference))))
-                .Where(pair => pair.Parameter != null)
-                .ToArray()
-            ?? [];
-        
-        foreach (var (scheme, parameter) in securitySchemeParameters)
-        {
-            _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(scheme),
-                _ => [parameter],
-                (_, list) =>
-                {
-                    list.Add(parameter);
-                    return list;
-                });
-        }
-
-        var hasSecuritySchemeParameters = securitySchemeParameters.Any();
+        var hasSecuritySchemeParameters = TryGetSecuritySchemeParameters(operation, parameters, out var securitySchemeParameters);
         _requestFilters.Add(operation,
             hasSecuritySchemeParameters
                 ? [securitySchemeParameterFilterClassName, securityRequirementsFilterClassName]
@@ -330,7 +307,7 @@ internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilt
         var httpContext = context.HttpContext;
         var request = (Request) httpContext.Items[RequestItemKey]!;
 {{securitySchemeParameters
-    .Select(tuple => tuple.Parameter!)
+    .Select(tuple => tuple.ParameterGenerator)
     .Distinct()
     .AggregateToString(parameterGenerator =>
 $"""
@@ -424,4 +401,33 @@ $"""
 
     private static string GetSecuritySchemeParameterKey(ParameterGenerator generator) =>
         $"OpenAPI.WebApiGenerator.SecurityScheme.{generator.Location}.{generator.PropertyName}";
+
+    private bool TryGetSecuritySchemeParameters(OpenApiOperation operation, ParameterGenerator[] parameters, 
+        out (OpenApiSecuritySchemeReference Scheme, ParameterGenerator ParameterGenerator)[] securitySchemeParameters)
+    {
+        securitySchemeParameters =
+            operation.Security?
+                .SelectMany(requirement =>
+                    requirement.Where(pair => pair.Key.In != null && pair.Key.Name != null)
+                        .Select(pair => pair.Key))
+                .Distinct()
+                .Select(reference => (Scheme: reference,
+                    Parameter: parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference))))
+                .Where(pair => pair.Parameter != null)
+                .ToArray()
+            ?? [];
+        
+        foreach (var (scheme, parameter) in securitySchemeParameters)
+        {
+            _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(scheme),
+                _ => [parameter],
+                (_, list) =>
+                {
+                    list.Add(parameter);
+                    return list;
+                });
+        }
+
+        return securitySchemeParameters.Any();
+    }
 }
