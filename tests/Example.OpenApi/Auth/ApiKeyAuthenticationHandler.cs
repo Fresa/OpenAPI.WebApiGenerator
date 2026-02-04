@@ -14,7 +14,7 @@ public class ApiKeyAuthenticationHandler(
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var apiKey = Options.GetApiKey();
+        var apiKey = Options.GetApiKey(Context);
         if (apiKey != "password1")
         {
             return Task.FromResult(AuthenticateResult.Fail("Invalid api key"));

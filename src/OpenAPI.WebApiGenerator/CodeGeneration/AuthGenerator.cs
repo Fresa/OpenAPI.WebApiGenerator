@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.OpenApi;
@@ -78,7 +77,10 @@ $$"""
         {
             return string.Empty;
         }
-        return 
+        
+        if (_securitySchemeParameters.TryGetValue(schemeName, out var securitySchemeParameters))
+        {
+            return 
 $$"""
 private static bool TryGet<T>(HttpContext context, out T value) where T : struct
 {
@@ -93,26 +95,34 @@ private static bool TryGet<T>(HttpContext context, out T value) where T : struct
 
 private static bool TryGet<T>(HttpContext context, out T? value) where T : struct
 {
-    var itemValue = context.Items["{{GetSecuritySchemeParameterKey(_securitySchemeParameters[schemeName].First())}}"];
-
-    switch (itemValue)
+    if (context.Items.TryGetValue("{{GetSecuritySchemeParameterKey(securitySchemeParameters.First())}}", out var itemValue))
     {
-        case T typedValue:
-            value = typedValue;
-            return true;
-        case null:
-            value = null;
-            return true;
+        switch (itemValue)
+        {
+            case T typedValue:
+                value = typedValue;
+                return true;
+            case null:
+                value = null;
+                return true;
+        }
     }
-
+    
     value = null;
     return false;
 }
-{{_securitySchemeParameters[schemeName].AggregateToString(generator =>
+{{securitySchemeParameters.AggregateToString(generator =>
 $"""
 internal static bool TryGetParameter(HttpContext context, out {generator.FullyQualifiedTypeName} value) => 
     TryGet(context, out value);
 """)}}
+""";
+        }
+        
+        return 
+$"""
+{GenerateConst(nameof(scheme.Name), scheme.Name)}
+{GenerateConst(nameof(scheme.In), scheme.In.GetDisplayName())}
 """;
     }
     
@@ -289,20 +299,19 @@ internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
                     requirement.Where(pair => pair.Key.In != null && pair.Key.Name != null)
                         .Select(pair => pair.Key))
                 .Distinct()
-                .ToDictionary(reference => reference,
-                    reference =>
-                        parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference)) ??
-                        throw new InvalidOperationException(
-                            $"Operation {operation.OperationId} defines security scheme {GetSecuritySchemeName(reference)} that references parameter {reference.Name} in location {reference.In} which is not defined by the operation"))
+                .Select(reference => (Scheme: reference,
+                    Parameter: parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference))))
+                .Where(pair => pair.Parameter != null)
+                .ToArray()
             ?? [];
         
-        foreach (var securitySchemeParameter in securitySchemeParameters)
+        foreach (var (scheme, parameter) in securitySchemeParameters)
         {
-            _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(securitySchemeParameter.Key),
-                _ => [securitySchemeParameter.Value],
+            _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(scheme),
+                _ => [parameter],
                 (_, list) =>
                 {
-                    list.Add(securitySchemeParameter.Value);
+                    list.Add(parameter);
                     return list;
                 });
         }
@@ -320,7 +329,10 @@ internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilt
     {
         var httpContext = context.HttpContext;
         var request = (Request) httpContext.Items[RequestItemKey]!;
-{{securitySchemeParameters.Values.Distinct().AggregateToString(parameterGenerator =>
+{{securitySchemeParameters
+    .Select(tuple => tuple.Parameter!)
+    .Distinct()
+    .AggregateToString(parameterGenerator =>
 $"""
         httpContext.Items.Add("{GetSecuritySchemeParameterKey(parameterGenerator)}", request.{parameterGenerator.Location.ToPascalCase()}.{parameterGenerator.PropertyName});
 """)}}
