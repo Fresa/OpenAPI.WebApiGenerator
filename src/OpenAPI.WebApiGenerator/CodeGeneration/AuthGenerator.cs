@@ -1,6 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -11,7 +13,7 @@ internal sealed class AuthGenerator
     private readonly IDictionary<string, IOpenApiSecurityScheme> _securitySchemes;
     private readonly Dictionary<string, List<string>>[] _topLevelSecuritySchemeGroups;
 
-    private readonly ConcurrentDictionary<string, HashSet<ParameterGenerator>> _securitySchemeParameters = new();
+    private readonly ConcurrentDictionary<string, HashSet<(OpenApiOperation Operation, ParameterGenerator? Parameter)>> _securitySchemeParameters = new();
 
     private readonly Dictionary<OpenApiOperation, string[]> _requestFilters = new();
     
@@ -77,11 +79,39 @@ $$"""
         {
             return string.Empty;
         }
-        
+
+        var hasNonDefinedParameters = true;
+        var parameterGenerators = Array.Empty<ParameterGenerator>();
+        var parameterFullyQualifiedTypeNames = Array.Empty<string>();
         if (_securitySchemeParameters.TryGetValue(schemeName, out var securitySchemeParameters))
         {
-            return 
+            hasNonDefinedParameters = securitySchemeParameters.Any(tuple => tuple.Parameter == null);
+            parameterGenerators = securitySchemeParameters
+                .Where(tuple => tuple.Parameter != null)
+                .Select(tuple => tuple.Parameter!)
+                .ToArray();
+            parameterFullyQualifiedTypeNames = parameterGenerators.Select(generator => generator.FullyQualifiedTypeName)
+                .Distinct()
+                .ToArray();
+        }
+
+        var securitySchemeParameterKey = parameterGenerators.Any()
+            ? GetSecuritySchemeParameterKey(parameterGenerators.First())
+            : null;
+
+        return 
 $$"""
+{{(hasNonDefinedParameters ? 
+$"""
+{GenerateConst(nameof(scheme.Name), scheme.Name)}
+{GenerateConst(nameof(scheme.In), scheme.In.GetDisplayName())}
+
+""" : "")}}{{(parameterFullyQualifiedTypeNames.Length == 1 ? 
+$$"""
+internal static {{parameterFullyQualifiedTypeNames.First()}} GetParameter(HttpContext context) =>
+    ({{parameterFullyQualifiedTypeNames.First()}})context.Items["{{securitySchemeParameterKey}}"];
+    
+""" : $$"""
 private static bool TryGet<T>(HttpContext context, out T value) where T : struct
 {
     if (TryGet(context, out T? nullableValue))
@@ -95,7 +125,7 @@ private static bool TryGet<T>(HttpContext context, out T value) where T : struct
 
 private static bool TryGet<T>(HttpContext context, out T? value) where T : struct
 {
-    if (context.Items.TryGetValue("{{GetSecuritySchemeParameterKey(securitySchemeParameters.First())}}", out var itemValue))
+    if (context.Items.TryGetValue("{{securitySchemeParameterKey}}", out var itemValue))
     {
         switch (itemValue)
         {
@@ -111,18 +141,12 @@ private static bool TryGet<T>(HttpContext context, out T? value) where T : struc
     value = null;
     return false;
 }
-{{securitySchemeParameters.AggregateToString(generator =>
+{{parameterFullyQualifiedTypeNames.AggregateToString(fullyQualifiedTypeName =>
 $"""
-internal static bool TryGetParameter(HttpContext context, out {generator.FullyQualifiedTypeName} value) => 
+internal static bool TryGetParameter(HttpContext context, out {fullyQualifiedTypeName} value) => 
     TryGet(context, out value);
 """)}}
-""";
-        }
-        
-        return 
-$"""
-{GenerateConst(nameof(scheme.Name), scheme.Name)}
-{GenerateConst(nameof(scheme.In), scheme.In.GetDisplayName())}
+""")}}
 """;
     }
     
@@ -293,7 +317,8 @@ internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
 """;
         }
 
-        var hasSecuritySchemeParameters = TryGetSecuritySchemeParameters(operation, parameters, out var securitySchemeParameters);
+        var securitySchemeParameters = GetSecuritySchemeParameters(operation, parameters);
+        var hasSecuritySchemeParameters = securitySchemeParameters.Any();
         _requestFilters.Add(operation,
             hasSecuritySchemeParameters
                 ? [securitySchemeParameterFilterClassName, securityRequirementsFilterClassName]
@@ -307,7 +332,8 @@ internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilt
         var httpContext = context.HttpContext;
         var request = (Request) httpContext.Items[RequestItemKey]!;
 {{securitySchemeParameters
-    .Select(tuple => tuple.ParameterGenerator)
+    .Where(tuple => tuple.Value != null)
+    .Select(tuple => tuple.Value!)
     .Distinct()
     .AggregateToString(parameterGenerator =>
 $"""
@@ -402,32 +428,32 @@ $"""
     private static string GetSecuritySchemeParameterKey(ParameterGenerator generator) =>
         $"OpenAPI.WebApiGenerator.SecurityScheme.{generator.Location}.{generator.PropertyName}";
 
-    private bool TryGetSecuritySchemeParameters(OpenApiOperation operation, ParameterGenerator[] parameters, 
-        out (OpenApiSecuritySchemeReference Scheme, ParameterGenerator ParameterGenerator)[] securitySchemeParameters)
+    private Dictionary<OpenApiSecuritySchemeReference, ParameterGenerator> GetSecuritySchemeParameters(OpenApiOperation operation, ParameterGenerator[] parameters)
     {
-        securitySchemeParameters =
+        var nullableSecuritySchemeParameters =
             operation.Security?
                 .SelectMany(requirement =>
                     requirement.Where(pair => pair.Key.In != null && pair.Key.Name != null)
                         .Select(pair => pair.Key))
                 .Distinct()
                 .Select(reference => (Scheme: reference,
-                    Parameter: parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference))))
-                .Where(pair => pair.Parameter != null)
+                    Parameter: parameters.FirstOrDefault(generator => generator.IsSecuritySchemeParameter(reference)) ?? null))
                 .ToArray()
             ?? [];
         
-        foreach (var (scheme, parameter) in securitySchemeParameters)
+        foreach (var (scheme, parameter) in nullableSecuritySchemeParameters)
         {
             _securitySchemeParameters.AddOrUpdate(GetSecuritySchemeName(scheme),
-                _ => [parameter],
+                _ => [(operation, parameter)],
                 (_, list) =>
                 {
-                    list.Add(parameter);
+                    list.Add((operation, parameter));
                     return list;
                 });
         }
 
-        return securitySchemeParameters.Any();
+        return nullableSecuritySchemeParameters
+            .Where(pair => pair.Parameter != null)
+            .ToDictionary(pair => pair.Scheme, pair => pair.Parameter!);
     }
 }
