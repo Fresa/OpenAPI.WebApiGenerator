@@ -355,12 +355,14 @@ $"""
         return next(context);
     }
 }
+
 """ : string.Empty) +  
 $$"""
+
 internal sealed class {{securityRequirementsFilterClassName}}(Operation operation, WebApiConfiguration configuration) : BaseSecurityRequirementsFilter(configuration)
 {
     protected override SecurityRequirements Requirements { get; } = new()
-    {{{string.Join(", ", 
+    {{{string.Join(",", 
         securityRequirementGroups.Select(securityRequirementGroup =>
             securityRequirementGroup.AggregateToString(securityRequirement => 
 $$"""

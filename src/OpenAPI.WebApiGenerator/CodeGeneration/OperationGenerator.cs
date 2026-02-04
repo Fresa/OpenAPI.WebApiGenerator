@@ -106,11 +106,7 @@ internal partial class Operation
         [FromServices] WebApiConfiguration configuration, 
         CancellationToken cancellationToken)
     {
-        if (!context.Items.TryGetValue(RequestItemKey, out var requestObject))
-        {
-            throw new InvalidOperationException($"{RequestItemKey} is missing in request items");
-        }
-        var request = requestObject as Request ?? throw new InvalidOperationException("Request object is not the Request type");
+        var request = (Request) context.Items[RequestItemKey]!;
         
         var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
