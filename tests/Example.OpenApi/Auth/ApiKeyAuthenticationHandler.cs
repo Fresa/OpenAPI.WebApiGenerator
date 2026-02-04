@@ -14,10 +14,15 @@ public class ApiKeyAuthenticationHandler(
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var apiKey = Options.GetApiKey(Context);
-        if (apiKey != "password1")
+        var (isValid, value) = Options.GetApiKey(Context);
+        if (!isValid)
         {
-            return Task.FromResult(AuthenticateResult.Fail("Invalid api key"));
+            return Task.FromResult(AuthenticateResult.Fail("invalid api key format"));
+        }
+        
+        if (value != "password1")
+        {
+            return Task.FromResult(AuthenticateResult.Fail("incorrect api key"));
         }
 
         var identity = new ClaimsIdentity(Scheme.Name);

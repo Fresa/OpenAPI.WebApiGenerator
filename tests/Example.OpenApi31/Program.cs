@@ -1,3 +1,4 @@
+using Corvus.Json;
 using Example.OpenApi.Auth;
 using Example.OpenApi31;
 using Microsoft.IdentityModel.Tokens;
@@ -20,7 +21,12 @@ builder.Services.AddAuthentication()
         options =>
         {
             options.GetApiKey = context =>
-                SecuritySchemes.SecretKey.GetParameter(context).GetString()!;
+            {
+                var parameter = SecuritySchemes.SecretKey.GetParameter(context);
+                return parameter.Validate(ValidationContext.ValidContext).IsValid
+                    ? (true, parameter.GetString()!)
+                    : (false, null);
+            };
         });
 
 builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());
