@@ -310,7 +310,7 @@ internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
     public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         // Anonymous
-        context.HttpContext.User ??= new(new ClaimsIdentity());;
+        context.HttpContext.User ??= new(new ClaimsIdentity());
         return next(context);
     }
 }
