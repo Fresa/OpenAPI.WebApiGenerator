@@ -345,8 +345,7 @@ internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilt
         var httpContext = context.HttpContext;
         var request = (Request) httpContext.Items[RequestItemKey]!;
 {{securitySchemeParameters
-    .Where(tuple => tuple.Value != null)
-    .Select(tuple => tuple.Value!)
+    .Select(tuple => tuple.Value)
     .Distinct()
     .AggregateToString(parameterGenerator =>
 $"""
@@ -441,7 +440,7 @@ $"""
         => _securitySchemes.First(pair => pair.Value == reference.Target).Key;
 
     private static string GetSecuritySchemeParameterKey(ParameterGenerator generator) =>
-        $"OpenAPI.WebApiGenerator.SecurityScheme.{generator.Location}.{generator.PropertyName}";
+        $"OpenAPI.WebApiGenerator.SecurityScheme.{generator.Location.ToPascalCase()}.{generator.PropertyName}";
 
     private Dictionary<OpenApiSecuritySchemeReference, ParameterGenerator> GetSecuritySchemeParameters(OpenApiOperation operation, ParameterGenerator[] parameters)
     {
