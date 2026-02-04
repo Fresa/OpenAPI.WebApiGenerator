@@ -108,6 +108,12 @@ $"""
 
 """ : "")}}{{(parameterFullyQualifiedTypeNames.Length == 1 ? 
 $$"""
+/// <summary>
+/// Get the security scheme parameter for the current operation.
+/// Make sure to validate the parameter before using it. 
+/// </summary>
+/// <param name="context">Http context</param>
+/// <returns>The security scheme parameter</returns>
 internal static {{parameterFullyQualifiedTypeNames.First()}} GetParameter(HttpContext context) =>
     ({{parameterFullyQualifiedTypeNames.First()}})context.Items["{{securitySchemeParameterKey}}"];
     
@@ -143,6 +149,13 @@ private static bool TryGet<T>(HttpContext context, out T? value) where T : struc
 }
 {{parameterFullyQualifiedTypeNames.AggregateToString(fullyQualifiedTypeName =>
 $"""
+/// <summary>
+/// Get the security scheme parameter for the current operation if it has defined a parameter specification corresponding to the type.
+/// Make sure to validate the parameter before using it. 
+/// </summary>
+/// <param name="context">Http context</param>
+/// <param name="value">The security scheme parameter</param>
+/// <returns>true if the typed security scheme parameter is found</returns>
 internal static bool TryGetParameter(HttpContext context, out {fullyQualifiedTypeName} value) => 
     TryGet(context, out value);
 """)}}
