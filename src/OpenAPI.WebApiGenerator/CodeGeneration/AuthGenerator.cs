@@ -106,7 +106,7 @@ $"""
 {GenerateConst(nameof(scheme.Name), scheme.Name)}
 {GenerateConst(nameof(scheme.In), scheme.In.GetDisplayName())}
 
-""" : "")}}{{(parameterFullyQualifiedTypeNames.Length == 1 ? 
+""" : "")}}{{(parameterFullyQualifiedTypeNames.Length == 1 && !hasNonDefinedParameters ?
 $$"""
 /// <summary>
 /// Get the security scheme parameter for the current operation.
