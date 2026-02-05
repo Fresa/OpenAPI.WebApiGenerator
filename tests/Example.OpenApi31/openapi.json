@@ -61,7 +61,10 @@
         },
         "security": [
           {"petstore_auth":  []},
-          {"secret_key":  []}
+          {"secret_key":  []},
+          {"basicAuth": []},
+          {"mutualTLS": []},
+          {"openIdConnect": []}
         ]
       },
       "delete": {
@@ -70,12 +73,7 @@
           "200": {
             "description": "Successfully deleted"
           }
-        },
-        "security": [
-          {"basicAuth": []},
-          {"mutualTLS": []},
-          {"openIdConnect": []}
-        ]
+        }
       },
       "parameters": [
         {
