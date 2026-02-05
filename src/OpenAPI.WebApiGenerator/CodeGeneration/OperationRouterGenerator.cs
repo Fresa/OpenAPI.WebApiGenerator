@@ -21,12 +21,14 @@ internal static class OperationRouter
     {{{operations.AggregateToString(operation => 
 $"""
         app.MapMethods({operation.Namespace}.Operation.PathTemplate, ["{operation.Operation.Key.Method}"], {operation.Namespace}.Operation.HandleAsync)
-            .AddEndpointFilter<{operation.Namespace}.Operation.BindRequestFilter>()
-{authGenerator.GetSecurityFilterNames(operation.Operation.Value).AggregateToString(name => 
+            .AddEndpointFilter<{operation.Namespace}.Operation.BindRequestFilter>(){
+                authGenerator.GetSecurityFilterNames(operation.Operation.Value).AggregateToString(name => 
 $"""
             .AddEndpointFilter<{operation.Namespace}.Operation.{name}>()
 """)};
+
 """)}}
+
         return app;
     }
     
