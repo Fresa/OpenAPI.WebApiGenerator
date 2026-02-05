@@ -13,7 +13,7 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     public async Task When_Updating_Foo_It_Should_Return_Updated_Foo()
     {
         using var client = app.CreateClient()
-            .WithOAuth2ImplicitFlowAuthentication();
+            .WithOAuth2ImplicitFlowAuthentication("update");
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
@@ -44,7 +44,7 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     public async Task Given_invalid_request_When_Updating_Foo_It_Should_Return_400()
     {
         using var client = app.CreateClient()
-            .WithOAuth2ImplicitFlowAuthentication();
+            .WithOAuth2ImplicitFlowAuthentication("update");
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/test"),
@@ -88,5 +88,27 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
             }
         }, CancellationToken);
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+    
+    [Fact]
+    public async Task Given_unauthorized_request_When_Updating_Foo_It_Should_Return_403()
+    {
+        using var client = app.CreateClient().WithOAuth2ImplicitFlowAuthentication();
+        var result = await client.SendAsync(new HttpRequestMessage()
+        {
+            RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
+            Method = new HttpMethod("PUT"),
+            Content = CreateJsonContent(
+                """
+                {
+                    "Name": "test"
+                }
+                """),
+            Headers =
+            {
+                { "Bar", "test" }
+            }
+        }, CancellationToken);
+        result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

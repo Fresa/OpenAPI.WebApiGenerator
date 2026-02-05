@@ -8,6 +8,7 @@ namespace OpenAPI.IntegrationTestHelpers.Auth;
 
 public sealed class OIDCAuthHttpHandler : HttpMessageHandler
 {
+    private static readonly SigningCredentials _privateKey;
     private const string Kid = "test";
     private static readonly RSAParameters PrivateRsaParameters;
     private static string OidcConfigurationContent { get; }
@@ -26,14 +27,13 @@ public sealed class OIDCAuthHttpHandler : HttpMessageHandler
             KeyId = Base64UrlEncoder.Encode(Kid)
         };
 
-        var privateKey = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256Signature);
+        _privateKey = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256Signature);
 
-        Jwt = GenerateJwtToken(privateKey);
         OidcConfigurationContent = CreateOidcConfigurationContent();
         JwksContent = CreateJwksContent();
     }
 
-    public static readonly string Jwt;
+    public static string GetJwt(params string[] scopes) => GenerateJwtToken(scopes);
     internal const string Issuer = "https://localhost/";
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ public sealed class OIDCAuthHttpHandler : HttpMessageHandler
         };
     }
 
-    private static string GenerateJwtToken(SigningCredentials privateKey)
+    private static string GenerateJwtToken(params string[] scopes)
     {
         var securityTokenDescriptor = new SecurityTokenDescriptor
         {
@@ -67,8 +67,11 @@ public sealed class OIDCAuthHttpHandler : HttpMessageHandler
             Subject = new ClaimsIdentity(),
             Expires = DateTime.UtcNow.AddHours(1),
             IssuedAt = DateTime.UtcNow,
-            SigningCredentials = privateKey,
-            Claims = new Dictionary<string, object>() { { "scope", "short" } }
+            SigningCredentials = _privateKey,
+            Claims = new Dictionary<string, object>
+            {
+                ["scope"] = string.Join(" ", scopes)
+            }
         };
 
         var jwtSecurityTokenHandler = new JwtSecurityTokenHandler();

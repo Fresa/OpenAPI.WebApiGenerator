@@ -4,10 +4,10 @@ namespace OpenAPI.IntegrationTestHelpers.Auth;
 
 public static class HttpClientAuthExtensions
 {
-    public static HttpClient WithOAuth2ImplicitFlowAuthentication(this HttpClient client)
+    public static HttpClient WithOAuth2ImplicitFlowAuthentication(this HttpClient client, params string[] scopes)
     {
         client.DefaultRequestHeaders.Authorization =
-            AuthenticationHeaderValue.Parse($"Bearer {OIDCAuthHttpHandler.Jwt}");
+            AuthenticationHeaderValue.Parse($"Bearer {OIDCAuthHttpHandler.GetJwt(scopes)}");
         return client;
     } 
     
