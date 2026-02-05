@@ -70,7 +70,12 @@
           "200": {
             "description": "Successfully deleted"
           }
-        }
+        },
+        "security": [
+          {"basicAuth": []},
+          {"mutualTLS": []},
+          {"openIdConnect": []}
+        ]
       },
       "parameters": [
         {
@@ -164,6 +169,17 @@
         "type": "apiKey",
         "in": "header",
         "name": "Bar"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "mutualTLS": {
+        "type": "mutualTLS"
+      },
+      "openIdConnect": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "https://example.com/.well-known/openid-configuration"
       }
     }
   }

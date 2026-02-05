@@ -1,6 +1,7 @@
 using Corvus.Json;
 using Example.OpenApi.Auth;
 using Example.OpenApi31;
+using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +18,7 @@ builder.Services.AddAuthentication()
         };
     })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
-        SecuritySchemes.SecretKeyKey, 
+        SecuritySchemes.SecretKeyKey,
         options =>
         {
             options.GetApiKey = context =>
@@ -27,7 +28,21 @@ builder.Services.AddAuthentication()
                     ? (true, parameter.GetString()!)
                     : (false, null);
             };
-        });
+        })
+    .AddScheme<BasicAuthenticationOptions, BasicAuthenticationHandler>(
+        SecuritySchemes.BasicAuthKey,
+        _ => { })
+    .AddCertificate(SecuritySchemes.MutualTLSKey, options =>
+    {
+        options.AllowedCertificateTypes = CertificateTypes.All;
+    })
+    .AddCookie()
+    .AddOpenIdConnect(SecuritySchemes.OpenIdConnectKey, options =>
+    {
+        options.Authority = SecuritySchemes.OpenIdConnect.OpenIdConnectUrl;
+        options.ClientId = "example-client";
+        options.SignInScheme = "Cookies";
+    });
 
 builder.AddOperations(builder.Configuration.Get<WebApiConfiguration>());
 var app = builder.Build();

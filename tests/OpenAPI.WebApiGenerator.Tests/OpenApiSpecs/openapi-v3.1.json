@@ -196,6 +196,7 @@
         "operationId": "uploadPetImage",
         "summary": "Upload pet image",
         "tags": ["pets"],
+        "security": [{"mutualTLS": []}],
         "parameters": [
           {
             "name": "petId",
@@ -355,6 +356,7 @@
         "operationId": "getUser",
         "summary": "Get user by username",
         "tags": ["users"],
+        "security": [{"openIdConnect": ["profile", "email"]}],
         "responses": {
           "200": {"$ref": "#/components/responses/UserResponse"},
           "404": {"$ref": "#/components/responses/NotFound"}
@@ -401,6 +403,7 @@
         "operationId": "loginUser",
         "summary": "User login",
         "tags": ["users"],
+        "security": [{"basicAuth": []}],
         "requestBody": {
           "required": true,
           "content": {
@@ -850,6 +853,10 @@
       }
     },
     "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
@@ -859,6 +866,13 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Api-Key"
+      },
+      "mutualTLS": {
+        "type": "mutualTLS"
+      },
+      "openIdConnect": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "https://example.com/.well-known/openid-configuration"
       },
       "oauth2": {
         "type": "oauth2",

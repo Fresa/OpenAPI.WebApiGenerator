@@ -497,6 +497,7 @@
         "operationId": "loginUser",
         "summary": "User login",
         "tags": ["users"],
+        "security": [{"basicAuth": []}],
         "parameters": [
           {
             "name": "body",
@@ -784,6 +785,9 @@
     }
   },
   "securityDefinitions": {
+    "basicAuth": {
+      "type": "basic"
+    },
     "bearerAuth": {
       "type": "apiKey",
       "name": "Authorization",
