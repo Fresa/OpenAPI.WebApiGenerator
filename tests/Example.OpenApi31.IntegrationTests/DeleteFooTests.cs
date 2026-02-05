@@ -1,5 +1,6 @@
 using System.Net;
 using AwesomeAssertions;
+using OpenAPI.IntegrationTestHelpers.Auth;
 
 namespace Example.OpenApi31.IntegrationTests;
 
@@ -8,7 +9,7 @@ public class DeleteFooTests(FooApplicationFactory app) : FooTestSpecification, I
     [Fact]
     public async Task When_Deleting_Foo_It_Should_Return_Ok()
     {
-        using var client = app.CreateClient();
+        using var client = app.CreateClient().WithValidBasicAuthCredentials();
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/1"),

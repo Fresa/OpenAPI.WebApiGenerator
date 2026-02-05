@@ -67,4 +67,26 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
         responseContent.GetValue<string>("#/0/error").Should().NotBeNullOrEmpty();
         responseContent.GetValue<string>("#/0/name").Should().Be("https://localhost/api.json#/components/parameters/FooId/schema/type");
     }
+    
+    [Fact]
+    public async Task Given_unauthenticated_request_When_Updating_Foo_It_Should_Return_401()
+    {
+        using var client = app.CreateClient();
+        var result = await client.SendAsync(new HttpRequestMessage()
+        {
+            RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
+            Method = new HttpMethod("PUT"),
+            Content = CreateJsonContent(
+                """
+                {
+                    "Name": "test"
+                }
+                """),
+            Headers =
+            {
+                { "Bar", "test" }
+            }
+        }, CancellationToken);
+        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

@@ -10,4 +10,11 @@ public static class HttpClientAuthExtensions
             AuthenticationHeaderValue.Parse($"Bearer {OIDCAuthHttpHandler.Jwt}");
         return client;
     } 
+    
+    public static HttpClient WithValidBasicAuthCredentials(this HttpClient client)
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Basic", Convert.ToBase64String("admin:password"u8.ToArray()));
+        return client;
+    }
 }

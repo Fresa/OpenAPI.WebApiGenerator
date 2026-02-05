@@ -232,8 +232,8 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
         
         var principal = httpContext.User ??= new();
         
-        var passed = true;
-        var passedAuthentication = true;
+        var passed = Requirements.Count == 0;
+        var passedAuthentication = passed;
         // Only one of the security requirement objects need to be satisfied to authorize a request.
         foreach (var securityRequirement in Requirements)
         {
