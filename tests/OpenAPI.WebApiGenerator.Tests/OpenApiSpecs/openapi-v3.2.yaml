@@ -26,6 +26,7 @@ paths:
       summary: List all pets
       tags:
         - pets
+      security: []
       parameters:
         - $ref: "#/components/parameters/LimitParam"
         - $ref: "#/components/parameters/OffsetParam"
@@ -75,6 +76,9 @@ paths:
       summary: Create a pet
       tags:
         - pets
+      security:
+        - bearerAuth: []
+        - apiKey: []
       requestBody:
         $ref: "#/components/requestBodies/NewPetBody"
       responses:
@@ -131,6 +135,9 @@ paths:
       summary: Delete a pet
       tags:
         - pets
+      security:
+        - bearerAuth: []
+          apiKey: []
       parameters:
         - name: X-Api-Key
           in: header
@@ -184,6 +191,9 @@ paths:
       summary: Place an order
       tags:
         - store
+      security:
+        - oauth2:
+            - write:pets
       requestBody:
         $ref: "#/components/requestBodies/OrderBody"
       responses:
@@ -231,6 +241,10 @@ paths:
       summary: Get store inventory
       tags:
         - store
+      security:
+        - oauth2:
+            - read:pets
+        - apiKey: []
       responses:
         "200":
           description: Inventory counts by status
@@ -648,5 +662,14 @@ components:
       type: apiKey
       in: header
       name: X-Api-Key
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes:
+            read:pets: Read access to pets
+            write:pets: Write access to pets
 security:
   - bearerAuth: []

@@ -133,6 +133,12 @@ These handlers will not be generated in subsequent compilations as the generator
     <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
 </Target>
 ```
+
+## Authentication and Authorization
+OpenAPI defines [security scheme objects](https://spec.openapis.org/oas/latest#security-scheme-object) for authentication and authorization mechanisms. The generator implement endpoint filters that corresponds to the security declaration of each operation. Do _not_ call `UseAuthentication` or similar when configuring the application.
+
+The security schemes for the [security requirements](https://spec.openapis.org/oas/latest#security-requirement-object) declared by the operations must be implemented. Use the familiar `AddAuthentication` builder method to register each scheme. Security scheme object configurations are generated to the `SecuritySchemes` class and can be used to configure the scheme implementations.
+
 ## Dependency Injection
 Operations are registered as scoped dependencies. Any dependencies can be injected into them as usual via the app builder's `IServiceCollection`. 
 

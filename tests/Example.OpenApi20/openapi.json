@@ -55,7 +55,12 @@
           "400": {
             "$ref": "#/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {"petstore_auth": ["update"]},
+          {"secret_key": []},
+          {"basicAuth": []}
+        ]
       },
       "delete": {
         "operationId": "Delete_Foo",
@@ -125,6 +130,25 @@
           "required": ["name", "error"]
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "petstore_auth": {
+      "type": "oauth2",
+      "flow": "implicit",
+      "authorizationUrl": "https://localhost/api/oauth/dialog",
+      "scopes": {
+        "write:pets": "modify pets in your account",
+        "read:pets": "read your pets"
+      }
+    },
+    "secret_key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Bar"
+    },
+    "basicAuth": {
+      "type": "basic"
     }
   }
 }

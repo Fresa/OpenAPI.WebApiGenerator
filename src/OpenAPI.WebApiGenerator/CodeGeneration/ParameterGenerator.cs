@@ -11,7 +11,7 @@ internal sealed class ParameterGenerator(
     IOpenApiParameter parameter,
     HttpRequestExtensionsGenerator httpRequestExtensionsGenerator)
 {
-    private string FullyQualifiedTypeName =>
+    internal string FullyQualifiedTypeName =>
         $"{FullyQualifiedTypeDeclarationIdentifier}{(parameter.Required ? "" : "?")}";
 
     private string FullyQualifiedTypeDeclarationIdentifier => typeDeclaration.FullyQualifiedDotnetTypeName();
@@ -34,4 +34,8 @@ internal sealed class ParameterGenerator(
                 FullyQualifiedTypeDeclarationIdentifier,
                 parameter)
             .Indent(4).TrimStart()}{(IsParameterRequired ? "" : ".AsOptional()")},";
+
+    internal bool IsSecuritySchemeParameter(IOpenApiSecurityScheme scheme) =>
+        scheme.In == parameter.In &&
+        scheme.Name == parameter.Name;
 }

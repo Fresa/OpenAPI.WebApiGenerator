@@ -5,23 +5,34 @@ using System.Net.Http;
 using Corvus.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class OperationGenerator(Compilation compilation,
     JsonValidationExceptionGenerator jsonValidationExceptionGenerator,
+    AuthGenerator authGenerator,
     Options options)
 {
     private readonly List<(string Namespace, string Path)> _missingHandlers = [];
 
-    internal SourceCode Generate(string @namespace, string path, string pathTemplate, HttpMethod method)
+    internal SourceCode Generate(string @namespace,
+        string path,
+        string pathTemplate,
+        (HttpMethod Method, OpenApiOperation Operation) operation,
+        ParameterGenerator[] parameters)
     {
         var endpointSource =
 $$"""
+#nullable enable
 using Corvus.Json;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Immutable;
+using System.Security.Claims;
 using System.Threading;
 
 namespace {{@namespace}};
@@ -29,8 +40,10 @@ namespace {{@namespace}};
 internal partial class Operation
 {
     internal const string PathTemplate = "{{pathTemplate}}";
-    internal const string Method = "{{method.Method}}";
+    internal const string Method = "{{operation.Method}}";
 
+    private const string RequestItemKey = "OpenAPI.WebApiGenerator.Request";
+    
     /// <summary>
     /// Set validation level for requests and responses
     /// </summary>
@@ -51,6 +64,38 @@ internal partial class Operation
     private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+{{authGenerator.GenerateAuthFilters(operation.Operation, parameters, out var requiresAuth).Indent(4)}}
+{{(requiresAuth ? 
+"""
+
+    /// <summary>
+    /// Set a custom delegate to handle unauthorized responses.
+    /// </summary>
+    private Func<Response> HandleUnauthorized { get; } = () => new Response.Unauthorized();
+    
+    /// <summary>
+    /// Set a custom delegate to handle forbidden responses.
+    /// </summary>
+    private Func<Response> HandleForbidden { get; } = () => new Response.Forbidden();
+    
+""" : "")}}
+    internal sealed class BindRequestFilter(Operation operation) : IEndpointFilter
+    {
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+        {
+            var httpContext = context.HttpContext;
+            var cancellationToken = httpContext.RequestAborted;
+            
+            var request = await Request.BindAsync(httpContext, cancellationToken)
+                .ConfigureAwait(false);
+
+            httpContext.Items.Add(RequestItemKey, request);
+            
+            return await next(context)
+                .ConfigureAwait(false);
+        }
+    }
+
     /// <summary>
     /// Handle a operation.
     /// <exception cref="JsonValidationException"></exception>
@@ -61,8 +106,7 @@ internal partial class Operation
         [FromServices] WebApiConfiguration configuration, 
         CancellationToken cancellationToken)
     {
-        var request = await Request.BindAsync(context, cancellationToken)
-            .ConfigureAwait(false);
+        var request = (Request) context.Items[RequestItemKey]!;
         
         var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
@@ -74,18 +118,49 @@ internal partial class Operation
         
         var response = await operation.HandleAsync(request, cancellationToken)
             .ConfigureAwait(false);
-        if (operation.ValidateResponse)
+        operation.Validate(response, configuration)
+            .WriteTo(context.Response);
+    }
+    
+    internal Response Validate(Response response, WebApiConfiguration configuration)
+    {
+        if (!ValidateResponse)
+            return response;
+        
+        var validationContext = response.Validate(ValidationLevel);
+        if (validationContext.IsValid)
+            return response;
+        
+        var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
+        {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
+    }
+}{{(requiresAuth ? 
+"""
+
+internal abstract partial class Response
+{
+    internal sealed class Unauthorized : Response
+    {
+        internal override void WriteTo(HttpResponse httpResponse)
         {
-            validationContext = response.Validate(operation.ValidationLevel);
-            if (!validationContext.IsValid)
-            {
-                var validationResult = validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri);
-                {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Response is not valid", "validationResult")}};
-            }
+            httpResponse.StatusCode = 401;
         }
-        response.WriteTo(context.Response);
+
+        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
+    }
+
+    internal sealed class Forbidden : Response
+    {
+        internal override void WriteTo(HttpResponse httpResponse)
+        {
+            httpResponse.StatusCode = 403;
+        }
+
+        internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
     }
 }
+""" : "")}}
+#nullable restore
 """;
         
         var hasImplementedHandleMethod = compilation.GetSymbolsWithName("Operation", SymbolFilter.Type)

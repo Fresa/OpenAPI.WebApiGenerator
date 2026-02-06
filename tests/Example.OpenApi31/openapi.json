@@ -58,7 +58,14 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {"petstore_auth":  ["update"]},
+          {"secret_key":  []},
+          {"basicAuth": []},
+          {"mutualTLS": []},
+          {"openIdConnect": []}
+        ]
       },
       "delete": {
         "operationId": "Delete_Foo",
@@ -141,6 +148,36 @@
             }
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "petstore_auth": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "https://localhost/api/oauth/dialog",
+            "scopes": {
+              "write:pets": "modify pets in your account",
+              "read:pets": "read your pets"
+            }
+          }
+        }
+      },
+      "secret_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Bar"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "mutualTLS": {
+        "type": "mutualTLS"
+      },
+      "openIdConnect": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "https://example.com/.well-known/openid-configuration"
       }
     }
   }

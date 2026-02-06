@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using OpenAPI.WebApiGenerator.Extensions;
 using OpenAPI.WebApiGenerator.OpenApi;
@@ -66,7 +68,12 @@ public sealed class ApiGenerator : IIncrementalGenerator
         var jsonValidationExceptionGenerator = new JsonValidationExceptionGenerator(rootNamespace);
         jsonValidationExceptionGenerator.GenerateJsonValidationExceptionClass().AddTo(context);
 
-        var endpointGenerator = new OperationGenerator(compilation, jsonValidationExceptionGenerator, options);
+        var authGenerator = new AuthGenerator(openApi);
+        var endpointGenerator = new OperationGenerator(
+            compilation, 
+            jsonValidationExceptionGenerator,
+            authGenerator,
+            options);
 
         var httpRequestExtensionsGenerator = new HttpRequestExtensionsGenerator(
             openApiVersion,
@@ -77,13 +84,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
             openApiVersion);
         httpResponseExtensionsGenerator.GenerateHttpResponseExtensionsClass().AddTo(context);
 
-        var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace);
+        var apiConfigurationGenerator = new ApiConfigurationGenerator(rootNamespace, authGenerator);
         apiConfigurationGenerator.GenerateClass().AddTo(context);
 
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
         validationExtensionsGenerator.GenerateClass().AddTo(context);
         
-        var operations = new List<(string Namespace, HttpMethod HttpMethod)>();
+        var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();
+        var securityParameterGenerators = new ConcurrentDictionary<IOpenApiSecurityScheme, List<ParameterGenerator>>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -106,7 +114,6 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var operationMetadata = TypeMetadata.From(openApiOperationVisitor.Pointer);
                 var operationDirectory = operationMetadata.Path;
                 var operationNamespace = $"{rootNamespace}.{operationMetadata.Namespace}.{operationMetadata.Name}";
-                var operationMethod = openApiOperation.Key;
                 var operation = openApiOperation.Value;
                 var operationParameterGenerators = new Dictionary<string, ParameterGenerator>(pathParameterGenerators);
 
@@ -193,12 +200,13 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         operationDirectory);
                 responseSourceCode.AddTo(context);
 
-                operations.Add((operationNamespace, operationMethod));
+                operations.Add((operationNamespace, openApiOperation));
                 var endpointSource = endpointGenerator
                     .Generate(operationNamespace,
                         operationDirectory,
                         pathExpression,
-                        operationMethod);
+                        (openApiOperation.Key, openApiOperation.Value),
+                        operationParameterGenerators.Values.ToArray());
                 endpointSource
                     .AddTo(context);
             }
@@ -213,7 +221,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
             }
         }
 
-        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace);
+        authGenerator.GenerateSecuritySchemeClass(rootNamespace)?.AddTo(context);
+        authGenerator.GenerateSecuritySchemeOptionsClass(rootNamespace)?.AddTo(context);
+        authGenerator.GenerateSecurityRequirementsFilter(rootNamespace)?.AddTo(context);
+        var operationRouterGenerator = new OperationRouterGenerator(rootNamespace, authGenerator);
         operationRouterGenerator.ForMinimalApi(operations).AddTo(context);
     }
  

@@ -26,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\OpenAPI.IntegrationTestHelpers\OpenAPI.IntegrationTestHelpers.csproj" />
       <ProjectReference Include="..\Example.OpenApi30\Example.OpenApi30.csproj" />
     </ItemGroup>
 

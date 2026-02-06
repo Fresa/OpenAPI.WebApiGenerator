@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Example.OpenApi31.IntegrationTests.Http;
 using Example.OpenApi31.IntegrationTests.Json;
+using OpenAPI.IntegrationTestHelpers.Auth;
 
 namespace Example.OpenApi31.IntegrationTests;
 
@@ -11,7 +12,8 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     [Fact]
     public async Task When_Updating_Foo_It_Should_Return_Updated_Foo()
     {
-        using var client = app.CreateClient();
+        using var client = app.CreateClient()
+            .WithOAuth2ImplicitFlowAuthentication("update");
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
@@ -41,7 +43,8 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
     [Fact]
     public async Task Given_invalid_request_When_Updating_Foo_It_Should_Return_400()
     {
-        using var client = app.CreateClient();
+        using var client = app.CreateClient()
+            .WithOAuth2ImplicitFlowAuthentication("update");
         var result = await client.SendAsync(new HttpRequestMessage()
         {
             RequestUri = new Uri(client.BaseAddress!, "/foo/test"),
@@ -63,5 +66,49 @@ public class UpdateFooTests(FooApplicationFactory app) : FooTestSpecification, I
         responseContent.AsArray().Should().HaveCount(1);
         responseContent.GetValue<string>("#/0/error").Should().NotBeNullOrEmpty();
         responseContent.GetValue<string>("#/0/name").Should().Be("https://localhost/api.json#/components/parameters/FooId/schema/type");
+    }
+    
+    [Fact]
+    public async Task Given_unauthenticated_request_When_Updating_Foo_It_Should_Return_401()
+    {
+        using var client = app.CreateClient();
+        var result = await client.SendAsync(new HttpRequestMessage()
+        {
+            RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
+            Method = new HttpMethod("PUT"),
+            Content = CreateJsonContent(
+                """
+                {
+                    "Name": "test"
+                }
+                """),
+            Headers =
+            {
+                { "Bar", "test" }
+            }
+        }, CancellationToken);
+        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+    
+    [Fact]
+    public async Task Given_unauthorized_request_When_Updating_Foo_It_Should_Return_403()
+    {
+        using var client = app.CreateClient().WithOAuth2ImplicitFlowAuthentication();
+        var result = await client.SendAsync(new HttpRequestMessage()
+        {
+            RequestUri = new Uri(client.BaseAddress!, "/foo/1"),
+            Method = new HttpMethod("PUT"),
+            Content = CreateJsonContent(
+                """
+                {
+                    "Name": "test"
+                }
+                """),
+            Headers =
+            {
+                { "Bar", "test" }
+            }
+        }, CancellationToken);
+        result.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

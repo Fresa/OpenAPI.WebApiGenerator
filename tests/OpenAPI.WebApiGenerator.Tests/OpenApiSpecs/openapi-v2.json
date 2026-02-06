@@ -28,6 +28,7 @@
         "operationId": "listPets",
         "summary": "List all pets",
         "tags": ["pets"],
+        "security": [],
         "parameters": [
           {
             "name": "limit",
@@ -116,6 +117,7 @@
         "operationId": "createPet",
         "summary": "Create a pet",
         "tags": ["pets"],
+        "security": [{"bearerAuth": []}, {"apiKey": []}],
         "parameters": [
           {
             "name": "body",
@@ -214,6 +216,7 @@
         "operationId": "deletePet",
         "summary": "Delete a pet",
         "tags": ["pets"],
+        "security": [{"bearerAuth": [], "apiKey": []}],
         "parameters": [
           {
             "name": "X-Api-Key",
@@ -281,6 +284,7 @@
         "operationId": "placeOrder",
         "summary": "Place an order",
         "tags": ["store"],
+        "security": [{"oauth2": ["write:pets"]}],
         "parameters": [
           {
             "name": "body",
@@ -364,6 +368,7 @@
         "operationId": "getInventory",
         "summary": "Get store inventory",
         "tags": ["store"],
+        "security": [{"oauth2": ["read:pets"]}, {"apiKey": []}],
         "responses": {
           "200": {
             "description": "Inventory counts by status",
@@ -492,6 +497,7 @@
         "operationId": "loginUser",
         "summary": "User login",
         "tags": ["users"],
+        "security": [{"basicAuth": []}],
         "parameters": [
           {
             "name": "body",
@@ -779,6 +785,9 @@
     }
   },
   "securityDefinitions": {
+    "basicAuth": {
+      "type": "basic"
+    },
     "bearerAuth": {
       "type": "apiKey",
       "name": "Authorization",
@@ -788,6 +797,16 @@
       "type": "apiKey",
       "in": "header",
       "name": "X-Api-Key"
+    },
+    "oauth2": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://example.com/oauth/authorize",
+      "tokenUrl": "https://example.com/oauth/token",
+      "scopes": {
+        "read:pets": "Read access to pets",
+        "write:pets": "Write access to pets"
+      }
     }
   },
   "security": [

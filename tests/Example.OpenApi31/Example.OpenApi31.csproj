@@ -9,10 +9,14 @@
 
     <ItemGroup>
         <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.4.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="9.0.12" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.12" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.12" />
         <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Example.OpenApi\Example.OpenApi.csproj" />
         <ProjectReference Include="..\..\src\OpenAPI.WebApiGenerator\OpenAPI.WebApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
     <ItemGroup>
