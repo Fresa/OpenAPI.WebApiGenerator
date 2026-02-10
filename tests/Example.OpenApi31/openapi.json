@@ -9,6 +9,8 @@
     "/foo/{FooId}": {
       "put": {
         "operationId": "Update_Foo",
+        "summary": "Update a foo resource",
+        "description": "Updates an existing foo resource by its ID.\n\n## Request\n\nThe request body must contain the **foo properties** to update.\n\n## Notes\n\n- The `FooId` must reference an existing resource\n- Partial updates are *not* supported",
         "parameters": [
           {
             "$ref": "#/components/parameters/Bar"
