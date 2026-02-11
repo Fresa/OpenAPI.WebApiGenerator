@@ -220,6 +220,9 @@ using System.Security.Claims;
 
 namespace {{@namespace}};
 
+/// <summary>
+/// Base class for handling security requirements for an operation
+/// </summary>
 internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration configuration) : IEndpointFilter
 {
     protected abstract SecurityRequirements Requirements { get; }
@@ -228,6 +231,7 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
     protected abstract void HandleForbidden(HttpResponse response);
     protected abstract void HandleUnauthorized(HttpResponse response);
     
+    /// <inheritdoc/>
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var httpContext = context.HttpContext;
@@ -300,7 +304,15 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
         return scopes.All(scope => foundScopes.Contains(scope));
     }
     
+    /// <summary>
+    /// A declaration of which security mechanisms can be used for an operation. 
+    /// The list of values includes alternative Security Requirement Objects that can be used. Only one of the Security Requirement Objects need to be satisfied to authorize a request. To make security optional, an empty security requirement can be included in the list.
+    /// </summary>
     internal class SecurityRequirements : List<SecurityRequirement>, IAuthorizationRequirement;
+    
+    /// <summary>
+    /// Lists the required security schemes to execute an operation.
+    /// </summary>
     internal class SecurityRequirement : Dictionary<string, string[]>;
 }
 #nullable restore
@@ -321,6 +333,9 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
             _requestFilters.Add(operation, [securityRequirementsFilterClassName]);
             return 
 $$"""
+/// <summary>
+/// Filter for handling security requirements
+/// </summary>
 internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
 {
     public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -341,6 +356,9 @@ internal sealed class {{securityRequirementsFilterClassName}} : IEndpointFilter
                 : [securityRequirementsFilterClassName]);
         return (hasSecuritySchemeParameters ? 
 $$"""
+/// <summary>
+/// Filter for extracting security scheme parameters
+/// </summary>
 internal sealed class {{securitySchemeParameterFilterClassName}} : IEndpointFilter
 {
     public ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -361,6 +379,9 @@ $"""
 """ : string.Empty) +  
 $$"""
 
+/// <summary>
+/// Filter for handling security requirements
+/// </summary>
 internal sealed class {{securityRequirementsFilterClassName}}(Operation operation, WebApiConfiguration configuration) : BaseSecurityRequirementsFilter(configuration)
 {
     protected override SecurityRequirements Requirements { get; } = new()
@@ -392,12 +413,21 @@ $$"""
 #nullable enable
 namespace {{@namespace}};
 
+/// <summary>
+/// Options for security schemes
+/// </summary>
 internal sealed class SecuritySchemeOptions 
 {{{_securitySchemes.AggregateToString(pair => 
     $$"""
+    {{pair.Value.Description.AsComment("summary", "para")}}
     public SecuritySchemeOption {{pair.Key.ToPascalCase()}} { get; init; } = new();
     """).Indent(4)}}
 
+    /// <summary>
+    /// Get scope options
+    /// </summary>
+    /// <param name="scheme">Name of security scheme</param>
+    /// <returns>Scope options for the security scheme</returns>
     internal ScopeOptions GetScopeOptions(string scheme) =>
         scheme switch 
         {{{_securitySchemes.AggregateToString(pair =>
@@ -407,8 +437,14 @@ $"""
             _ => throw new InvalidOperationException($"Scheme {scheme} is unknown")
         };
     
+    /// <summary>
+    /// Security scheme option
+    /// </summary>
     internal sealed class SecuritySchemeOption
     {
+        /// <summary>
+        /// Scope options
+        /// </summary>
         public ScopeOptions Scope {get; init; } = new() 
         {
             Claim = "scope",
@@ -416,11 +452,24 @@ $"""
         };
     }
     
+    /// <summary>
+    /// Scope options
+    /// </summary>
     internal sealed class ScopeOptions                                                                   
     {
+        /// <summary>
+        /// Name of the claim
+        /// </summary>
         public required string Claim { get; init; }
+        
+        /// <summary>
+        /// Claim format
+        /// </summary>
         public required ClaimFormat Format { get; init; }
 
+        /// <summary>
+        /// Claim formats
+        /// </summary>
         internal enum ClaimFormat 
         {
             SpaceDelimited,
