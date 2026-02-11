@@ -15,8 +15,16 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace {{@namespace}};
 
+/// <summary>
+///  Configure routes for OpenAPI operations  
+/// </summary>
 internal static class OperationRouter
 {
+    /// <summary>
+    /// Maps OpenAPI operations 
+    /// </summary>
+    /// <param name="app">Web application to map the operations to</param>
+    /// <returns>The web application</returns>
     internal static WebApplication MapOperations(this WebApplication app)
     {{{operations.AggregateToString(operation => 
 $"""
@@ -32,6 +40,12 @@ $"""
         return app;
     }
     
+    /// <summary>
+    /// Adds OpenAPI operations to DI
+    /// </summary>
+    /// <param name="builder">Web application builder to add the operations to</param>
+    /// <param name="configuration">Web api configuration</param>
+    /// <returns>The web application builder</returns>
     internal static WebApplicationBuilder AddOperations(this WebApplicationBuilder builder, WebApiConfiguration? configuration = null)
     {{{operations.AggregateToString(operation => 
 $"""
