@@ -141,6 +141,9 @@ internal partial class Operation
     /// Thrown when validation fails.
     /// </exception>
     /// </summary>
+    /// <param name="response">The response to validate</param>
+    /// <param name="configuration">Web api configuration</param>
+    /// <returns>The validated response</returns>
     internal Response Validate(Response response, WebApiConfiguration configuration)
     {
         if (!ValidateResponse)

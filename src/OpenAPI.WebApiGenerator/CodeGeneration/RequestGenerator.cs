@@ -38,9 +38,18 @@ internal partial class Request
 {
     internal required HttpContext HttpContext { get; init; }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group => 
 $$"""
+    /// <summary>
+    /// {{group.Key}} parameters
+    /// </summary>
     internal required {{group.Key}}Parameters {{group.Key}} { get; init; }  
 """)}}
 {{bodyGenerator.GenerateRequestProperty("Body").Indent(4)}}
+    /// <summary>
+    /// Bind request object from http request
+    /// </summary>
+    /// <param name="context">Http context to bind from</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>An awaitable task for the request object</returns>
     public static {{(isAsync ? "async " : "")}}Task<Request> BindAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var httpRequest = context.Request;
@@ -59,6 +68,11 @@ $$"""
         return {{(isAsync ? "request" : "Task.FromResult(request)")}};
     }
     
+    /// <summary>
+    /// Validate the request
+    /// </summary>
+    /// <param name="validationLevel">Validation level</param>
+    /// <returns>The validation result</returns>
     internal ValidationContext Validate(ValidationLevel validationLevel)
     {
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();{{
@@ -71,6 +85,9 @@ $$"""
         return validationContext;
     }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group =>
 $$"""
+    /// <summary>
+    /// {{group.Key}} parameters
+    /// </summary>
     internal sealed class {{group.Key}}Parameters
     {{{group.AggregateToString(generator => 
         generator.GenerateRequestProperty()).Indent(8)}}

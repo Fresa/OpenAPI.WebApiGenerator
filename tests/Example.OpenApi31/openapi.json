@@ -18,6 +18,7 @@
           {
             "name": "Fee",
             "in": "query",
+            "description": "Fee values to associate with the update.",
             "schema": {
               "type": "array",
               "items": {
@@ -101,6 +102,7 @@
       "Bar": {
         "name": "Bar",
         "in": "header",
+        "description": "Bar context for the request.",
         "schema": {
           "type": "string"
         },
@@ -109,6 +111,7 @@
       "FooId": {
         "name": "FooId",
         "in": "path",
+        "description": "The unique identifier of the foo resource.",
         "schema": {
           "type": "integer"
         },

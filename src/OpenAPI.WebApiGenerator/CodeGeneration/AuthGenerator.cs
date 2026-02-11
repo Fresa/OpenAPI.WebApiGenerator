@@ -37,6 +37,9 @@ using System.Collections.Immutable;
 
 namespace {{@namespace}};
 
+/// <summary>
+/// Defines security schemes that can be used by the operations
+/// </summary>
 internal static class SecuritySchemes 
 {{{_securitySchemes.AggregateToString(pair =>
     {
