@@ -156,10 +156,9 @@ public sealed class ApiGenerator : IIncrementalGenerator
                 var responses = operation.Responses ??
                                 throw new InvalidOperationException(
                                     $"No responses defined for operation at {openApiOperationVisitor.Pointer}");
-                var responseBodyGenerators = responses.Select(pair =>
+                var responseBodyGenerators = responses.Select(content =>
                 {
-                    var response = pair.Value;
-                    var responseStatusCodePattern = pair.Key.ToPascalCase();
+                    var response = content.Value;
                     var openApiResponseVisitor = openApiOperationVisitor.Visit(response);
                     
                     var responseContent =
@@ -186,7 +185,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     }).ToList() ?? [];
 
                     return new ResponseContentGenerator(
-                        responseStatusCodePattern,
+                        content,
                         responseBodyGenerators,
                         responseHeaderGenerators);
                 }).ToList();

@@ -11,6 +11,10 @@ internal sealed class ResponseBodyContentGenerator(string contentType, TypeDecla
     internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     public string GenerateConstructor(string className, string contentTypeFieldName) =>
 $$"""
+/// <summary>
+/// Construct content for {{contentType}}
+/// </summary>
+/// <param name="{{_contentVariableName}}">Content</param>
 public {{className}}({{typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}})
 {
     {{ContentPropertyName}} = {{_contentVariableName}};
@@ -22,6 +26,9 @@ public {{className}}({{typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_conte
     {
         return
 $$"""
+/// <summary>
+/// Content for {{contentType}}
+/// </summary>
 internal {{typeDeclaration.FullyQualifiedDotnetTypeName()}}? {{ContentPropertyName}} { get; }          
 """; 
     }
