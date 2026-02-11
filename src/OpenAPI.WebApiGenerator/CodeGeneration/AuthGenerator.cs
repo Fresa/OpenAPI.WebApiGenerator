@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -47,10 +46,10 @@ internal static class SecuritySchemes
         return scheme.Type == null ? string.Empty : 
 $$"""
     internal const string {{className}}Key = "{{pair.Key}}";
+{{scheme.Description.AsComment("summary", "para").Indent(4)}}
     internal static class {{className}}
     {{{new []
     {
-        GenerateConst(nameof(scheme.Description), scheme.Description), 
         GenerateConst(nameof(scheme.Type), scheme.Type?.GetDisplayName()),
         GenerateConst(nameof(scheme.Scheme), scheme.Scheme),
         GenerateConst(nameof(scheme.BearerFormat), scheme.BearerFormat),
@@ -59,7 +58,7 @@ $$"""
         $"internal const bool {nameof(scheme.Deprecated)} = {scheme.Deprecated.ToString().ToLowerInvariant()};",
         GenerateFlowsObject(nameof(scheme.Flows), scheme.Flows)
     }.RemoveEmptyLines().AggregateToString().Indent(8)}}
-    }                                            
+    }
 """;
     })}}
 }
