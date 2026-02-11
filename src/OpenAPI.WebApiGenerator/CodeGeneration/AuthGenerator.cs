@@ -223,6 +223,7 @@ namespace {{@namespace}};
 internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration configuration) : IEndpointFilter
 {
     protected abstract SecurityRequirements Requirements { get; }
+    protected WebApiConfiguration Configuration { get; } = configuration;
 
     protected abstract void HandleForbidden(HttpResponse response);
     protected abstract void HandleUnauthorized(HttpResponse response);
@@ -374,8 +375,8 @@ $$"""
 """)))}}
     };
     
-    protected override void HandleUnauthorized(HttpResponse response) => operation.Validate(operation.HandleUnauthorized(), configuration).WriteTo(response);
-    protected override void HandleForbidden(HttpResponse response) => operation.Validate(operation.HandleForbidden(), configuration).WriteTo(response);
+    protected override void HandleUnauthorized(HttpResponse response) => operation.Validate(operation.HandleUnauthorized(), Configuration).WriteTo(response);
+    protected override void HandleForbidden(HttpResponse response) => operation.Validate(operation.HandleForbidden(), Configuration).WriteTo(response);
 }
 """;
     }
