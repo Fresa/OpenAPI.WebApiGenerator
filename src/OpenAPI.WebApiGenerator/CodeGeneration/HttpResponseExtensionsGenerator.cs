@@ -31,12 +31,23 @@ internal sealed class HttpResponseExtensionsGenerator(
         using JsonObject = System.Text.Json.Nodes.JsonObject;
         
         namespace {{{@namespace}}};
-
+        
+        /// <summary>
+        /// Extension methods for http response objects
+        /// </summary>
         internal static class {{{HttpResponseExtensionsClassName}}}
         {
             private static readonly ConcurrentDictionary<string, IParameterValueParser> ParserCache = new();
             private const string ParameterValueParserVersion = "{{{openApiSpecVersion.GetParameterVersion()}}}";
             
+            /// <summary>
+            /// Write header to a response object
+            /// </summary>
+            /// <param name="response">The response object to write the header to</param>
+            /// <param name="headerSpecificationAsJson">OpenAPI specification for the header</param>
+            /// <param name="name">The header name</param>
+            /// <param name="value">The header value</param>
+            /// <typeparam name="TValue">The type of the header</typeparam>
             internal static void WriteResponseHeader<TValue>(this HttpResponse response,
                 string headerSpecificationAsJson, 
                 string name, 
@@ -55,6 +66,12 @@ internal sealed class HttpResponseExtensionsGenerator(
                 response.Headers[name] = serializedValue;
             }
         
+            /// <summary>
+            /// Write body to a response object
+            /// </summary>
+            /// <param name="response">The response object to write the body to</param>
+            /// <param name="value">The value of the body</param>
+            /// <typeparam name="TValue">The type of the body</typeparam>
             internal static void WriteResponseBody<TValue>(this HttpResponse response, TValue value)
                 where TValue : struct, IJsonValue<TValue>
             {
