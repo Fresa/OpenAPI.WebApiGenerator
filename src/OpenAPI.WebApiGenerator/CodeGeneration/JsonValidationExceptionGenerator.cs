@@ -21,14 +21,23 @@ internal sealed class JsonValidationExceptionGenerator(string @namespace)
         
         namespace {{@namespace}};
               
+        /// <summary>
+        /// Exception thrown when validation of json objects fail
+        /// </summary>
         internal sealed class {{ClassName}} : Exception 
         {
+            /// <summary>
+            /// Create json validation exception
+            /// </summary>
             internal {{ClassName}}(string message, ImmutableList<ValidationResult> validationResult) : base(
-                GetValidationMessage(message, validationResult))
+                    GetValidationMessage(message, validationResult))
             {
                 ValidationResult = validationResult;
             }
 
+            /// <summary>
+            /// The validation result
+            /// </summary>
             internal ImmutableList<ValidationResult> ValidationResult { get; }
 
             private static string GetValidationMessage(string message, ImmutableList<ValidationResult> validationResult)
