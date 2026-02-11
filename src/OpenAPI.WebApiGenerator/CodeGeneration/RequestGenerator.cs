@@ -34,6 +34,9 @@ using Corvus.Json;
 
 namespace {{@namespace}};
 
+/// <summary>
+/// Contains the operation's request object
+/// </summary>
 internal partial class Request
 {
     internal required HttpContext HttpContext { get; init; }{{_parameterGeneratorsGroupedByLocation.AggregateToString(group => 
