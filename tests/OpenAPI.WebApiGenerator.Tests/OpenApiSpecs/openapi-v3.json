@@ -27,6 +27,7 @@
       "get": {
         "operationId": "listPets",
         "summary": "List all pets",
+        "description": "Retrieves a paginated list of all pets.\n\nSupports filtering by **status** and **tags**, with configurable pagination via `limit` and `offset`.",
         "tags": ["pets"],
         "security": [],
         "parameters": [
@@ -143,6 +144,7 @@
       "post": {
         "operationId": "createPet",
         "summary": "Create a pet",
+        "description": "Creates a new pet resource.\n\nRequires authentication via bearer token or API key.",
         "tags": ["pets"],
         "security": [{"bearerAuth": []}, {"apiKey": []}],
         "requestBody": {
@@ -205,6 +207,7 @@
       "get": {
         "operationId": "getPet",
         "summary": "Get a pet by ID",
+        "description": "Retrieves a single pet by its unique identifier.",
         "tags": ["pets"],
         "responses": {
           "200": {
@@ -232,6 +235,7 @@
       "put": {
         "operationId": "updatePet",
         "summary": "Update a pet",
+        "description": "Updates an existing pet resource.\n\nThe request body must contain the complete pet data.",
         "tags": ["pets"],
         "requestBody": {
           "description": "Pet data to update",
@@ -270,6 +274,7 @@
       "delete": {
         "operationId": "deletePet",
         "summary": "Delete a pet",
+        "description": "Permanently deletes a pet resource.\n\nRequires both bearer token and API key authentication.",
         "tags": ["pets"],
         "security": [{"bearerAuth": [], "apiKey": []}],
         "parameters": [
@@ -304,11 +309,13 @@
       "post": {
         "operationId": "uploadPetImage",
         "summary": "Upload pet image",
+        "description": "Uploads an image file for a specific pet.\n\nAccepts `multipart/form-data` with an optional description.",
         "tags": ["pets"],
         "parameters": [
           {
             "name": "petId",
             "in": "path",
+            "description": "Pet ID",
             "required": true,
             "schema": {
               "type": "integer",
@@ -355,6 +362,7 @@
       "post": {
         "operationId": "placeOrder",
         "summary": "Place an order",
+        "description": "Places a new order for a pet.\n\nRequires OAuth2 authorization with `write:pets` scope.",
         "tags": ["store"],
         "security": [{"oauth2": ["write:pets"]}],
         "requestBody": {
@@ -395,11 +403,13 @@
       "get": {
         "operationId": "getOrder",
         "summary": "Get order by ID",
+        "description": "Retrieves an order by its unique identifier.",
         "tags": ["store"],
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -426,11 +436,13 @@
       "delete": {
         "operationId": "cancelOrder",
         "summary": "Cancel an order",
+        "description": "Cancels an existing order.\n\nReturns 204 on success or 404 if the order does not exist.",
         "tags": ["store"],
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -452,6 +464,7 @@
       "get": {
         "operationId": "getInventory",
         "summary": "Get store inventory",
+        "description": "Returns inventory counts grouped by pet status.\n\nRequires OAuth2 or API key authentication.",
         "tags": ["store"],
         "security": [{"oauth2": ["read:pets"]}, {"apiKey": []}],
         "responses": {
@@ -476,6 +489,7 @@
       "post": {
         "operationId": "createUser",
         "summary": "Create user",
+        "description": "Creates a new user account.",
         "tags": ["users"],
         "requestBody": {
           "required": true,
@@ -505,12 +519,14 @@
       "get": {
         "operationId": "getUser",
         "summary": "Get user by username",
+        "description": "Retrieves a user by their username.\n\nRequires OpenID Connect authentication.",
         "tags": ["users"],
         "security": [{"openIdConnect": ["profile", "email"]}],
         "parameters": [
           {
             "name": "username",
             "in": "path",
+            "description": "The username of the user to retrieve",
             "required": true,
             "schema": {
               "type": "string",
@@ -539,11 +555,13 @@
       "put": {
         "operationId": "updateUser",
         "summary": "Update user",
+        "description": "Updates an existing user's profile information.",
         "tags": ["users"],
         "parameters": [
           {
             "name": "username",
             "in": "path",
+            "description": "The username of the user to update",
             "required": true,
             "schema": {
               "type": "string"
@@ -572,11 +590,13 @@
       "delete": {
         "operationId": "deleteUser",
         "summary": "Delete user",
+        "description": "Permanently deletes a user account.",
         "tags": ["users"],
         "parameters": [
           {
             "name": "username",
             "in": "path",
+            "description": "The username of the user to delete",
             "required": true,
             "schema": {
               "type": "string"
@@ -597,6 +617,7 @@
       "post": {
         "operationId": "loginUser",
         "summary": "User login",
+        "description": "Authenticates a user with username and password.\n\nReturns a session token on success.",
         "tags": ["users"],
         "security": [{"basicAuth": []}],
         "requestBody": {
@@ -897,24 +918,29 @@
     "securitySchemes": {
       "basicAuth": {
         "type": "http",
-        "scheme": "basic"
+        "scheme": "basic",
+        "description": "HTTP Basic authentication.\n\nProvide a username and password encoded as Base64 in the Authorization header."
       },
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication.\n\nInclude a JWT in the `Authorization` header."
       },
       "apiKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-Api-Key"
+        "name": "X-Api-Key",
+        "description": "API key authentication passed via the `X-Api-Key` header."
       },
       "openIdConnect": {
         "type": "openIdConnect",
-        "openIdConnectUrl": "https://example.com/.well-known/openid-configuration"
+        "openIdConnectUrl": "https://example.com/.well-known/openid-configuration",
+        "description": "OpenID Connect authentication.\n\nDiscovery document is available at the openIdConnectUrl endpoint."
       },
       "oauth2": {
         "type": "oauth2",
+        "description": "OAuth 2.0 authorization code flow.\n\nGrants access based on the requested scopes.",
         "flows": {
           "authorizationCode": {
             "authorizationUrl": "https://example.com/oauth/authorize",

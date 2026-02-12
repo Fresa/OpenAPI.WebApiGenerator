@@ -36,7 +36,11 @@ using System.Security.Claims;
 using System.Threading;
 
 namespace {{@namespace}};
-
+{{ new[]
+{
+    operation.Operation.Summary.AsComment("summary"),
+    operation.Operation.Description.AsComment("remarks", "para")
+}.RemoveEmptyLines().AggregateToString()}}
 internal partial class Operation
 {
     internal const string PathTemplate = "{{pathTemplate}}";
@@ -79,8 +83,12 @@ internal partial class Operation
     private Func<Response> HandleForbidden { get; } = () => new Response.Forbidden();
     
 """ : "")}}
-    internal sealed class BindRequestFilter(Operation operation) : IEndpointFilter
+    /// <summary>
+    /// Binds the request object
+    /// </summary>
+    internal sealed class BindRequestFilter : IEndpointFilter
     {
+        /// <inheritdoc/>
         public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
         {
             var httpContext = context.HttpContext;
@@ -100,6 +108,11 @@ internal partial class Operation
     /// Handle a operation.
     /// <exception cref="JsonValidationException"></exception>
     /// </summary>
+    /// <param name="context">The current http context</param>
+    /// <param name="operation">The operation</param>
+    /// <param name="configuration">Web api configuration</param>
+    /// <param name="cancellationToken">Cancellation</param>
+    /// <returns>An awaitable task</returns>
     internal static async Task HandleAsync(
         HttpContext context, 
         [FromServices] Operation operation,
@@ -122,6 +135,15 @@ internal partial class Operation
             .WriteTo(context.Response);
     }
     
+    /// <summary>
+    /// Validates a response
+    /// <exception cref="{{JsonValidationExceptionGenerator.ClassName}}">
+    /// Thrown when validation fails.
+    /// </exception>
+    /// </summary>
+    /// <param name="response">The response to validate</param>
+    /// <param name="configuration">Web api configuration</param>
+    /// <returns>The validated response</returns>
     internal Response Validate(Response response, WebApiConfiguration configuration)
     {
         if (!ValidateResponse)
@@ -137,25 +159,36 @@ internal partial class Operation
 }{{(requiresAuth ? 
 """
 
+/// <inheritdoc/>
 internal abstract partial class Response
 {
+    /// <summary>
+    /// Unauthorized response
+    /// </summary>
     internal sealed class Unauthorized : Response
     {
+        /// <inheritdoc/>
         internal override void WriteTo(HttpResponse httpResponse)
         {
             httpResponse.StatusCode = 401;
         }
-
+        
+        /// <inheritdoc/>
         internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
     }
 
+    /// <summary>
+    /// Forbidden response
+    /// </summary>
     internal sealed class Forbidden : Response
     {
+        /// <inheritdoc/>
         internal override void WriteTo(HttpResponse httpResponse)
         {
             httpResponse.StatusCode = 403;
         }
 
+        /// <inheritdoc/>
         internal override ValidationContext Validate(ValidationLevel validationLevel) => ValidationContext.ValidContext; 
     }
 }

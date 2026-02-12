@@ -47,6 +47,9 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
 
         namespace {{{@namespace}}};
 
+        /// <summary>
+        /// Extension methods for http request objects
+        /// </summary>
         internal static class {{{HttpRequestExtensionsClassName}}}
         {
             private const string ParameterValueParserVersion = "{{{openApiVersion.GetParameterVersion()}}}";
@@ -64,11 +67,10 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
             /// <summary>
             /// Binds an http parameter to a json type
             /// </summary>
-            /// <param name="request"></param>
+            /// <param name="request">Request to bind from</param>
             /// <param name="parameterSpecificationAsJson">OpenAPI parameter specification formatted as json</param>
             /// <typeparam name="T">The type to bind</typeparam>
             /// <returns>The bound instance</returns>
-            /// <exception cref="BadHttpRequestException"></exception>
             internal static T Bind<T>(this HttpRequest request, 
                 string parameterSpecificationAsJson)
                 where T : struct, IJsonValue<T>
@@ -82,8 +84,15 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 };
             }
 
+            /// <summary>
+            /// Binds an http body to a json type
+            /// </summary>
+            /// <param name="request">Request to bind from</param>
+            /// <param name="cancellationToken">Cancellation token</param>
+            /// <typeparam name="T">The type to bind</typeparam>
+            /// <returns>An awaitable task to the bound instance</returns>
             internal static async Task<T> BindBodyAsync<T>(this HttpRequest request,
-                CancellationToken cancellationToken)
+                    CancellationToken cancellationToken)
                 where T : struct, IJsonValue<T>
             {
                 var document = await JsonDocument.ParseAsync(request.Body, 

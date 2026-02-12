@@ -59,4 +59,26 @@ internal static class StringExtensions
                 .Split('\n')
                 .Select(line => string.IsNullOrWhiteSpace(line) ? string.Empty : $"{indentation}{line}"));
     }
+
+    internal static string AsComment(this string? str, params string[] commentTypes)
+    {
+        if (!commentTypes.Any())
+        {
+            throw new InvalidOperationException("Must specify at least one comment type");
+        }
+        
+        if (str is null || string.IsNullOrWhiteSpace(str))
+        {
+            return string.Empty;
+        }
+
+        Array.Reverse(commentTypes);
+        return string.Join("\n",
+            commentTypes.Aggregate(str
+                .Split('\n')
+                .Select(line => $"/// {line}"), (current, commentType) =>
+                current
+                    .Prepend($"/// <{commentType}>")
+                    .Append($"/// </{commentType}>")));
+    }
 }

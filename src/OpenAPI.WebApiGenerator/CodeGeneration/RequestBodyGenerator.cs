@@ -63,12 +63,24 @@ internal sealed class RequestBodyGenerator
 
         return 
 $$"""
+/// <summary>
+/// Request content
+/// </summary>
 internal {{(Body.Required ? "required " : "")}}RequestContent{{(Body.Required ? "" : "?")}} {{propertyName}} { get; init; }
 
+/// <summary>
+/// Request content
+/// </summary>
 internal sealed class RequestContent 
 {{{
     _contentGenerators.AggregateToString(content => 
         content.GenerateRequestProperty()).Indent(4)}}
+    /// <summary>
+    /// Bind request content from http request
+    /// </summary>
+    /// <param name="request">Http request to bind from</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>An awaitable task for the request content</returns>
     internal static async Task<RequestContent{{(_body.Required ? "" : "?")}}> BindAsync(
         HttpRequest request,
         CancellationToken cancellationToken)
@@ -94,6 +106,12 @@ $$"""
         }
     }
 
+    /// <summary>
+    /// Validate the request content
+    /// </summary>
+    /// <param name="validationContext">Current validation context</param>
+    /// <param name="validationLevel">Validation level</param>
+    /// <returns>The validation result</returns>
     internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel)
     {
         switch (true) 

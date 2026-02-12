@@ -23,8 +23,9 @@ internal sealed class ParameterGenerator(
     
     internal string GenerateRequestProperty() =>
         $$"""
+          {{parameter.Description.AsComment("summary", "para")}}
           internal {{(IsParameterRequired ? "required " : "")}}{{FullyQualifiedTypeName}} {{PropertyName}} { get; init; }
-          """;
+          """.TrimStart();
 
     internal string AsRequired(string variableName) => $"{variableName}{(IsParameterRequired ? "" : $" ?? {FullyQualifiedTypeDeclarationIdentifier}.Undefined")}";
     

@@ -11,8 +11,17 @@ using System.Collections.Immutable;
 
 namespace {{@namespace}};
 
+/// <summary>
+/// Extension methods for validation
+/// </summary>
 internal static class {{ClassName}}
 {
+    /// <summary>
+    /// Add schema location to validation results
+    /// </summary>
+    /// <param name="validationResults">Validation results to add schema location to</param>
+    /// <param name="uri">The schema location uri</param>
+    /// <returns>The validation results</returns>
     internal static ImmutableList<ValidationResult> WithLocation(
         this ImmutableList<ValidationResult> validationResults, Uri? uri)
     {
@@ -36,6 +45,15 @@ internal static class {{ClassName}}
         return (location.Value.ValidationLocation, schemaLocation, location.Value.DocumentLocation);
     }
     
+    /// <summary>
+    /// Validate a json object
+    /// </summary>
+    /// <param name="value">json object to validate</param>
+    /// <param name="schemaLocation">The location of the schema describing the json object</param>
+    /// <param name="isRequired">Is the object required?</param>
+    /// <param name="validationContext">Current validation context</param>
+    /// <param name="validationLevel">The validation level</param>
+    /// <returns>The validation result</returns>
     internal static ValidationContext Validate<T>(this T value,
         string schemaLocation, 
         bool isRequired,

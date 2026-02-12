@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
@@ -12,10 +13,12 @@ internal sealed class ResponseContentGenerator
     private readonly List<ResponseHeaderGenerator> _headerGenerators = [];
     private readonly string _responseClassName;
     private readonly string _responseStatusCodePattern;
+    private readonly IOpenApiResponse _response;
 
     private ResponseContentGenerator(
-        string responseStatusCodePattern)
+        KeyValuePair<string, IOpenApiResponse> response)
     {
+        var responseStatusCodePattern = response.Key.ToPascalCase();
         var classNamePrefix = Enum.TryParse<HttpStatusCode>(responseStatusCodePattern, out var statusCode)
             ? statusCode.ToString()
             : responseStatusCodePattern.First() switch
@@ -32,11 +35,12 @@ internal sealed class ResponseContentGenerator
         
         _responseStatusCodePattern = responseStatusCodePattern;
         _responseClassName = responseClassName;
+        _response = response.Value;
     }
     public ResponseContentGenerator(
-        string responseStatusCodePattern,
+        KeyValuePair<string, IOpenApiResponse> response,
         List<ResponseBodyContentGenerator> contentGenerators,
-        List<ResponseHeaderGenerator> headerGenerators) : this(responseStatusCodePattern)
+        List<ResponseHeaderGenerator> headerGenerators) : this(response)
     {
         _contentGenerators = contentGenerators;
         _headerGenerators = headerGenerators;
@@ -57,6 +61,7 @@ internal sealed class ResponseContentGenerator
 
         return 
 $$$"""
+{{{_response.Description.AsComment("summary", "para")}}}
 internal sealed class {{{_responseClassName}}} : Response
 {
     private string? {{{contentTypeFieldName}}} = null;{{{
@@ -67,7 +72,10 @@ internal sealed class {{{_responseClassName}}} : Response
         generator.GenerateContentProperty()).Indent(4)
     }}}
     
-    private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}}; 
+    private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}};
+    /// <summary>
+    /// Response status code
+    /// </summary> 
     internal int StatusCode
     { 
         get => _statusCode;{{{(hasExplicitStatusCode ? "" : 
@@ -78,8 +86,14 @@ $"""
 {{{(anyHeaders ? 
 $$"""
 
+    /// <summary>
+    /// Response Headers
+    /// </summary> 
     internal {{headerRequiredDirective}}ResponseHeaders Headers { get; init; }{{defaultHeadersValueAssignment}}
 
+    /// <summary>
+    /// Response Headers
+    /// </summary> 
     internal sealed class ResponseHeaders 
     {{{
         _headerGenerators.AggregateToString(generator =>
@@ -87,6 +101,7 @@ $$"""
     }
 
 """ : "")}}}
+    /// <inheritdoc/>
     internal override void WriteTo(HttpResponse {{{responseVariableName}}})
     {{{{(_contentGenerators.Any() ? 
 $$"""
@@ -111,6 +126,7 @@ $"""
             generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}}
     }
     
+    /// <inheritdoc/>
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
@@ -127,6 +143,6 @@ $"""
         return validationContext;
     }
 }
-""";
+""".Trim();
     }
 }

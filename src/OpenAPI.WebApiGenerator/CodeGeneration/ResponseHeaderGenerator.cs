@@ -23,8 +23,9 @@ internal sealed class ResponseHeaderGenerator(
     
     internal string GenerateProperty() =>
         $$"""
+          {{header.Description.AsComment("summary", "para")}}
           internal {{_requiredDirective}}{{FullyQualifiedTypeName}} {{_propertyName}} { get; init; }{{DefaultValueAssignment}}
-          """;
+          """.TrimStart();
     
     internal string GenerateWriteDirective(string responseVariableName)
     {

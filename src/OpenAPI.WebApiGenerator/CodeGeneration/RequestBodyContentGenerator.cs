@@ -31,6 +31,9 @@ $"""
 
     public string GenerateRequestProperty() =>
         $$"""
+          /// <summary>
+          /// Request content for {{contentType}}
+          /// </summary>
           internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
           """;
 }

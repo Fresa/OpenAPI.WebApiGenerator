@@ -23,6 +23,9 @@ internal sealed class ApiConfigurationGenerator(string @namespace, AuthGenerator
             public Uri? OpenApiSpecificationUri { get; init; }{{(authGenerator.HasSecuritySchemes ? 
         """
             
+            /// <summary>
+            /// Security scheme options
+            /// </summary>
             internal SecuritySchemeOptions SecuritySchemeOptions { get; set; } = new();
         """ : "")}}
         }
