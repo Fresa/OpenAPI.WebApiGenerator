@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -23,7 +24,10 @@ internal sealed class RequestBodyGenerator
         List<RequestBodyContentGenerator> contentGenerators)
     {
         _body = body;
-        _contentGenerators = contentGenerators;
+        _contentGenerators = contentGenerators
+            .OrderByDescending(generator => 
+                generator.ContentType.GetPrecedence())
+            .ToList();
     }
 
     internal static readonly RequestBodyGenerator Empty = new();
@@ -88,17 +92,17 @@ internal sealed class RequestContent
         var requestContentType = request.ContentType;
         var requestContentMediaType = requestContentType == null ? null : System.Net.Http.Headers.MediaTypeHeaderValue.Parse(requestContentType);
 
-        switch (requestContentMediaType?.MediaType?.ToLower()) 
+        switch (requestContentMediaType?.MediaType) 
         {{{_contentGenerators.AggregateToString(content => 
 $$"""
-            case "{{content.ContentType.ToLower()}}":
+            case not null when {{content.ContentType.GetMatchConditionExpression("requestContentMediaType")}}:
                 return new RequestContent
                 {
 {{content.GenerateRequestBindingDirective().Indent(20)}}
                 };
 """)}}{{(_body.Required ? "" :
 """
-            case "":
+            case null:
                 return null;
 """)}}
             default:

@@ -1,4 +1,5 @@
-﻿using Corvus.Json.CodeGeneration;
+﻿using System.Net.Http.Headers;
+using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
 using OpenAPI.WebApiGenerator.Extensions;
 
@@ -16,7 +17,7 @@ internal sealed class RequestBodyContentGenerator(
 
     internal string PropertyName { get; } = contentType.ToPascalCase();
 
-    internal string ContentType => contentType;
+    internal MediaTypeHeaderValue ContentType { get; } = MediaTypeHeaderValue.Parse(contentType);
 
     internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     internal string GenerateRequestBindingDirective() =>

@@ -1,0 +1,42 @@
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
+
+namespace OpenAPI.WebApiGenerator.Extensions;
+
+internal static class MediaTypeExtensions
+{
+    internal static string GetMatchConditionExpression(this MediaTypeHeaderValue value, string mediaTypeVariableName)
+    {
+        var expressions = new List<string>();
+        if (value.MediaType is not null)
+        {
+            if (value.MediaType == "*/*")
+            {
+                expressions.Add("true");
+            } 
+            else 
+            {
+                expressions.Add(value.MediaType.EndsWith("*")
+                    ? $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.StartsWith)}("{value.MediaType.TrimEnd('*')}", StringComparison.OrdinalIgnoreCase)"""
+                    : $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.Equals)}("{value.MediaType}", StringComparison.OrdinalIgnoreCase)""");
+            }
+        }
+        
+        expressions.AddRange(value.Parameters.Select(parameter => 
+            $"{mediaTypeVariableName}.{nameof(value.Parameters)}.Contains({(parameter.Value is null ?
+                $"""new NameValueHeaderValue("{parameter.Name}")""" :
+                $"""new NameValueHeaderValue("{parameter.Name}", "{parameter.Value}")""")})"));
+
+        return string.Join(" && ", expressions);
+    }
+
+    internal static int GetPrecedence(this MediaTypeHeaderValue value) =>
+        value.MediaType switch
+        {
+            null => value.Parameters.Count,
+            "*/*" => 0,
+            not null when value.MediaType.EndsWith("*") => 1 + value.Parameters.Count,
+            _ => 2 + value.Parameters.Count
+        };
+}
