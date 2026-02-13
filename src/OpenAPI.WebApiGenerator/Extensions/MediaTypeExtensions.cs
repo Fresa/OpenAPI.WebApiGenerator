@@ -11,16 +11,14 @@ internal static class MediaTypeExtensions
         var expressions = new List<string>();
         if (value.MediaType is not null)
         {
-            if (value.MediaType == "*/*")
+            expressions.Add(value.MediaType switch
             {
-                expressions.Add("true");
-            } 
-            else 
-            {
-                expressions.Add(value.MediaType.EndsWith("*")
-                    ? $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.StartsWith)}("{value.MediaType.TrimEnd('*')}", StringComparison.OrdinalIgnoreCase)"""
-                    : $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.Equals)}("{value.MediaType}", StringComparison.OrdinalIgnoreCase)""");
-            }
+                "*/*" => "true",
+                not null when value.MediaType.EndsWith("*") =>
+                    $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.StartsWith)}("{value.MediaType.TrimEnd('*')}", StringComparison.OrdinalIgnoreCase)""",
+                _ =>
+                    $"""{mediaTypeVariableName}.{nameof(value.MediaType)}.{nameof(value.MediaType.Equals)}("{value.MediaType}", StringComparison.OrdinalIgnoreCase)"""
+            });
         }
         
         expressions.AddRange(value.Parameters.Select(parameter => 

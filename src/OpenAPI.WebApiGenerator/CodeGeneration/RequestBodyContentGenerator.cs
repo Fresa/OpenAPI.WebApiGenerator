@@ -27,7 +27,6 @@ $"""
             "request", 
             FullyQualifiedTypeDeclarationIdentifier)
         .Indent(8).Trim()})
-    .AsOptional()
 """;
 
     public string GenerateRequestProperty() =>

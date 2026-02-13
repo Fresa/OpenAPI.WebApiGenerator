@@ -75,7 +75,7 @@ internal {{(Body.Required ? "required " : "")}}RequestContent{{(Body.Required ? 
 /// <summary>
 /// Request content
 /// </summary>
-internal sealed class RequestContent 
+internal sealed class RequestContent(string? requestContentType, bool invalidContentType = false)
 {{{
     _contentGenerators.AggregateToString(content => 
         content.GenerateRequestProperty()).Indent(4)}}
@@ -96,7 +96,7 @@ internal sealed class RequestContent
         {{{_contentGenerators.AggregateToString(content => 
 $$"""
             case not null when {{content.ContentType.GetMatchConditionExpression("requestContentMediaType")}}:
-                return new RequestContent
+                return new RequestContent(requestContentType)
                 {
 {{content.GenerateRequestBindingDirective().Indent(20)}}
                 };
@@ -106,7 +106,7 @@ $$"""
                 return null;
 """)}}
             default:
-                throw new BadHttpRequestException($"Request body does not support content type {requestContentType}");
+                return new RequestContent(requestContentType, true);
         }
     }
 
@@ -123,13 +123,13 @@ $$"""
 $"""
             case true when {content.PropertyName} is not null:
                 return {content.PropertyName}!.Value.Validate("{content.SchemaLocation}", true, validationContext, validationLevel);
-""")}}
+""")}} 
+            case true when requestContentType == null:
+                return {{(_body.Required ? """validationContext.WithResult(false, "Request content is required")""" : "validationContext")}};
+            case true when invalidContentType:
+                return validationContext.WithResult(false, $"Request content type {requestContentType} is not supported");
             default:
-                {{(_body.Required ? 
-                """
-                throw new InvalidOperationException("Request body not set");
-                """ : 
-                "return validationContext;")}}
+                return validationContext;
         }
     }
 }
