@@ -24,7 +24,7 @@ internal static class MediaTypeExtensions
         }
         
         expressions.AddRange(value.Parameters.Select(parameter => 
-            $"{mediaTypeVariableName}.{nameof(value.Parameters)}.Contains({(parameter.Value is null ?
+            $"{mediaTypeVariableName}.{nameof(value.Parameters)}.{nameof(value.Parameters.Contains)}({(parameter.Value is null ?
                 $"""new NameValueHeaderValue("{parameter.Name}")""" :
                 $"""new NameValueHeaderValue("{parameter.Name}", "{parameter.Value}")""")})"));
 
@@ -32,11 +32,10 @@ internal static class MediaTypeExtensions
     }
 
     internal static int GetPrecedence(this MediaTypeHeaderValue value) =>
-        value.MediaType switch
+         value.Parameters.Count + value.MediaType switch
         {
-            null => value.Parameters.Count,
             "*/*" => 0,
-            not null when value.MediaType.EndsWith("*") => 1 + value.Parameters.Count,
-            _ => 2 + value.Parameters.Count
+            not null when value.MediaType.EndsWith("*") => 100,
+            _ => 1000
         };
 }
