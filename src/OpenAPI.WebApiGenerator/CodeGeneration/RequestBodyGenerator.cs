@@ -116,22 +116,19 @@ $$"""
     /// <param name="validationContext">Current validation context</param>
     /// <param name="validationLevel">Validation level</param>
     /// <returns>The validation result</returns>
-    internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel)
-    {
-        switch (true) 
+    internal ValidationContext Validate(ValidationContext validationContext, ValidationLevel validationLevel) =>
+        true switch
         {{{_contentGenerators.AggregateToString(content => 
 $"""
-            case true when {content.PropertyName} is not null:
-                return {content.PropertyName}!.Value.Validate("{content.SchemaLocation}", true, validationContext, validationLevel);
+            true when {content.PropertyName} is not null =>
+                {content.PropertyName}!.Value.Validate("{content.SchemaLocation}", true, validationContext, validationLevel),
 """)}} 
-            case true when requestContentType == null:
-                return {{(_body.Required ? """validationContext.WithResult(false, "Request content is required")""" : "validationContext")}};
-            case true when invalidContentType:
-                return validationContext.WithResult(false, $"Request content type {requestContentType} is not supported");
-            default:
-                return validationContext;
-        }
-    }
+            true when requestContentType is null =>
+                {{(_body.Required ? """validationContext.WithResult(false, "Request content is missing")""" : "validationContext")}},
+            true when invalidContentType =>
+                validationContext.WithResult(false, $"Request content type {requestContentType} is not supported"),
+            _ => validationContext
+        };
 }
 """;
     }
