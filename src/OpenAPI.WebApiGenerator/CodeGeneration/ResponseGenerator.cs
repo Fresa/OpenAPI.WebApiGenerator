@@ -14,6 +14,7 @@ internal sealed class ResponseGenerator(
 $$"""
 #nullable enable
 using Corvus.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using {{httpResponseExtensionsGenerator.Namespace}};
 
@@ -47,8 +48,9 @@ $$"""
         {
             "*/*" => true,
             not null when expectedContentType.MediaType.EndsWith("*") =>
-                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase),
-            _ => contentType.MediaType.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase)
+                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase) ?? false,
+            not null => contentType.MediaType?.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase) ?? false,
+            _ => false
         };
         
         if (valid)
