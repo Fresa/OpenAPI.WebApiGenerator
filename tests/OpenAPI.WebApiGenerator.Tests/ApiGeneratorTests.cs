@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
+using System.Net.Mime;
+using System.Text;
 using System.Threading;
 using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
@@ -129,6 +134,29 @@ public partial class ApiGeneratorTests
     }
 
     [Theory]
+    [MemberData(nameof(ResponseContentMediaTypeSpecs))]
+    public void ResponseContentMediaTypes_Generating_ConstructorPerMediaType(string _, string openApiSpec)
+    {
+        var compilation = SetupGenerator(openApiSpec, out var diagnostics);
+        HasOnlyMissingHandler(diagnostics);
+
+        var responseType = compilation.GetSymbolsWithName("OK200", cancellationToken: Cancellation)
+            .OfType<INamedTypeSymbol>()
+            .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{compilation.AssemblyName}.Paths.Foo.Get")
+            .Should().HaveCount(1).And.Subject.First();
+        
+        var constructors = responseType.Constructors
+            .Where(c => !c.IsImplicitlyDeclared)
+            .ToArray();
+
+        constructors.Should().HaveCount(5);
+
+        var sourceCode = responseType.DeclaringSyntaxReferences.First()
+            .SyntaxTree.ToString();
+        TestContext.Current.TestOutputHelper?.Write(sourceCode);
+    }
+
+    [Theory]
     [MemberData(nameof(NoResponseContentSpecs))]
     public void NoResponseContent_Generating_DefaultResponseConstructor(string _, string openApiSpec)
     {
@@ -173,6 +201,14 @@ public partial class ApiGeneratorTests
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out diagnostics,
             Cancellation);
+        
+        foreach (var tree in newCompilation.SyntaxTrees)                                                  
+        {                                
+            tree.GetDiagnostics().Should().NotContain(diagnostic =>
+                diagnostic.Severity == DiagnosticSeverity.Error ||
+                diagnostic.Severity == DiagnosticSeverity.Warning);       
+        }     
+        
         return newCompilation;
     }
 }

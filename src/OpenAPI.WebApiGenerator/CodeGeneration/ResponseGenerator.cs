@@ -36,6 +36,27 @@ $$"""
 """)}}
     
     /// <summary>
+    /// Ensures that the specified content type matches the specification
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the specified content type does not match the specification</exception>
+    /// </summary>
+    /// <param name="contentType">Content type</param>
+    /// <param name="expectedContentType">Expected content type</param>
+    protected void EnsureExpectedContentType(MediaTypeHeaderValue contentType, MediaTypeHeaderValue expectedContentType)
+    {
+        var valid = expectedContentType.MediaType switch
+        {
+            "*/*" => true,
+            not null when expectedContentType.MediaType.EndsWith("*") =>
+                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase),
+            _ => contentType.MediaType.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase)
+        };
+        
+        if (valid)
+            return;
+        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to match range {expectedContentType.MediaType}");
+    }
+
+    /// <summary>
     /// Write the response to a http response object
     /// </summary>
     /// <param name="httpResponse">Http response object to write the response to</param>
