@@ -14,6 +14,7 @@ internal sealed class ResponseGenerator(
 $$"""
 #nullable enable
 using Corvus.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using {{httpResponseExtensionsGenerator.Namespace}};
 
@@ -35,6 +36,28 @@ $$"""
         => (code >= {{i}}00 && code <= {{i}}99) ? code : throw new InvalidOperationException($"Expected {{i}}xx status code, got {code}");
 """)}}
     
+    /// <summary>
+    /// Ensures that the specified content type matches the specification
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the specified content type does not match the specification</exception>
+    /// </summary>
+    /// <param name="contentType">Content type</param>
+    /// <param name="expectedContentType">Expected content type</param>
+    protected void EnsureExpectedContentType(MediaTypeHeaderValue contentType, MediaTypeHeaderValue expectedContentType)
+    {
+        var valid = expectedContentType.MediaType switch
+        {
+            "*/*" => true,
+            not null when expectedContentType.MediaType.EndsWith("*") =>
+                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase) ?? false,
+            not null => contentType.MediaType?.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase) ?? false,
+            _ => false
+        };
+        
+        if (valid)
+            return;
+        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to match range {expectedContentType.MediaType}");
+    }
+
     /// <summary>
     /// Write the response to a http response object
     /// </summary>

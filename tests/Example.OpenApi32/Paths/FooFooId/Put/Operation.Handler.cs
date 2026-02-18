@@ -27,7 +27,7 @@ internal partial class Operation
         _ = request.Header.Bar;
 
         var response = new Response.OK200(Components.Schemas.FooProperties.Create(
-                name: request.Body.ApplicationJson?.Name))
+                name: request.Body.ApplicationJson?.Name), "application/json")
         {
             Headers = new Response.OK200.ResponseHeaders
             {

@@ -82,4 +82,7 @@
         </ItemGroup>
     </Target>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="OpenAPI.WebApiGenerator.Tests" />
+    </ItemGroup>
 </Project>
