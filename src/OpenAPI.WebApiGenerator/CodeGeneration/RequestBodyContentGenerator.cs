@@ -17,7 +17,7 @@ internal sealed class RequestBodyContentGenerator(
 
     internal string PropertyName { get; } = contentType.ToPascalCase();
 
-    internal MediaTypeHeaderValue ContentType { get; } = MediaTypeHeaderValue.Parse(contentType);
+    internal MediaTypeWithQualityHeaderValue ContentType { get; } = MediaTypeWithQualityHeaderValue.Parse(contentType);
 
     internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     internal string GenerateRequestBindingDirective() =>
