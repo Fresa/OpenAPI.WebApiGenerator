@@ -44,18 +44,11 @@ $$"""
     /// <param name="expectedContentType">Expected content type</param>
     protected void EnsureExpectedContentType(MediaTypeHeaderValue contentType, MediaTypeHeaderValue expectedContentType)
     {
-        var valid = expectedContentType.MediaType switch
-        {
-            "*/*" => true,
-            not null when expectedContentType.MediaType.EndsWith("*") =>
-                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase) ?? false,
-            not null => contentType.MediaType?.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase) ?? false,
-            _ => false
-        };
+        var valid = contentType.IsSubsetOf(expectedContentType);
         
         if (valid)
             return;
-        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to match range {expectedContentType.MediaType}");
+        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to be a subset of {expectedContentType.MediaType}");
     }
 
     /// <summary>
