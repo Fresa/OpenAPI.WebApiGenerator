@@ -14,7 +14,7 @@ internal sealed class ResponseGenerator(
 $$"""
 #nullable enable
 using Corvus.Json;
-using System.Net.Http.Headers;
+using Microsoft.Net.Http.Headers;
 using System.Text.Json;
 using {{httpResponseExtensionsGenerator.Namespace}};
 
