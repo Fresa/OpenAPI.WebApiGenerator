@@ -151,6 +151,11 @@ public partial class ApiGeneratorTests
 
         constructors.Should().HaveCount(5);
 
+        var constructorSignatures = constructors
+            .Select(methodSymbol => string.Join(", ", methodSymbol.Parameters.Select(parameterSymbol => 
+                parameterSymbol.Type.ToDisplayString())));
+        constructorSignatures.Should().OnlyHaveUniqueItems("constructors must have distinct signatures");
+
         var sourceCode = responseType.DeclaringSyntaxReferences.First()
             .SyntaxTree.ToString();
         TestContext.Current.TestOutputHelper?.Write(sourceCode);
