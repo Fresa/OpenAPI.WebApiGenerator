@@ -41,35 +41,33 @@ internal sealed class ResponseBodyContentGenerator
         ContentPropertyName = _contentVariableName.ToPascalCase();
     }
 
-    internal string SchemaLocation => _typeDeclaration.RelativeSchemaLocation;
-    public string GenerateConstructor(string className, string contentTypeFieldName) =>
+    private string SchemaLocation => _typeDeclaration.RelativeSchemaLocation;
+    public string GenerateResponseClass(string className, string contentTypeFieldName) =>
 $$"""
 /// <summary>
-/// Construct content for {{_contentType}}
+/// Response for content {{_contentType}}
 /// </summary>
-/// <param name="{{_contentVariableName}}">Content</param>{{(_isContentTypeRange ? $"""
+internal sealed class {{ContentPropertyName}} : {{className}}
+{
+    /// <summary>
+    /// Construct response for content {{_contentType}}
+    /// </summary>
+    /// <param name="{{_contentVariableName}}">Content</param>{{(_isContentTypeRange ? $"""
 
-/// <param name="contentType">Content type must match range {_contentType.MediaType}</param>
-""" : "")}}
-public {{className}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
-{{{(_isContentTypeRange ? 
+             /// <param name="contentType">Content type must match range {_contentType.MediaType}</param>
+         """ : "")}}
+    public {{ContentPropertyName}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
+    {{{(_isContentTypeRange ? 
 $$"""
-    
-    EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), MediaTypeHeaderValue.Parse("{{_contentType}}"));
+        
+        EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), MediaTypeHeaderValue.Parse("{{_contentType}}"));
 """ : "")}}
-    {{ContentPropertyName}} = {{_contentVariableName}};
-    {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
+        Content = {{_contentVariableName}};
+        {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
+    }
+    
+    protected override IJsonValue Content { get; }
+    protected override string ContentSchemaLocation { get; } = "{{SchemaLocation}}";
 }
 """;
-
-    public string GenerateContentProperty()
-    {
-        return
-$$"""
-/// <summary>
-/// Content for {{_contentType}}
-/// </summary>
-internal {{_typeDeclaration.FullyQualifiedDotnetTypeName()}}? {{ContentPropertyName}} { get; }          
-"""; 
-    }
 }

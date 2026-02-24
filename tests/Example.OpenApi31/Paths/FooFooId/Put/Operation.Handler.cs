@@ -16,7 +16,7 @@ internal partial class Operation
             Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(
                 name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
                 error: result.Message ?? string.Empty));
-        return new Response.BadRequest400(
+        return new Response.BadRequest400.ApplicationJson(
             Components.Responses.BadRequest.Content.ApplicationJson.Create(response.ToArray()));
     }
 
@@ -26,7 +26,7 @@ internal partial class Operation
         _ = request.Path.FooId;
         _ = request.Header.Bar;
 
-        var response = new Response.OK200(Components.Schemas.FooProperties.Create(
+        var response = new Response.OK200.ApplicationJson(Components.Schemas.FooProperties.Create(
                 name: request.Body.ApplicationJson?.Name))
         {
             Headers = new Response.OK200.ResponseHeaders
@@ -36,4 +36,21 @@ internal partial class Operation
         };
         return Task.FromResult<Response>(response);
     }
+}
+
+internal abstract class Test
+{
+    protected abstract string A { get; }
+
+    
+}
+
+internal class Testar : Test
+{
+    public Testar(string a)
+    {
+        A = a;
+    }
+
+    protected sealed override string A { get; }
 }

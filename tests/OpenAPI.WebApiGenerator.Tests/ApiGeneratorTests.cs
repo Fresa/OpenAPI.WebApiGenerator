@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
-using System.Net.Mime;
-using System.Text;
 using System.Threading;
 using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
@@ -144,17 +139,15 @@ public partial class ApiGeneratorTests
             .OfType<INamedTypeSymbol>()
             .Where(symbol => symbol.ContainingNamespace.ToDisplayString() == $"{compilation.AssemblyName}.Paths.Foo.Get")
             .Should().HaveCount(1).And.Subject.First();
-        
-        var constructors = responseType.Constructors
-            .Where(c => !c.IsImplicitlyDeclared)
+
+        var contentClasses = responseType.GetTypeMembers()
+            .Where(t => t.BaseType?.Name == "OK200")
             .ToArray();
 
-        constructors.Should().HaveCount(5);
-
-        var constructorSignatures = constructors
-            .Select(methodSymbol => string.Join(", ", methodSymbol.Parameters.Select(parameterSymbol => 
-                parameterSymbol.Type.ToDisplayString())));
-        constructorSignatures.Should().OnlyHaveUniqueItems("constructors must have distinct signatures");
+        contentClasses.Should().HaveCount(5);
+        contentClasses.Select(symbol => symbol.Name)
+            .Should()
+            .OnlyHaveUniqueItems("content classes must have distinct names");
 
         var sourceCode = responseType.DeclaringSyntaxReferences.First()
             .SyntaxTree.ToString();

@@ -8,6 +8,7 @@ $$"""
 #nullable enable
 using Corvus.Json;
 using System.Collections.Immutable;
+using System.Text.Json;
 
 namespace {{@namespace}};
 
@@ -54,14 +55,13 @@ internal static class {{ClassName}}
     /// <param name="validationContext">Current validation context</param>
     /// <param name="validationLevel">The validation level</param>
     /// <returns>The validation result</returns>
-    internal static ValidationContext Validate<T>(this T value,
+    internal static ValidationContext Validate(this IJsonValue value,
         string schemaLocation, 
         bool isRequired,
         ValidationContext validationContext,
         ValidationLevel validationLevel) 
-        where T : struct, IJsonValue<T>
     {
-        if (!isRequired && value.IsUndefined())
+        if (!isRequired && value.ValueKind == JsonValueKind.Undefined)
         {
             return validationContext;
         }

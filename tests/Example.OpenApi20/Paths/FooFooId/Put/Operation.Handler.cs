@@ -18,7 +18,7 @@ internal partial class Operation
             Responses.BadRequest.RequiredErrorAndName.Create(
                 name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
                 error: result.Message ?? string.Empty));
-        return new Response.BadRequest400(
+        return new Response.BadRequest400.ApplicationJson(
             Responses.BadRequest.Create(response.ToArray()));
     }
 
@@ -28,7 +28,7 @@ internal partial class Operation
         _ = request.Path.FooId;
         _ = request.Header.Bar;
 
-        var response = new Response.OK200(Definitions.FooProperties.Create(
+        var response = new Response.OK200.ApplicationJson(Definitions.FooProperties.Create(
                 name: request.Body.ApplicationJson?.Name))
         {
             Headers = new Response.OK200.ResponseHeaders

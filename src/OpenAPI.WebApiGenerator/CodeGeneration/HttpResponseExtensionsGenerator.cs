@@ -71,9 +71,7 @@ internal sealed class HttpResponseExtensionsGenerator(
             /// </summary>
             /// <param name="response">The response object to write the body to</param>
             /// <param name="value">The value of the body</param>
-            /// <typeparam name="TValue">The type of the body</typeparam>
-            internal static void WriteResponseBody<TValue>(this HttpResponse response, TValue value)
-                where TValue : struct, IJsonValue<TValue>
+            internal static void WriteResponseBody(this HttpResponse response, IJsonValue value)
             {
                 using var jsonWriter = new Utf8JsonWriter(response.BodyWriter);
                 value.WriteTo(jsonWriter);
