@@ -12,10 +12,10 @@ internal partial class Operation
 
     private static Response.BadRequest400 HandleValidationErrors(HttpContext context, ImmutableList<ValidationResult> validationResults)
     {
-        switch (context.Request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var matchedMediaType))
+        switch (context.Request.TryMatchAcceptMediaType(Response.BadRequest400.ContentMediaTypes, out var matchedMediaType))
         {
             case false:
-            case true when ReferenceEquals(matchedMediaType, Response.OK200.AnyApplication.ContentMediaType):
+            case true when ReferenceEquals(matchedMediaType, Response.BadRequest400.ApplicationJson.ContentMediaType):
                 var response = validationResults.Select(result =>
                     Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(
                         name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
