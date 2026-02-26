@@ -44,11 +44,10 @@ $$"""
     /// <param name="expectedContentType">Expected content type</param>
     protected void EnsureExpectedContentType(MediaTypeHeaderValue contentType, MediaTypeHeaderValue expectedContentType)
     {
-        var valid = contentType.IsSubsetOf(expectedContentType);
-        
-        if (valid)
-            return;
-        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to be a subset of {expectedContentType.MediaType}");
+        if (!contentType.IsSubsetOf(expectedContentType))
+        {
+            throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to be a subset of {expectedContentType.MediaType}");
+        }
     }
 
     /// <summary>

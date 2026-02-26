@@ -58,9 +58,9 @@ internal sealed class {{ClassName}} : {{responseClassName}}
          """ : "")}}
     public {{ClassName}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
     {{{(_isContentTypeRange ? 
-$$"""
+"""
         
-        EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), MediaTypeHeaderValue.Parse("{{_contentType}}"));
+        EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), ContentMediaType);
 """ : "")}}
         Content = {{_contentVariableName}};
         {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
