@@ -9,7 +9,7 @@ namespace OpenAPI.WebApiGenerator.CodeGeneration;
 internal sealed class ResponseBodyContentGenerator
 {
     private readonly string _contentVariableName;
-    public string ContentPropertyName { get; }
+    internal string ClassName { get; }
     private readonly MediaTypeHeaderValue _contentType;
     private readonly TypeDeclaration _typeDeclaration;
     private readonly bool _isContentTypeRange;
@@ -18,7 +18,7 @@ internal sealed class ResponseBodyContentGenerator
     {
         _contentType = MediaTypeHeaderValue.Parse(contentType);
         _typeDeclaration = typeDeclaration;
-        ContentPropertyName = contentType.ToPascalCase();
+        ClassName = contentType.ToPascalCase();
 
         _isContentTypeRange = false;
         switch (_contentType.MediaType)
@@ -38,16 +38,16 @@ internal sealed class ResponseBodyContentGenerator
                 break;
         }
 
-        ContentPropertyName = _contentVariableName.ToPascalCase();
+        ClassName = _contentVariableName.ToPascalCase();
     }
 
     private string SchemaLocation => _typeDeclaration.RelativeSchemaLocation;
-    public string GenerateResponseClass(string className, string contentTypeFieldName) =>
+    public string GenerateResponseClass(string responseClassName, string contentTypeFieldName) =>
 $$"""
 /// <summary>
 /// Response for content {{_contentType}}
 /// </summary>
-internal sealed class {{ContentPropertyName}} : {{className}}
+internal sealed class {{ClassName}} : {{responseClassName}}
 {
     /// <summary>
     /// Construct response for content {{_contentType}}
@@ -56,7 +56,7 @@ internal sealed class {{ContentPropertyName}} : {{className}}
 
              /// <param name="contentType">Content type must match range {_contentType.MediaType}</param>
          """ : "")}}
-    public {{ContentPropertyName}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
+    public {{ClassName}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
     {{{(_isContentTypeRange ? 
 $$"""
         
@@ -66,6 +66,7 @@ $$"""
         {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
     }
     
+    internal static readonly MediaTypeHeaderValue ContentMediaType = MediaTypeHeaderValue.Parse("{{_contentType}}");
     protected override IJsonValue Content { get; }
     protected override string ContentSchemaLocation { get; } = "{{SchemaLocation}}";
 }

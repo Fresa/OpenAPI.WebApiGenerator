@@ -68,13 +68,23 @@ internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_resp
     _contentGenerators.AggregateToString(generator =>
         generator.GenerateResponseClass(_responseClassName, contentTypeFieldName)).Indent(4)
     }}}{{{(_contentGenerators.Any() ? 
-"""
+$$"""
 
 
     protected abstract IJsonValue Content { get; }
     protected abstract string ContentSchemaLocation { get; }
+      
+    /// <summary>
+    /// Content media types
+    /// </summary>
+    internal static readonly MediaTypeHeaderValue[] ContentMediaTypes = 
+    [{{_contentGenerators.AggregateToString(generator => 
+$$"""
+        {{generator.ClassName}}.ContentMediaType,
+""").TrimEnd(',')}}
+    ];
 """ : "")}}}
-
+    
     private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}};
     /// <summary>
     /// Response status code

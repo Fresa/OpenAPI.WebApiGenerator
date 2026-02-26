@@ -24,16 +24,16 @@ internal partial class Operation
     {
         _ = request.Query.Fee;
         _ = request.Path.FooId;
-        _ = request.Header.Bar;
 
-        var response = new Response.OK200.AnyApplication(Components.Schemas.FooProperties.Create(
-                name: request.Body.ApplicationJson?.Name), "application/json")
+        switch (request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var type))
         {
-            Headers = new Response.OK200.ResponseHeaders
-            {
-                Status = 2
-            }
-        };
-        return Task.FromResult<Response>(response);
+            case false:
+            case true when ReferenceEquals(type, Response.OK200.AnyApplication.ContentMediaType):
+                return Task.FromResult<Response>(new Response.OK200.AnyApplication(
+                    Components.Schemas.FooProperties.Create(name: request.Body.ApplicationJson?.Name),
+                    "application/json") { Headers = new Response.OK200.ResponseHeaders { Status = 2 } });
+            default:
+                throw new NotImplementedException($"Content media type {type} has not been implemented");
+        }
     }
 }
