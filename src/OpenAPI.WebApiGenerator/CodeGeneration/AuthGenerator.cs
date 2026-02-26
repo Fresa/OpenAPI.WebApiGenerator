@@ -228,8 +228,8 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
     protected abstract SecurityRequirements Requirements { get; }
     protected WebApiConfiguration Configuration { get; } = configuration;
 
-    protected abstract void HandleForbidden(HttpResponse response);
-    protected abstract void HandleUnauthorized(HttpResponse response);
+    protected abstract void HandleForbidden(HttpContext context);
+    protected abstract void HandleUnauthorized(HttpContext context);
     
     /// <inheritdoc/>
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -284,11 +284,11 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
     
         if (passedAuthentication)
         {
-            HandleForbidden(httpContext.Response);
+            HandleForbidden(httpContext);
             return null;    
         }
         
-        HandleUnauthorized(httpContext.Response);
+        HandleUnauthorized(httpContext);
         return null;
     }                                                                                    
      
@@ -396,8 +396,8 @@ $$"""
 """)))}}
     };
     
-    protected override void HandleUnauthorized(HttpResponse response) => operation.Validate(operation.HandleUnauthorized(), Configuration).WriteTo(response);
-    protected override void HandleForbidden(HttpResponse response) => operation.Validate(operation.HandleForbidden(), Configuration).WriteTo(response);
+    protected override void HandleUnauthorized(HttpContext context) => operation.Validate(operation.HandleUnauthorized(context), Configuration).WriteTo(context.Response);
+    protected override void HandleForbidden(HttpContext context) => operation.Validate(operation.HandleForbidden(context), Configuration).WriteTo(context.Response);
 }
 """;
     }

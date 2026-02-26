@@ -81,39 +81,8 @@ $$"""
     /// <returns>True if a matched media type was found</returns>
     internal bool TryMatchAcceptMediaType(
         MediaTypeHeaderValue[] mediaTypes, 
-        [NotNullWhen(true)] out MediaTypeHeaderValue? matchedMediaType)
-    {
-        var acceptHeaders = HttpContext.Request.GetTypedHeaders().Accept;
-        if (acceptHeaders is not { Count: > 0 })
-        {
-            matchedMediaType = mediaTypes.Length > 0 ? mediaTypes[0] : null;
-            return matchedMediaType != null;
-        }
-
-        var sortedAcceptMediaTypes = acceptHeaders
-            .OrderByDescending(headerValue => headerValue.Quality ?? 1.0)
-            .ThenByDescending(headerValue => headerValue.MatchesAllTypes ? 0 : headerValue.MatchesAllSubTypes ? 1 : 2)
-            .ThenByDescending(headerValue => headerValue.Parameters.Count);
-
-        foreach (var acceptMediaType in sortedAcceptMediaTypes)
-        {
-            if ((acceptMediaType.Quality ?? 1.0) <= 0)
-                continue;
-
-            foreach (var mediaType in mediaTypes)
-            {
-                if (!mediaType.IsSubsetOf(acceptMediaType))
-                {
-                    continue;
-                }
-                matchedMediaType = mediaType;
-                return true;
-            }
-        }
-
-        matchedMediaType = null;
-        return false;
-    }
+        [NotNullWhen(true)] out MediaTypeHeaderValue? matchedMediaType) =>
+        HttpContext.Request.TryMatchAcceptMediaType(mediaTypes, out matchedMediaType);
     
     /// <summary>
     /// Validate the request

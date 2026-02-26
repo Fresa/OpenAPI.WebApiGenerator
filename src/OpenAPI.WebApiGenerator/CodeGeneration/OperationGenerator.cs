@@ -65,7 +65,7 @@ internal partial class Operation
     /// Set a custom delegate to handle request validation errors.
     /// <exception cref="JsonValidationException"></exception>
     /// </summary>
-    private Func<ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = validationResult => 
+    private Func<HttpContext, ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = (_, validationResult) => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
 {{authGenerator.GenerateAuthFilters(operation.Operation, parameters, out var requiresAuth).Indent(4)}}
@@ -75,12 +75,12 @@ internal partial class Operation
     /// <summary>
     /// Set a custom delegate to handle unauthorized responses.
     /// </summary>
-    private Func<Response> HandleUnauthorized { get; } = () => new Response.Unauthorized();
+    private Func<HttpContext, Response> HandleUnauthorized { get; } = _ => new Response.Unauthorized();
     
     /// <summary>
     /// Set a custom delegate to handle forbidden responses.
     /// </summary>
-    private Func<Response> HandleForbidden { get; } = () => new Response.Forbidden();
+    private Func<HttpContext, Response> HandleForbidden { get; } = _ => new Response.Forbidden();
     
 """ : "")}}
     /// <summary>
@@ -124,7 +124,7 @@ internal partial class Operation
         var validationContext = request.Validate(operation.ValidationLevel);
         if (!validationContext.IsValid)
         {
-            operation.HandleRequestValidationError(validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
+            operation.HandleRequestValidationError(context, validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri))
                 .WriteTo(context.Response);
             return;
         }

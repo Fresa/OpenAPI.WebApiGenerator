@@ -12,7 +12,7 @@ internal partial class Operation
         ValidationLevel = ValidationLevel.Detailed;
     }
 
-    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(HttpContext _, ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
             Responses.BadRequest.RequiredErrorAndName.Create(

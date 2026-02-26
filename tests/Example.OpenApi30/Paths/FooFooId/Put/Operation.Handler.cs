@@ -11,7 +11,7 @@ internal partial class Operation
         ValidateResponse = true;
     }
 
-    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(HttpContext _, ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
             Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(

@@ -10,7 +10,7 @@ internal partial class Operation
         HandleRequestValidationError = HandleValidationErrors;
     }
 
-    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(HttpContext _, ImmutableList<ValidationResult> validationResults)
     {
         var response = validationResults.Select(result =>
             Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(
@@ -36,21 +36,4 @@ internal partial class Operation
         };
         return Task.FromResult<Response>(response);
     }
-}
-
-internal abstract class Test
-{
-    protected abstract string A { get; }
-
-    
-}
-
-internal class Testar : Test
-{
-    public Testar(string a)
-    {
-        A = a;
-    }
-
-    protected sealed override string A { get; }
 }

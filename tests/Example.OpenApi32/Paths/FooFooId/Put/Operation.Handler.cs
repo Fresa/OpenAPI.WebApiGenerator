@@ -10,30 +10,37 @@ internal partial class Operation
         HandleRequestValidationError = HandleValidationErrors;
     }
 
-    private static Response.BadRequest400 HandleValidationErrors(ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(HttpContext context, ImmutableList<ValidationResult> validationResults)
     {
-        var response = validationResults.Select(result =>
-            Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(
-                name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
-                error: result.Message ?? string.Empty));
-        return new Response.BadRequest400.ApplicationJson(
-            Components.Responses.BadRequest.Content.ApplicationJson.Create(response.ToArray()));
+        switch (context.Request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var matchedMediaType))
+        {
+            case false:
+            case true when ReferenceEquals(matchedMediaType, Response.OK200.AnyApplication.ContentMediaType):
+                var response = validationResults.Select(result =>
+                    Components.Responses.BadRequest.Content.ApplicationJson.RequiredErrorAndName.Create(
+                        name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
+                        error: result.Message ?? string.Empty));
+                return new Response.BadRequest400.ApplicationJson(
+                    Components.Responses.BadRequest.Content.ApplicationJson.Create(response.ToArray()));
+            default:
+                throw new NotImplementedException($"Content media type {matchedMediaType} has not been implemented");
+        }
     }
 
     internal partial Task<Response> HandleAsync(Request request, CancellationToken cancellationToken)
     {
         _ = request.Query.Fee;
         _ = request.Path.FooId;
-
-        switch (request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var type))
+        
+        switch (request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var matchedMediaType))
         {
             case false:
-            case true when ReferenceEquals(type, Response.OK200.AnyApplication.ContentMediaType):
+            case true when ReferenceEquals(matchedMediaType, Response.OK200.AnyApplication.ContentMediaType):
                 return Task.FromResult<Response>(new Response.OK200.AnyApplication(
                     Components.Schemas.FooProperties.Create(name: request.Body.ApplicationJson?.Name),
                     "application/json") { Headers = new Response.OK200.ResponseHeaders { Status = 2 } });
             default:
-                throw new NotImplementedException($"Content media type {type} has not been implemented");
+                throw new NotImplementedException($"Content media type {matchedMediaType} has not been implemented");
         }
     }
 }
