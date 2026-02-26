@@ -79,10 +79,9 @@ $$"""
     /// <param name="mediaTypes">Media types to match against</param>
     /// <param name="matchedMediaType">Matched media type if method returns true</param>
     /// <returns>True if a matched media type was found</returns>
-    internal bool TryMatchAcceptMediaType(
-        MediaTypeHeaderValue[] mediaTypes, 
-        [NotNullWhen(true)] out MediaTypeHeaderValue? matchedMediaType) =>
-        HttpContext.Request.TryMatchAcceptMediaType(mediaTypes, out matchedMediaType);
+    internal bool TryMatchAcceptMediaType<T>(
+        [NotNullWhen(true)] out MediaTypeHeaderValue? matchedMediaType) where T : class, IResponse =>
+        HttpContext.Request.TryMatchAcceptMediaType(T.ContentMediaTypes, out matchedMediaType);
     
     /// <summary>
     /// Validate the request

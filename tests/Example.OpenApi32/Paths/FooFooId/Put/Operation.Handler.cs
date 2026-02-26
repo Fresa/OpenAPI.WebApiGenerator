@@ -32,7 +32,7 @@ internal partial class Operation
         _ = request.Query.Fee;
         _ = request.Path.FooId;
         
-        switch (request.TryMatchAcceptMediaType(Response.OK200.ContentMediaTypes, out var matchedMediaType))
+        switch (request.TryMatchAcceptMediaType<Response.OK200>(out var matchedMediaType))
         {
             case false:
             case true when ReferenceEquals(matchedMediaType, Response.OK200.AnyApplication.ContentMediaType):

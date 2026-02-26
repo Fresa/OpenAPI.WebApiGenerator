@@ -67,6 +67,14 @@ $$"""
         generator.GenerateResponseContentClass()).Indent(4)
     }}
 }
+
+internal interface IResponse 
+{
+    /// <summary>
+    /// Content media types
+    /// </summary>
+    internal static abstract MediaTypeHeaderValue[] ContentMediaTypes { get; }
+}
 #nullable restore
 """);
     }

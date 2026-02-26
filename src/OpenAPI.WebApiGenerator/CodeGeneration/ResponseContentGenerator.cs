@@ -62,7 +62,7 @@ internal sealed class ResponseContentGenerator
         return 
 $$$"""
 {{{_response.Description.AsComment("summary", "para")}}}
-internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_responseClassName}}} : Response
+internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_responseClassName}}} : Response{{{(_contentGenerators.Any() ? ", IResponse" : "")}}}
 {
     private string? {{{contentTypeFieldName}}} = null;{{{
     _contentGenerators.AggregateToString(generator =>
@@ -74,10 +74,8 @@ $$"""
     protected abstract IJsonValue Content { get; }
     protected abstract string ContentSchemaLocation { get; }
       
-    /// <summary>
-    /// Content media types
-    /// </summary>
-    internal static readonly MediaTypeHeaderValue[] ContentMediaTypes = 
+    /// <inheritdoc/>
+    public static MediaTypeHeaderValue[] ContentMediaTypes { get; } = 
     [{{_contentGenerators.AggregateToString(generator => 
 $$"""
         {{generator.ClassName}}.ContentMediaType,
