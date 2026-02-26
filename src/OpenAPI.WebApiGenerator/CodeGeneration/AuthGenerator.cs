@@ -396,8 +396,9 @@ $$"""
 """)))}}
     };
     
-    protected override void HandleUnauthorized(HttpContext context) => operation.Validate(operation.HandleUnauthorized(context), Configuration).WriteTo(context.Response);
-    protected override void HandleForbidden(HttpContext context) => operation.Validate(operation.HandleForbidden(context), Configuration).WriteTo(context.Response);
+    private static Request ResolveRequest(HttpContext context) => (Request) context.Items[RequestItemKey]!;
+    protected override void HandleUnauthorized(HttpContext context) => operation.Validate(operation.HandleUnauthorized(ResolveRequest(context)), Configuration).WriteTo(context.Response);
+    protected override void HandleForbidden(HttpContext context) => operation.Validate(operation.HandleForbidden(ResolveRequest(context)), Configuration).WriteTo(context.Response);
 }
 """;
     }

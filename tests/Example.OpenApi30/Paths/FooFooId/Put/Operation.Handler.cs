@@ -11,9 +11,9 @@ internal partial class Operation
         ValidateResponse = true;
     }
 
-    private static Response.BadRequest400 HandleValidationErrors(HttpContext context, ImmutableList<ValidationResult> validationResults)
+    private static Response.BadRequest400 HandleValidationErrors(Request request, ImmutableList<ValidationResult> validationResults)
     {
-        switch (context.Request.TryMatchAcceptMediaType(Response.BadRequest400.ContentMediaTypes, out var matchedMediaType))
+        switch (request.TryMatchAcceptMediaType<Response.BadRequest400>(out var matchedMediaType))
         {
             case false:
             case true when ReferenceEquals(matchedMediaType, Response.BadRequest400.ApplicationJson.ContentMediaType):
