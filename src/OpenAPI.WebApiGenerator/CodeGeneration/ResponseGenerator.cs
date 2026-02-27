@@ -69,22 +69,28 @@ $$"""
     }}
 }
 
-internal interface IResponse<T> where T : class
+/// <summary>
+/// Represents a response with content
+/// </summary>
+/// <typeparam name="T">Response</typeparam>
+internal interface IContent<T> where T : Response
 {
     /// <summary>
-    /// Contents for this response
+    /// Contents for the response
     /// </summary>
     internal static abstract ContentMediaType<T>[] ContentMediaTypes { get; }
 }
 
-internal interface IContent<T> where T : class, IResponse<T>
-{
-    internal static abstract ContentMediaType<T> ContentMediaType { get; }
-}
-
+/// <summary>
+/// Typed content media type
+/// </summary>
+/// <typeparam name="T">Response</typeparam>
 internal readonly record struct ContentMediaType<T>(MediaTypeHeaderValue Value) 
-    where T : class
+    where T : Response
 {
+    /// <summary>
+    /// Implicitly convert back to MediaTypeHeaderValue
+    /// </summary>
     public static implicit operator MediaTypeHeaderValue(ContentMediaType<T> mediaType) => mediaType.Value;
 }
 
@@ -97,7 +103,7 @@ internal partial class Request
     /// <typeparam name="T">The response to match against</typeparam>
     /// <returns>True if a matched media type was found</returns>
     internal bool TryMatchAcceptMediaType<T>(
-        [NotNullWhen(true)] out ContentMediaType<T>? matchedContentMediaType) where T : class, IResponse<T>
+        [NotNullWhen(true)] out ContentMediaType<T>? matchedContentMediaType) where T : Response, IContent<T>
     {
         var mediaTypes = T.ContentMediaTypes;
         var acceptHeaders = HttpContext.Request.GetTypedHeaders().Accept;

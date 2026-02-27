@@ -62,7 +62,7 @@ internal sealed class ResponseContentGenerator
         return 
 $$$"""
 {{{_response.Description.AsComment("summary", "para")}}}
-internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_responseClassName}}} : Response{{{(_contentGenerators.Any() ? $", IResponse<{_responseClassName}>" : "")}}}
+internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_responseClassName}}} : Response{{{(_contentGenerators.Any() ? $", IContent<{_responseClassName}>" : "")}}}
 {
     private string? {{{contentTypeFieldName}}} = null;{{{
     _contentGenerators.AggregateToString(generator =>
