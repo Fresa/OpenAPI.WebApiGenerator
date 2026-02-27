@@ -15,6 +15,7 @@ $$"""
 #nullable enable
 using Corvus.Json;
 using Microsoft.Net.Http.Headers;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using {{httpResponseExtensionsGenerator.Namespace}};
 
@@ -68,12 +69,68 @@ $$"""
     }}
 }
 
-internal interface IResponse 
+internal interface IResponse<T> where T : class
 {
     /// <summary>
-    /// Content media types
+    /// Contents for this response
     /// </summary>
-    internal static abstract MediaTypeHeaderValue[] ContentMediaTypes { get; }
+    internal static abstract ContentMediaType<T>[] ContentMediaTypes { get; }
+}
+
+internal interface IContent<T> where T : class, IResponse<T>
+{
+    internal static abstract ContentMediaType<T> ContentMediaType { get; }
+}
+
+internal readonly record struct ContentMediaType<T>(MediaTypeHeaderValue Value) 
+    where T : class
+{
+    public static implicit operator MediaTypeHeaderValue(ContentMediaType<T> mediaType) => mediaType.Value;
+}
+
+internal partial class Request
+{
+    /// <summary>
+    /// Returns the best response content media type match if an acceptable media type is found.
+    /// </summary>
+    /// <param name="matchedContentMediaType">Matched content media type if method returns true</param>
+    /// <typeparam name="T">The response to match against</typeparam>
+    /// <returns>True if a matched media type was found</returns>
+    internal bool TryMatchAcceptMediaType<T>(
+        [NotNullWhen(true)] out ContentMediaType<T>? matchedContentMediaType) where T : class, IResponse<T>
+    {
+        var mediaTypes = T.ContentMediaTypes;
+        var acceptHeaders = HttpContext.Request.GetTypedHeaders().Accept;
+        if (acceptHeaders is not { Count: > 0 })
+        {
+            matchedContentMediaType = mediaTypes.Length > 0 ? mediaTypes[0] : null;
+            return matchedContentMediaType != null;
+        }
+
+        var sortedAcceptMediaTypes = acceptHeaders
+            .OrderByDescending(headerValue => headerValue.Quality ?? 1.0)
+            .ThenByDescending(headerValue => headerValue.MatchesAllTypes ? 0 : headerValue.MatchesAllSubTypes ? 1 : 2)
+            .ThenByDescending(headerValue => headerValue.Parameters.Count);
+
+        foreach (var acceptMediaType in sortedAcceptMediaTypes)
+        {
+            if ((acceptMediaType.Quality ?? 1.0) <= 0)
+                continue;
+
+            foreach (var mediaType in mediaTypes)
+            {
+                if (!mediaType.Value.IsSubsetOf(acceptMediaType))
+                {
+                    continue;
+                }
+                matchedContentMediaType = mediaType;
+                return true;
+            }
+        }
+
+        matchedContentMediaType = null;
+        return false;
+    } 
 }
 #nullable restore
 """);

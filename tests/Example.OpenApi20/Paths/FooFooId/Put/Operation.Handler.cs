@@ -17,7 +17,7 @@ internal partial class Operation
         switch (request.TryMatchAcceptMediaType<Response.BadRequest400>(out var matchedMediaType))
         {
             case false:
-            case true when ReferenceEquals(matchedMediaType, Response.BadRequest400.ApplicationJson.ContentMediaType):
+            case true when matchedMediaType == Response.BadRequest400.ApplicationJson.ContentMediaType:
                 var response = validationResults.Select(result =>
                     Responses.BadRequest.RequiredErrorAndName.Create(
                         name: result.Location?.SchemaLocation.ToString() ?? string.Empty,
@@ -38,7 +38,7 @@ internal partial class Operation
         switch (request.TryMatchAcceptMediaType<Response.OK200>(out var matchedMediaType))
         {
             case false:
-            case true when ReferenceEquals(matchedMediaType, Response.OK200.ApplicationJson.ContentMediaType):
+            case true when matchedMediaType == Response.OK200.ApplicationJson.ContentMediaType:
                 var response = new Response.OK200.ApplicationJson(Definitions.FooProperties.Create(
                         name: request.Body.ApplicationJson?.Name))
                 {

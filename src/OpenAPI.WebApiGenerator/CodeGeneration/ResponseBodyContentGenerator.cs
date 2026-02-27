@@ -66,7 +66,8 @@ internal sealed class {{ClassName}} : {{responseClassName}}
         {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
     }
     
-    internal static readonly MediaTypeHeaderValue ContentMediaType = MediaTypeHeaderValue.Parse("{{_contentType}}");
+    /// <inheritdoc/>
+    public static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{_contentType}}"));
     protected override IJsonValue Content { get; }
     protected override string ContentSchemaLocation { get; } = "{{SchemaLocation}}";
 }

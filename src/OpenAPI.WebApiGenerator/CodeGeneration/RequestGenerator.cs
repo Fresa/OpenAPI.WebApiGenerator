@@ -31,8 +31,6 @@ internal sealed class RequestGenerator(
 $$"""
 #nullable enable
 using Corvus.Json;
-using System.Diagnostics.CodeAnalysis;
-using Microsoft.Net.Http.Headers;
 
 namespace {{@namespace}};
 
@@ -72,16 +70,6 @@ $$"""
 
         return {{(isAsync ? "request" : "Task.FromResult(request)")}};
     }
-    
-    /// <summary>
-    /// Returns the best match if an acceptable media type is found.
-    /// </summary>
-    /// <param name="mediaTypes">Media types to match against</param>
-    /// <param name="matchedMediaType">Matched media type if method returns true</param>
-    /// <returns>True if a matched media type was found</returns>
-    internal bool TryMatchAcceptMediaType<T>(
-        [NotNullWhen(true)] out MediaTypeHeaderValue? matchedMediaType) where T : class, IResponse =>
-        HttpContext.Request.TryMatchAcceptMediaType(T.ContentMediaTypes, out matchedMediaType);
     
     /// <summary>
     /// Validate the request
