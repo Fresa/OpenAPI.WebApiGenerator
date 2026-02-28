@@ -70,7 +70,7 @@ app.MapOperations();
 app.Run();
 ```
 
-Examples:
+## Examples:
 - [OpenAPI 2.0](tests/Example.OpenApi20)
 - [OpenAPI 3.0](tests/Example.OpenApi30)
 - [OpenAPI 3.1](tests/Example.OpenApi31)
@@ -132,6 +132,39 @@ These handlers will not be generated in subsequent compilations as the generator
         Condition="'$(EmitCompilerGeneratedFiles)'=='true'">
     <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
 </Target>
+```
+
+## Content Negotiation
+Content is negotiated for both request and responses.
+
+See the [examples](#examples) for more details.
+### Request Body Content
+Request body content is automatically mapped via the [Content-Type](https://datatracker.ietf.org/doc/html/rfc9110#field.content-type) header. The `Request.Body` property has content properties generated for all specified content which can be tested for nullability to figure out which one was sent. 
+
+If `Body` is optional, all content properties might be null.
+
+If body is not defined for the request, there will be no `Body` property generated. 
+
+### Response Content
+Response content can be negotiated using the `TryMatchAcceptMediaType` method exposed by the `Request` class. Call it with the wanted response and it will return the best content matching the [Accept](https://datatracker.ietf.org/doc/html/rfc9110#name-accept) header.
+
+This method can only be used with response that define content, and it is scoped to responses defined by the current operation.
+
+Example:
+```dotnet
+switch (request.TryMatchAcceptMediaType<Response.OK200>(out var matchedMediaType))
+{
+    // No match, the server decides what to do
+    case false:
+    // Matched any application content (application/*)
+    case true when matchedMediaType == Response.OK200.AnyApplication.ContentMediaType:
+        return Task.FromResult<Response>(new Response.OK200.AnyApplication(
+            Components.Schemas.FooProperties.Create(name: request.Body.ApplicationJson?.Name),
+            "application/json") { Headers = new Response.OK200.ResponseHeaders { Status = 2 } });
+    // Matched content that has not been implemented yet by the operation handler (can be used to detect newly specified content that has not yet been implemented)
+    default:
+        throw new NotImplementedException($"Content media type {matchedMediaType} has not been implemented");
+} 
 ```
 
 ## Authentication and Authorization
