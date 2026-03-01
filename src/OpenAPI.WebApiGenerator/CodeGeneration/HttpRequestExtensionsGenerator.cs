@@ -43,6 +43,7 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
         using Microsoft.Extensions.Primitives;
+        using Microsoft.Net.Http.Headers;
         using OpenAPI.ParameterStyleParsers;
 
         namespace {{{@namespace}}};
@@ -184,7 +185,7 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 }
             
                 return instance == null ? T.Null : T.Parse(instance.ToJsonString());
-            } 
+            }
         }
         #nullable restore
         """");

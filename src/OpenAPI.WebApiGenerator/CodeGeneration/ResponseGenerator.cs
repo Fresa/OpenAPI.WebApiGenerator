@@ -14,7 +14,8 @@ internal sealed class ResponseGenerator(
 $$"""
 #nullable enable
 using Corvus.Json;
-using System.Net.Http.Headers;
+using Microsoft.Net.Http.Headers;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using {{httpResponseExtensionsGenerator.Namespace}};
 
@@ -44,18 +45,10 @@ $$"""
     /// <param name="expectedContentType">Expected content type</param>
     protected void EnsureExpectedContentType(MediaTypeHeaderValue contentType, MediaTypeHeaderValue expectedContentType)
     {
-        var valid = expectedContentType.MediaType switch
+        if (!contentType.IsSubsetOf(expectedContentType))
         {
-            "*/*" => true,
-            not null when expectedContentType.MediaType.EndsWith("*") =>
-                contentType.MediaType?.StartsWith(expectedContentType.MediaType.TrimEnd('*'), StringComparison.OrdinalIgnoreCase) ?? false,
-            not null => contentType.MediaType?.Equals(expectedContentType.MediaType, StringComparison.OrdinalIgnoreCase) ?? false,
-            _ => false
-        };
-        
-        if (valid)
-            return;
-        throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to match range {expectedContentType.MediaType}");
+            throw new ArgumentOutOfRangeException($"Expected content type {contentType.MediaType} to be a subset of {expectedContentType.MediaType}");
+        }
     }
 
     /// <summary>
@@ -74,6 +67,76 @@ $$"""
     responseBodyGenerators.AggregateToString(generator => 
         generator.GenerateResponseContentClass()).Indent(4)
     }}
+}
+
+/// <summary>
+/// Represents a response with content
+/// </summary>
+/// <typeparam name="T">Response</typeparam>
+internal interface IContent<T> where T : Response
+{
+    /// <summary>
+    /// Contents for the response
+    /// </summary>
+    internal static abstract ContentMediaType<T>[] ContentMediaTypes { get; }
+}
+
+/// <summary>
+/// Typed content media type
+/// </summary>
+/// <typeparam name="T">Response</typeparam>
+internal readonly record struct ContentMediaType<T>(MediaTypeHeaderValue Value) 
+    where T : Response
+{
+    /// <summary>
+    /// Implicitly convert back to MediaTypeHeaderValue
+    /// </summary>
+    public static implicit operator MediaTypeHeaderValue(ContentMediaType<T> mediaType) => mediaType.Value;
+}
+
+internal partial class Request
+{
+    /// <summary>
+    /// Returns the best response content media type match if an acceptable media type is found.
+    /// </summary>
+    /// <param name="matchedContentMediaType">Matched content media type if method returns true</param>
+    /// <typeparam name="T">The response to match against</typeparam>
+    /// <returns>True if a matched media type was found</returns>
+    internal bool TryMatchAcceptMediaType<T>(
+        [NotNullWhen(true)] out ContentMediaType<T>? matchedContentMediaType) where T : Response, IContent<T>
+    {
+        var mediaTypes = T.ContentMediaTypes;
+        var acceptHeaders = HttpContext.Request.GetTypedHeaders().Accept;
+        if (acceptHeaders is not { Count: > 0 })
+        {
+            matchedContentMediaType = mediaTypes.Length > 0 ? mediaTypes[0] : null;
+            return matchedContentMediaType != null;
+        }
+
+        var sortedAcceptMediaTypes = acceptHeaders
+            .OrderByDescending(headerValue => headerValue.Quality ?? 1.0)
+            .ThenByDescending(headerValue => headerValue.MatchesAllTypes ? 0 : headerValue.MatchesAllSubTypes ? 1 : 2)
+            .ThenByDescending(headerValue => headerValue.Parameters.Count);
+
+        foreach (var acceptMediaType in sortedAcceptMediaTypes)
+        {
+            if ((acceptMediaType.Quality ?? 1.0) <= 0)
+                continue;
+
+            foreach (var mediaType in mediaTypes)
+            {
+                if (!mediaType.Value.IsSubsetOf(acceptMediaType))
+                {
+                    continue;
+                }
+                matchedContentMediaType = mediaType;
+                return true;
+            }
+        }
+
+        matchedContentMediaType = null;
+        return false;
+    } 
 }
 #nullable restore
 """);

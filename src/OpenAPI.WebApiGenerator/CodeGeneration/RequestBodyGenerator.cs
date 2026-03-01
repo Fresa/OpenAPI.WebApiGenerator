@@ -25,8 +25,7 @@ internal sealed class RequestBodyGenerator
     {
         _body = body;
         _contentGenerators = contentGenerators
-            .OrderByDescending(generator => 
-                generator.ContentType.GetPrecedence())
+            .SortByContentType()
             .ToList();
     }
 

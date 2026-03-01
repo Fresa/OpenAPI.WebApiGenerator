@@ -62,15 +62,26 @@ internal sealed class ResponseContentGenerator
         return 
 $$$"""
 {{{_response.Description.AsComment("summary", "para")}}}
-internal sealed class {{{_responseClassName}}} : Response
+internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_responseClassName}}} : Response{{{(_contentGenerators.Any() ? $", IContent<{_responseClassName}>" : "")}}}
 {
     private string? {{{contentTypeFieldName}}} = null;{{{
     _contentGenerators.AggregateToString(generator =>
-        generator.GenerateConstructor(_responseClassName, contentTypeFieldName)).Indent(4)
-    }}}{{{
-    _contentGenerators.AggregateToString(generator => 
-        generator.GenerateContentProperty()).Indent(4)
-    }}}
+        generator.GenerateResponseClass(_responseClassName, contentTypeFieldName)).Indent(4)
+    }}}{{{(_contentGenerators.Any() ? 
+$$"""
+
+
+    protected abstract IJsonValue Content { get; }
+    protected abstract string ContentSchemaLocation { get; }
+      
+    /// <inheritdoc/>
+    public static ContentMediaType<{{_responseClassName}}>[] ContentMediaTypes { get; } = 
+    [{{_contentGenerators.AggregateToString(generator => 
+$$"""
+        {{generator.ClassName}}.ContentMediaType,
+""").TrimEnd(',')}}
+    ];
+""" : "")}}}
     
     private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}};
     /// <summary>
@@ -106,19 +117,9 @@ $$"""
     {{{{(_contentGenerators.Any() ? 
 $$"""
 
-        switch (true)
-        {{{_contentGenerators.AggregateToString(generator => 
-$"""
-            case true when {generator.ContentPropertyName} is not null:
-                {HttpResponseExtensionsGenerator.CreateWriteBodyInvocation(
-                    responseVariableName, 
-                    $"{generator.ContentPropertyName}.Value")};
-                break;
-""")}}
-            default:
-                throw new InvalidOperationException("No content was defined");         
-        }
-
+        {{HttpResponseExtensionsGenerator.CreateWriteBodyInvocation(
+            responseVariableName, 
+            "Content")}};
 """ : "")}}}
         {{{responseVariableName}}}.ContentType = {{{contentTypeFieldName}}};
         {{{responseVariableName}}}.StatusCode = StatusCode;{{{
@@ -130,14 +131,10 @@ $"""
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
-        validationContext = true switch
-        {{{{_contentGenerators.AggregateToString(generator => 
+        {{{(_contentGenerators.Any() ? 
 $"""
-            true when {generator.ContentPropertyName} is not null =>
-                {generator.ContentPropertyName}.Value.Validate("{generator.SchemaLocation}", true, validationContext, validationLevel),
-""")}}}
-            _ => validationContext          
-        };
+        validationContext = Content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
+""" : "")}}}
         {{{_headerGenerators.AggregateToString(generator =>
             generator.GenerateValidateDirective()).Indent(8)}}}
         return validationContext;
