@@ -10,20 +10,21 @@ internal sealed class SequentialJsonEnumeratorGenerator(string @namespace)
     internal string GenerateConstructorInstance(
         MediaTypeHeaderValue mediaType, 
         TypeDeclaration itemTypeDeclaration,
-        string streamParameterReference,
-        string schemaLocation,
-        string validationLevel) =>
+        string streamParameterReference) =>
 $"""
-new {GetFullyQualifiedTypeName(mediaType)}<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>({streamParameterReference}, "{schemaLocation}", {validationLevel})
+new {GetFullyQualifiedTypeName(mediaType, itemTypeDeclaration)}({streamParameterReference})
 """;
 
-    internal string GetFullyQualifiedTypeName(MediaTypeHeaderValue mediaType) =>
+    internal string GetFullyQualifiedTypeName(
+        MediaTypeHeaderValue mediaType,
+        TypeDeclaration itemTypeDeclaration) =>
         $"{@namespace}.{mediaType.MediaType.ToLower() switch
         {
             "application/jsonl" or "application/x-ndjson" or "application/x-jsonlines" => "ApplicationJsonlEnumerator",
             "application/json-seq" or "application/geo+json-seq" => "ApplicationJsonSeqEnumerator",
             _ => mediaType.MediaType.ToPascalCase()
-        }}";
+        }}<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>";
+    
     internal SourceCode GenerateClasses() => new("SequentialJsonEnumerators.g.cs",
 $$"""
 #nullable enable
@@ -39,9 +40,7 @@ namespace {{@namespace}};
 /// Base class for sequential json enumerators
 /// </summary>
 internal abstract class SequentialJsonEnumerator<T>(
-    Stream stream,
-    string schemaLocation, 
-    ValidationLevel validationLevel) : IAsyncEnumerator<T> 
+    Stream stream) : IAsyncEnumerator<T> 
     where T : struct, IJsonValue<T>
 {
     private PipeReader PipeReader { get; } = PipeReader.Create(stream);
@@ -49,7 +48,9 @@ internal abstract class SequentialJsonEnumerator<T>(
     public ValueTask DisposeAsync() => PipeReader.CompleteAsync();
 
     private int _itemPosition;
-    
+    private ValidationLevel _validationLevel = default;
+    private string _schemaLocation = "#";
+
     /// <inheritdoc/>
     public async ValueTask<bool> MoveNextAsync()
     {
@@ -94,14 +95,29 @@ internal abstract class SequentialJsonEnumerator<T>(
     /// </summary>
     /// <returns>The validation result</returns>
     internal ValidationContext ValidateCurrentItem() => 
-        Current.Validate($"{schemaLocation}/{_itemPosition}", true, ValidationContext.ValidContext, validationLevel);
+        Current.Validate($"{_schemaLocation}/{_itemPosition}", true, ValidationContext.ValidContext, _validationLevel);
+        
+    /// <summary>
+    /// Validates the sequence
+    /// </summary>
+    /// <param name="schemaLocation">The location of the schema describing the sequence</param>
+    /// <param name="isRequired">Is the sequence required?</param>
+    /// <param name="validationContext">Current validation context</param>
+    /// <param name="validationLevel">The validation level</param>
+    /// <returns>The validation result</returns>
+    internal ValidationContext Validate(string schemaLocation, bool isRequired, ValidationContext validationContext, ValidationLevel validationLevel)
+    {
+        _schemaLocation = schemaLocation;
+        _validationLevel = validationLevel;
+        return validationContext;
+    }
 }
 
 /// <summary>
 /// Sequential json enumerator for jsonl
 /// </summary>
-internal sealed class ApplicationJsonlEnumerator<T>(Stream stream, string schemaLocation, ValidationLevel validationLevel) : 
-    SequentialJsonEnumerator<T>(stream, schemaLocation, validationLevel) 
+internal sealed class ApplicationJsonlEnumerator<T>(Stream stream) : 
+    SequentialJsonEnumerator<T>(stream) 
     where T : struct, IJsonValue<T>
 {
     protected override byte Delimiter => 0x0A;
@@ -111,8 +127,8 @@ internal sealed class ApplicationJsonlEnumerator<T>(Stream stream, string schema
 /// <summary>
 /// Sequential json enumerator for json-seq
 /// </summary>
-internal sealed class ApplicationJsonSeqEnumerator<T>(Stream stream, string schemaLocation, ValidationLevel validationLevel) : 
-    SequentialJsonEnumerator<T>(stream, schemaLocation, validationLevel) 
+internal sealed class ApplicationJsonSeqEnumerator<T>(Stream stream) : 
+    SequentialJsonEnumerator<T>(stream) 
     where T : struct, IJsonValue<T>
 {
     private const byte RecordSeparator = 0x1E;

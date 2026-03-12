@@ -120,7 +120,7 @@ $$"""
         {{{_contentGenerators.AggregateToString(content => 
 $"""
             true when {content.PropertyName} is not null =>
-                {content.PropertyName}!.Value.Validate("{content.SchemaLocation}", true, validationContext, validationLevel),
+                {content.PropertyName}!.{(content.IsPropertyStruct ? "Value." : "")}Validate("{content.SchemaLocation}", true, validationContext, validationLevel),
 """)}} 
             true when requestContentType is null =>
                 {{(_body.Required ? """validationContext.WithResult(false, "Request content is missing")""" : "validationContext")}},

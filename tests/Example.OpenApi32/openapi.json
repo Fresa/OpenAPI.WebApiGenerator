@@ -80,6 +80,31 @@
           "$ref": "#/components/parameters/FooId"
         }
       ]
+    },
+    "/foo/{FooId}/events": {
+      "post": {
+        "operationId": "Import_Foo_Events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/jsonl": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/FooId"
+        }
+      ]
     }
   },
   "components": {
