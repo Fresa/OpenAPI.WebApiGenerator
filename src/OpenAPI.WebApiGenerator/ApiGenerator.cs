@@ -89,9 +89,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
         validationExtensionsGenerator.GenerateClass().AddTo(context);
+        var sequentialJsonEnumeratorsGenerator = new SequentialJsonEnumeratorGenerator(rootNamespace);
+        sequentialJsonEnumeratorsGenerator.GenerateClasses().AddTo(context);
         
         var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();
-        var securityParameterGenerators = new ConcurrentDictionary<IOpenApiSecurityScheme, List<ParameterGenerator>>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
