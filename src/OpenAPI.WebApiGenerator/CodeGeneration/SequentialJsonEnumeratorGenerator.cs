@@ -27,8 +27,11 @@ new {GetFullyQualifiedTypeName(mediaType)}<{itemTypeDeclaration.FullyQualifiedDo
     internal SourceCode GenerateClasses() => new("SequentialJsonEnumerators.g.cs",
 $$"""
 #nullable enable
+using Corvus.Json;
 using Microsoft.AspNetCore.Authorization;
 using System;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace {{@namespace}};
 
