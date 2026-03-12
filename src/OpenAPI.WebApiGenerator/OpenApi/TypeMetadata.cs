@@ -21,7 +21,7 @@ internal sealed class TypeMetadata(string @namespace, string path, string name)
                 .ToArray()
                 .AsSpan();
         // Remove any schema leaf node, as that is metadata and doesn't describe the name of the type
-        if (SchemaMetaLeafNodeNames.Contains(segments[^1]))
+        if (SchemaMetaLeafNodeNames.Contains(segments[^1], StringComparer.OrdinalIgnoreCase))
         {
             segments = segments[..^1];
         }
