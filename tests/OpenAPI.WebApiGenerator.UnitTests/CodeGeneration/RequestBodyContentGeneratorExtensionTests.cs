@@ -5,7 +5,7 @@ using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using Xunit;
 
-namespace OpenAPI.WebApiGenerator.Tests.CodeGeneration;
+namespace OpenAPI.WebApiGenerator.UnitTests.CodeGeneration;
 
 public class RequestBodyContentGeneratorExtensionTests
 {

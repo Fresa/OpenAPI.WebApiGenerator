@@ -3,7 +3,7 @@ using AwesomeAssertions;
 using OpenAPI.WebApiGenerator.Extensions;
 using Xunit;
 
-namespace OpenAPI.WebApiGenerator.Tests.Extensions;
+namespace OpenAPI.WebApiGenerator.UnitTests.Extensions;
 
 public class MediaTypeExtensionsTests
 {

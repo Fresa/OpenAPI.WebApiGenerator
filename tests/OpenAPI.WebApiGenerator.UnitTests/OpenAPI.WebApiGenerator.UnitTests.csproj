@@ -10,6 +10,7 @@
         <PackageReference Include="AwesomeAssertions" Version="9.0.0" />
         <PackageReference Include="Corvus.Json.SourceGeneratorTools" Version="4.4.3" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.2"/>
+        <PackageReference Include="Microsoft.OpenApi" Version="3.3.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -19,16 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\OpenAPI.WebApiGenerator\OpenAPI.WebApiGenerator.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="OpenApiSpecs/*.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
-        <Content Include="OpenApiSpecs/*.yaml">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
+        <ProjectReference Include="..\..\src\OpenAPI.WebApiGenerator\OpenAPI.WebApiGenerator.csproj" />
     </ItemGroup>
 
 </Project>

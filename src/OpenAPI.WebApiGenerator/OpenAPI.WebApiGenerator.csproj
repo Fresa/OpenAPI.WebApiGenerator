@@ -83,6 +83,6 @@
     </Target>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="OpenAPI.WebApiGenerator.Tests" />
+        <InternalsVisibleTo Include="OpenAPI.WebApiGenerator.UnitTests" />
     </ItemGroup>
 </Project>
