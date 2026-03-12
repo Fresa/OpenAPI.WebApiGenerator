@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq;
 using AwesomeAssertions;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.CodeGeneration;
 using Xunit;
 
@@ -36,5 +38,5 @@ public class RequestBodyContentGeneratorExtensionTests
     }
 
     private static RequestBodyContentGenerator CreateGenerator(string contentType) =>
-        new(contentType, null!, null!);
+        new(new KeyValuePair<string, IOpenApiMediaType>(contentType, new OpenApiMediaType()), null!, null!, null!);
 }

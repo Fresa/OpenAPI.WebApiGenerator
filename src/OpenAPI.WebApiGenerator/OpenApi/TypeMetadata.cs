@@ -7,6 +7,7 @@ namespace OpenAPI.WebApiGenerator.OpenApi;
 
 internal sealed class TypeMetadata(string @namespace, string path, string name)
 {
+    private static readonly string[] SchemaMetaLeafNodeNames = ["schema", "itemSchema"];
     internal static TypeMetadata From(JsonPointer pointer)
     {
         var segments = 
@@ -20,7 +21,7 @@ internal sealed class TypeMetadata(string @namespace, string path, string name)
                 .ToArray()
                 .AsSpan();
         // Remove any schema leaf node, as that is metadata and doesn't describe the name of the type
-        if (segments[^1].Equals("schema", StringComparison.CurrentCultureIgnoreCase))
+        if (SchemaMetaLeafNodeNames.Contains(segments[^1]))
         {
             segments = segments[..^1];
         }

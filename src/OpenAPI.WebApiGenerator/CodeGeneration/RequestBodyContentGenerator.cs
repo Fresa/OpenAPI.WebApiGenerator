@@ -1,39 +1,55 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Collections.Generic;
+using System.Net.Http.Headers;
 using Corvus.Json.CodeGeneration;
 using Corvus.Json.CodeGeneration.CSharp;
+using Microsoft.OpenApi;
 using OpenAPI.WebApiGenerator.Extensions;
 
 namespace OpenAPI.WebApiGenerator.CodeGeneration;
 
 internal sealed class RequestBodyContentGenerator(
-    string contentType, 
+    KeyValuePair<string, IOpenApiMediaType> contentMediaType, 
     TypeDeclaration typeDeclaration,
-    HttpRequestExtensionsGenerator httpRequestExtensionsGenerator)
+    HttpRequestExtensionsGenerator httpRequestExtensionsGenerator,
+    SequentialJsonEnumeratorGenerator sequentialJsonEnumeratorGenerator)
 {
     private string FullyQualifiedTypeName =>
         $"{FullyQualifiedTypeDeclarationIdentifier}?";
 
     private string FullyQualifiedTypeDeclarationIdentifier => typeDeclaration.FullyQualifiedDotnetTypeName();
+    private readonly bool _isSequentialMediaType = contentMediaType.Value.ItemSchema != null;
+    
+    internal string PropertyName { get; } = contentMediaType.Key.ToPascalCase();
 
-    internal string PropertyName { get; } = contentType.ToPascalCase();
-
-    internal MediaTypeWithQualityHeaderValue ContentType { get; } = MediaTypeWithQualityHeaderValue.Parse(contentType);
+    internal MediaTypeWithQualityHeaderValue ContentType { get; } = MediaTypeWithQualityHeaderValue.Parse(contentMediaType.Key);
 
     internal string SchemaLocation => typeDeclaration.RelativeSchemaLocation;
     internal string GenerateRequestBindingDirective() =>
 $"""
-{PropertyName} = 
-    ({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
-            "request", 
-            FullyQualifiedTypeDeclarationIdentifier)
-        .Indent(8).Trim()})
+{PropertyName} = {(_isSequentialMediaType ?
+    $"{sequentialJsonEnumeratorGenerator.GenerateConstructorInstance(
+        ContentType, 
+        typeDeclaration, 
+        "request.Body", 
+        SchemaLocation, 
+        "validationLevel")}" : 
+    $"({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
+        "request", 
+        FullyQualifiedTypeDeclarationIdentifier).Indent(8).Trim()})")}
 """;
+    
 
-    public string GenerateRequestProperty() =>
-        $$"""
-          /// <summary>
-          /// Request content for {{contentType}}
-          /// </summary>
-          internal {{FullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
-          """;
+    public string GenerateRequestProperty()
+    {
+        var fullyQualifiedTypeName = _isSequentialMediaType
+            ? sequentialJsonEnumeratorGenerator.GetFullyQualifiedTypeName(ContentType)
+            : FullyQualifiedTypeName;
+        return 
+$$"""
+/// <summary>
+/// Request content for {{contentMediaType.Key}}
+/// </summary>
+internal {{fullyQualifiedTypeName}} {{PropertyName}} { get; private set; }
+""";
+    }
 }

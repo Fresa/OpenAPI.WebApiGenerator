@@ -65,7 +65,7 @@ internal sealed partial class OpenApiV3Visitor
                         new JsonReference(Reference.Uri,
                             requestContentPointer
                                 .Append(content.Key)
-                                .Append("schema")
+                                .Append(content.Value.ItemSchema is not null ? "itemSchema" : "schema")
                                 .ToString()
                                 .AsSpan()));
                 }
