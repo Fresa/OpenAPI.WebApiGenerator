@@ -6,8 +6,8 @@ public abstract class FooTestSpecification
 {
     protected CancellationToken CancellationToken { get; } = TestContext.Current.CancellationToken;
 
-    protected HttpContent CreateJsonContent(string json) => new StringContent(
+    protected HttpContent CreateJsonContent(string json, string mediaType = "application/json") => new StringContent(
         json,
         encoding: Encoding.UTF8,
-        mediaType: "application/json");
+        mediaType: mediaType);
 }
