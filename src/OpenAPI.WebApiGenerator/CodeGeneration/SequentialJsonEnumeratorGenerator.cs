@@ -48,7 +48,7 @@ internal abstract class SequentialJsonEnumerator<T>(
     protected abstract byte Delimiter { get; } 
     public ValueTask DisposeAsync() => PipeReader.CompleteAsync();
 
-    private int _itemPosition;
+    private int _itemPosition = -1;
     private ValidationLevel _validationLevel = default;
     private string _schemaLocation = "#";
 
@@ -65,6 +65,7 @@ internal abstract class SequentialJsonEnumerator<T>(
             if (position != null)
             {
                 var data = buffer.Slice(0, position.Value);
+                _itemPosition++;
                 Current = ParseItem(data);
                 PipeReader.AdvanceTo(position.Value);
                 return true;
@@ -77,7 +78,6 @@ internal abstract class SequentialJsonEnumerator<T>(
             }
 
             PipeReader.AdvanceTo(buffer.Start, buffer.End);
-            _itemPosition++;
         } while (true);
     }
     
