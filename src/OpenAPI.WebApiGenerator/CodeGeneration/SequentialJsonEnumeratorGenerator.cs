@@ -67,7 +67,7 @@ internal abstract class SequentialJsonEnumerator<T>(
                 var data = buffer.Slice(0, position.Value);
                 _itemPosition++;
                 Current = ParseItem(data);
-                PipeReader.AdvanceTo(position.Value);
+                PipeReader.AdvanceTo(buffer.GetPosition(1, position.Value));
                 return true;
             }
 
