@@ -10,9 +10,10 @@ internal sealed class SequentialJsonEnumeratorGenerator(string @namespace)
     internal string GenerateConstructorInstance(
         MediaTypeHeaderValue mediaType, 
         TypeDeclaration itemTypeDeclaration,
-        string streamParameterReference) =>
+        string streamParameterReference,
+        string cancellationTokenParameterReference) =>
 $"""
-new {GetFullyQualifiedTypeName(mediaType, itemTypeDeclaration)}({streamParameterReference})
+new {GetFullyQualifiedTypeName(mediaType, itemTypeDeclaration)}({streamParameterReference}, {cancellationTokenParameterReference})
 """;
 
     internal string GetFullyQualifiedTypeName(
@@ -40,7 +41,7 @@ namespace {{@namespace}};
 /// Base class for sequential json enumerators
 /// </summary>
 internal abstract class SequentialJsonEnumerator<T>(
-    Stream stream) : IAsyncEnumerator<T> 
+    Stream stream, CancellationToken cancellationToken) : IAsyncEnumerator<T> 
     where T : struct, IJsonValue<T>
 {
     private PipeReader PipeReader { get; } = PipeReader.Create(stream);
@@ -56,7 +57,7 @@ internal abstract class SequentialJsonEnumerator<T>(
     {
         do
         {
-            var result = await PipeReader.ReadAsync()
+            var result = await PipeReader.ReadAsync(cancellationToken)
                 .ConfigureAwait(false);
             var buffer = result.Buffer;
             var position = buffer.PositionOf(Delimiter);
@@ -116,8 +117,8 @@ internal abstract class SequentialJsonEnumerator<T>(
 /// <summary>
 /// Sequential json enumerator for jsonl
 /// </summary>
-internal sealed class ApplicationJsonlEnumerator<T>(Stream stream) : 
-    SequentialJsonEnumerator<T>(stream) 
+internal sealed class ApplicationJsonlEnumerator<T>(Stream stream, CancellationToken cancellationToken) : 
+    SequentialJsonEnumerator<T>(stream, cancellationToken) 
     where T : struct, IJsonValue<T>
 {
     protected override byte Delimiter => 0x0A;
@@ -127,8 +128,8 @@ internal sealed class ApplicationJsonlEnumerator<T>(Stream stream) :
 /// <summary>
 /// Sequential json enumerator for json-seq
 /// </summary>
-internal sealed class ApplicationJsonSeqEnumerator<T>(Stream stream) : 
-    SequentialJsonEnumerator<T>(stream) 
+internal sealed class ApplicationJsonSeqEnumerator<T>(Stream stream, CancellationToken cancellationToken) : 
+    SequentialJsonEnumerator<T>(stream, cancellationToken) 
     where T : struct, IJsonValue<T>
 {
     private const byte RecordSeparator = 0x1E;

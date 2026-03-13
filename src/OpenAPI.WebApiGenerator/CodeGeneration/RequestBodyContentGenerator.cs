@@ -28,7 +28,8 @@ $"""
     $"{sequentialJsonEnumeratorGenerator.GenerateConstructorInstance(
         ContentType,
         typeDeclaration, 
-        "request.Body")}" : 
+        "request.Body",
+        "cancellationToken")}" : 
     $"({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
         "request", 
         FullyQualifiedTypeDeclarationIdentifier).Indent(8).Trim()})")}
