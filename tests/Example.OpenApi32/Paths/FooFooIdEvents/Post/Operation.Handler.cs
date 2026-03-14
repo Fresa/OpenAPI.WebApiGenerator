@@ -9,6 +9,8 @@ internal partial class Operation
         {
             throw new InvalidOperationException("missing content, this cannot occur");
         }
+
+        var importedEvents = 0;
         while (await content.MoveNextAsync()
                    .ConfigureAwait(false))
         {
@@ -18,8 +20,15 @@ internal partial class Operation
                 throw new InvalidOperationException("Invalid item");
             }
             _ = content.Current;
+            importedEvents++;
         }
             
-        return new Response.Accepted202();
+        return new Response.Accepted202
+        {
+            Headers = new Response.Accepted202.ResponseHeaders
+            {
+                ImportedEvents = importedEvents 
+            }
+        };
     }
 }

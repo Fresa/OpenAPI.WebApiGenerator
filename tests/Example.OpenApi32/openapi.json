@@ -96,7 +96,16 @@
         },
         "responses": {
           "202": {
-            "description": "Accepted"
+            "description": "Accepted",
+            "headers": {
+              "ImportedEvents": {
+                "description": "Number of events imported",
+                "schema": {
+                  "type": "integer"
+                },
+                "required": true
+              }
+            }
           }
         }
       },

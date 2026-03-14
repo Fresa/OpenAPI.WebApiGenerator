@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Mime;
 using AwesomeAssertions;
 using OpenAPI.IntegrationTestHelpers.Auth;
 
@@ -22,6 +21,10 @@ public class ImportFooEventsTests(FooApplicationFactory app) : FooTestSpecificat
                 { "Name": "another test" }
                 """, "application/jsonl")
         }, CancellationToken);
+        
         result.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        result.Headers.Should().HaveCount(1);
+        result.Headers.GetValues("ImportedEvents")
+            .Should().HaveCount(1).And.AllBe("2");
     }
 }
