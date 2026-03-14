@@ -18,9 +18,8 @@ public class ImportFooEventsTests(FooApplicationFactory app) : FooTestSpecificat
             Method = new HttpMethod("POST"),
             Content = CreateJsonContent(
                 """
-                {
-                    "Name": "test"
-                }
+                { "Name": "test" }
+                { "Name": "another test" }
                 """, "application/jsonl")
         }, CancellationToken);
         result.StatusCode.Should().Be(HttpStatusCode.Accepted);

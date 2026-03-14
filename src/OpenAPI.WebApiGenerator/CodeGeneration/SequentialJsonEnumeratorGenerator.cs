@@ -45,7 +45,18 @@ internal abstract class SequentialJsonEnumerator<T>(
     where T : struct, IJsonValue<T>
 {
     private PipeReader PipeReader { get; } = PipeReader.Create(stream);
+    
+    /// <summary>
+    /// Delimiter between each item
+    /// </summary>
     protected abstract byte Delimiter { get; } 
+    
+    /// <summary>
+    /// Does the sequence require ending with a delimiter? 
+    /// </summary>
+    protected abstract bool RequiresDelimiterAfterLastItem { get; }
+
+    /// <inheritdoc/>
     public ValueTask DisposeAsync() => PipeReader.CompleteAsync();
 
     private int _itemPosition = -1;
@@ -71,13 +82,19 @@ internal abstract class SequentialJsonEnumerator<T>(
                 return true;
             }
 
-            if (result.IsCompleted)
+            switch (result.IsCompleted)
             {
-                PipeReader.AdvanceTo(buffer.End);
-                return false;
+                case true when buffer.IsEmpty:
+                    return false;
+                case true when !RequiresDelimiterAfterLastItem:
+                    _itemPosition++;
+                    Current = ParseItem(buffer);
+                    PipeReader.AdvanceTo(buffer.End);
+                    return true;
+                default:
+                    PipeReader.AdvanceTo(buffer.Start, buffer.End);
+                    break;
             }
-
-            PipeReader.AdvanceTo(buffer.Start, buffer.End);
         } while (true);
     }
     
@@ -122,6 +139,7 @@ internal sealed class ApplicationJsonlEnumerator<T>(Stream stream, CancellationT
     where T : struct, IJsonValue<T>
 {
     protected override byte Delimiter => 0x0A;
+    protected override bool RequiresDelimiterAfterLastItem => false;
     protected override T ParseItem(ReadOnlySequence<byte> data) => T.Parse(data);
 }
 
@@ -134,6 +152,7 @@ internal sealed class ApplicationJsonSeqEnumerator<T>(Stream stream, Cancellatio
 {
     private const byte RecordSeparator = 0x1E;
     protected override byte Delimiter => 0x0A;
+    protected override bool RequiresDelimiterAfterLastItem => true;
 
     protected override T ParseItem(ReadOnlySequence<byte> data)
     {
