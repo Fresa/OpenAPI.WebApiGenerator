@@ -89,7 +89,7 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
         validationExtensionsGenerator.GenerateClass().AddTo(context);
-        var sequentialJsonEnumeratorsGenerator = new SequentialJsonEnumeratorGenerator(rootNamespace);
+        var sequentialJsonEnumeratorsGenerator = new SequentialMediaTypesGenerator(rootNamespace);
         sequentialJsonEnumeratorsGenerator.GenerateClasses().AddTo(context);
         
         var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();

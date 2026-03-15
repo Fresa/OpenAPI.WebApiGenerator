@@ -11,15 +11,15 @@ internal partial class Operation
         }
 
         var importedEvents = 0;
-        while (await content.MoveNextAsync()
-                   .ConfigureAwait(false))
+        await foreach (var item in content
+                           .WithCancellation(cancellationToken)
+                           .ConfigureAwait(false))
         {
             var validationContext = content.ValidateCurrentItem();
             if (!validationContext.IsValid)
             {
                 throw new InvalidOperationException("Invalid item");
             }
-            _ = content.Current;
             importedEvents++;
         }
             

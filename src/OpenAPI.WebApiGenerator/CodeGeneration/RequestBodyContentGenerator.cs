@@ -11,7 +11,7 @@ internal sealed class RequestBodyContentGenerator(
     KeyValuePair<string, IOpenApiMediaType> contentMediaType, 
     TypeDeclaration typeDeclaration,
     HttpRequestExtensionsGenerator httpRequestExtensionsGenerator,
-    SequentialJsonEnumeratorGenerator sequentialJsonEnumeratorGenerator)
+    SequentialMediaTypesGenerator sequentialMediaTypesGenerator)
 {
     private string FullyQualifiedTypeDeclarationIdentifier => typeDeclaration.FullyQualifiedDotnetTypeName();
     private readonly bool _isSequentialMediaType = contentMediaType.Value.ItemSchema != null;
@@ -25,11 +25,10 @@ internal sealed class RequestBodyContentGenerator(
     internal string GenerateRequestBindingDirective() =>
 $"""
 {PropertyName} = {(_isSequentialMediaType ?
-    $"{sequentialJsonEnumeratorGenerator.GenerateConstructorInstance(
+    $"{sequentialMediaTypesGenerator.GenerateConstructorInstance(
         ContentType,
         typeDeclaration, 
-        "request.Body",
-        "cancellationToken")}" : 
+        "request.Body")}" : 
     $"({httpRequestExtensionsGenerator.CreateBindBodyInvocation(
         "request", 
         FullyQualifiedTypeDeclarationIdentifier).Indent(8).Trim()})")}
@@ -39,7 +38,7 @@ $"""
     public string GenerateRequestProperty()
     {
         var fullyQualifiedTypeName = _isSequentialMediaType
-            ? sequentialJsonEnumeratorGenerator.GetFullyQualifiedTypeName(ContentType, typeDeclaration)
+            ? sequentialMediaTypesGenerator.GetFullyQualifiedTypeName(ContentType, typeDeclaration)
             : FullyQualifiedTypeDeclarationIdentifier;
         return 
 $$"""
