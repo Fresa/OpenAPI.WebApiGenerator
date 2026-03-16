@@ -39,7 +39,7 @@ namespace {{@namespace}};
 /// <summary>
 /// Base class for sequential json enumerable
 /// </summary>
-internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnumerable<T> 
+internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnumerable<(T, ValidationContext)> 
     where T : struct, IJsonValue<T>
 {
     private int _itemPosition = -1;
@@ -58,7 +58,7 @@ internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnume
     protected abstract bool RequiresDelimiterAfterLastItem { get; }
     
     /// <inheritdoc/>
-    public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerator<(T, ValidationContext)> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         var pipeReader = PipeReader.Create(stream);
         try
@@ -78,7 +78,7 @@ internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnume
                         _itemPosition++;
                         _current = ParseItem(data);
                         pipeReader.AdvanceTo(buffer.GetPosition(1, position.Value));
-                        yield return _current.Value;
+                        yield return (_current.Value, ValidateCurrentItem());
                         break;
                     // No more data
                     case true when buffer.IsEmpty:
@@ -89,7 +89,7 @@ internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnume
                         _itemPosition++;
                         _current = ParseItem(buffer);
                         pipeReader.AdvanceTo(buffer.End);
-                        yield return _current.Value;
+                        yield return (_current.Value, ValidateCurrentItem());
                         yield break;
                     // No more data to read, data was found, but no delimiter.
                     // End delimiter is required, so discard any found data
@@ -117,11 +117,7 @@ internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnume
     /// <returns>The parsed item</returns>
     protected abstract T ParseItem(ReadOnlySequence<byte> data); 
     
-    /// <summary>
-    /// Validates the current item
-    /// </summary>
-    /// <returns>The validation result</returns>
-    internal ValidationContext ValidateCurrentItem() => 
+    private ValidationContext ValidateCurrentItem() => 
         _current?.Validate($"{_schemaLocation}/{_itemPosition}", true, ValidationContext.ValidContext, _validationLevel) ?? ValidationContext.ValidContext;
         
     /// <summary>

@@ -11,11 +11,10 @@ internal partial class Operation
         }
 
         var importedEvents = 0;
-        await foreach (var item in content
+        await foreach (var (item, validationContext) in content
                            .WithCancellation(cancellationToken)
                            .ConfigureAwait(false))
         {
-            var validationContext = content.ValidateCurrentItem();
             if (!validationContext.IsValid)
             {
                 throw new InvalidOperationException("Invalid item");
