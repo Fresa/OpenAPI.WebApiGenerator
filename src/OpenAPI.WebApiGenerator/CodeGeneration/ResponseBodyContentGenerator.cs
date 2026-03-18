@@ -69,14 +69,20 @@ internal sealed class {{ClassName}} : {{responseClassName}}
     }
     
     internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{_contentType}}"));
-    protected override void WriteContentTo(HttpResponse httpResponse)
+    /// <inheritdoc/>
+    internal override void WriteTo(HttpResponse httpResponse)
     {
+        base.WriteTo(httpResponse);
         httpResponse.WriteResponseBody(_content);
     }
     
     private const string ContentSchemaLocation = "{{SchemaLocation}}";
-    protected override ValidationContext ValidateContent(ValidationContext validationContext, ValidationLevel validationLevel) =>
-        _content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
+    /// <inheritdoc/>
+    internal override ValidationContext Validate(ValidationLevel validationLevel)
+    {
+        var validationContext = base.Validate(validationLevel);
+        return _content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
+    }
 }
 """;
 }

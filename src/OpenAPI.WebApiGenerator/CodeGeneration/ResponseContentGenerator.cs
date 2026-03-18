@@ -70,9 +70,6 @@ internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_resp
     }}}{{{(_contentGenerators.Any() ? 
 $$"""
 
-    protected abstract void WriteContentTo(HttpResponse httpResponse);
-    protected abstract ValidationContext ValidateContent(ValidationContext validationContext, ValidationLevel validationLevel);
-      
     /// <inheritdoc/>
     public static ContentMediaType<{{_responseClassName}}>[] ContentMediaTypes { get; } = 
     [{{_contentGenerators.AggregateToString(generator => 
@@ -118,21 +115,13 @@ $$"""
         {{{responseVariableName}}}.StatusCode = StatusCode;{{{
         _headerGenerators.AggregateToString(generator =>
             generator.GenerateWriteDirective(responseVariableName)).Indent(8)
-        }}}{{{(_contentGenerators.Any() ? 
-$$"""
-
-        WriteContentTo(httpResponse);
-""" : "")}}}
+        }}}
     }
     
     /// <inheritdoc/>
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
-{{{(_contentGenerators.Any() ? 
-$"""
-        validationContext = ValidateContent(validationContext, validationLevel);
-""" : "")}}}
         {{{_headerGenerators.AggregateToString(generator =>
             generator.GenerateValidateDirective()).Indent(8)}}}
         return validationContext;
