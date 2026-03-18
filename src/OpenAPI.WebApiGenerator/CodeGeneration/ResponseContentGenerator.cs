@@ -70,9 +70,8 @@ internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_resp
     }}}{{{(_contentGenerators.Any() ? 
 $$"""
 
-
-    protected abstract IJsonValue Content { get; }
-    protected abstract string ContentSchemaLocation { get; }
+    protected abstract void WriteContentTo(HttpResponse httpResponse);
+    protected abstract ValidationContext ValidateContent(ValidationContext validationContext, ValidationLevel validationLevel);
       
     /// <inheritdoc/>
     public static ContentMediaType<{{_responseClassName}}>[] ContentMediaTypes { get; } = 
@@ -116,10 +115,7 @@ $$"""
     internal override void WriteTo(HttpResponse {{{responseVariableName}}})
     {{{{(_contentGenerators.Any() ? 
 $$"""
-
-        {{HttpResponseExtensionsGenerator.CreateWriteBodyInvocation(
-            responseVariableName, 
-            "Content")}};
+        WriteContentTo(httpResponse);
 """ : "")}}}
         {{{responseVariableName}}}.ContentType = {{{contentTypeFieldName}}};
         {{{responseVariableName}}}.StatusCode = StatusCode;{{{
@@ -133,7 +129,7 @@ $$"""
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
         {{{(_contentGenerators.Any() ? 
 $"""
-        validationContext = Content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
+        validationContext = ValidateContent(validationContext, validationLevel);
 """ : "")}}}
         {{{_headerGenerators.AggregateToString(generator =>
             generator.GenerateValidateDirective()).Indent(8)}}}

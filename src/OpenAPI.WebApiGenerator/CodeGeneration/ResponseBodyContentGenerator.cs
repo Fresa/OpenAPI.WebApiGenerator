@@ -49,6 +49,8 @@ $$"""
 /// </summary>
 internal sealed class {{ClassName}} : {{responseClassName}}
 {
+    private {{_typeDeclaration.FullyQualifiedDotnetTypeName()}} _content;
+    
     /// <summary>
     /// Construct response for content {{_contentType}}
     /// </summary>
@@ -62,13 +64,19 @@ internal sealed class {{ClassName}} : {{responseClassName}}
         
         EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), ContentMediaType);
 """ : "")}}
-        Content = {{_contentVariableName}};
+        _content = {{_contentVariableName}};
         {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
     }
     
     internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{_contentType}}"));
-    protected override IJsonValue Content { get; }
-    protected override string ContentSchemaLocation { get; } = "{{SchemaLocation}}";
+    protected override void WriteContentTo(HttpResponse httpResponse)
+    {
+        httpResponse.WriteResponseBody(_content);
+    }
+    
+    private const string ContentSchemaLocation = "{{SchemaLocation}}";
+    protected override ValidationContext ValidateContent(ValidationContext validationContext, ValidationLevel validationLevel) =>
+        _content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
 }
 """;
 }
