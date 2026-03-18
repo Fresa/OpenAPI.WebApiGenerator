@@ -113,21 +113,23 @@ $$"""
 """ : "")}}}
     /// <inheritdoc/>
     internal override void WriteTo(HttpResponse {{{responseVariableName}}})
-    {{{{(_contentGenerators.Any() ? 
-$$"""
-        WriteContentTo(httpResponse);
-""" : "")}}}
+    {
         {{{responseVariableName}}}.ContentType = {{{contentTypeFieldName}}};
         {{{responseVariableName}}}.StatusCode = StatusCode;{{{
         _headerGenerators.AggregateToString(generator =>
-            generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}}
+            generator.GenerateWriteDirective(responseVariableName)).Indent(8)
+        }}}{{{(_contentGenerators.Any() ? 
+$$"""
+
+        WriteContentTo(httpResponse);
+""" : "")}}}
     }
     
     /// <inheritdoc/>
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
         var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
-        {{{(_contentGenerators.Any() ? 
+{{{(_contentGenerators.Any() ? 
 $"""
         validationContext = ValidateContent(validationContext, validationLevel);
 """ : "")}}}
