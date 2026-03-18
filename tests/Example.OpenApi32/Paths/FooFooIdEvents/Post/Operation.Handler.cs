@@ -17,7 +17,7 @@ internal partial class Operation
         {
             if (!validationContext.IsValid)
             {
-                throw new InvalidOperationException("Invalid item");
+                return CreateRequestValidationErrorResponse(request, validationContext);
             }
             importedEvents++;
         }

@@ -68,6 +68,18 @@ internal partial class Operation
     private Func<Request, ImmutableList<ValidationResult>, Response> HandleRequestValidationError { get; } = (_, validationResult) => 
         {{jsonValidationExceptionGenerator.CreateThrowJsonValidationExceptionInvocation("Request is not valid", "validationResult")}};
 
+    /// <summary>
+    /// Create a request validation error response.
+    /// <exception cref="JsonValidationException"></exception>
+    /// <param name="request">The invalid request</param>
+    /// <param name="ValidationContext">The validation context describing the validation errors</param>
+    /// </summary>
+    private Response CreateRequestValidationErrorResponse(Request request, ValidationContext validationContext)
+    {
+        var configuration = request.HttpContext.RequestServices.GetRequiredService<WebApiConfiguration>();
+        return HandleRequestValidationError(request, validationContext.Results.WithLocation(configuration.OpenApiSpecificationUri));
+    }
+    
 {{authGenerator.GenerateAuthFilters(operation.Operation, parameters, out var requiresAuth).Indent(4)}}
 {{(requiresAuth ? 
 """
