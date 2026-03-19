@@ -118,10 +118,17 @@ $$"""
         }}}
     }
     
+    /// <summary>
+    /// Create a validation context
+    /// </summary>
+    /// <returns>Validation context</returns>
+    protected ValidationContext CreateValidationContext() => 
+        ValidationContext.ValidContext.UsingStack().UsingResults();
+    
     /// <inheritdoc/>
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
-        var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
+        var validationContext = CreateValidationContext();
         {{{_headerGenerators.AggregateToString(generator =>
             generator.GenerateValidateDirective()).Indent(8)}}}
         return validationContext;
