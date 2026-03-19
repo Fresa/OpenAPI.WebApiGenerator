@@ -122,7 +122,7 @@ $$"""
     /// Create a validation context
     /// </summary>
     /// <returns>Validation context</returns>
-    protected ValidationContext CreateValidationContext() => 
+    {{{(_contentGenerators.Any() ? "protected" : "private")}}} ValidationContext CreateValidationContext() => 
         ValidationContext.ValidContext.UsingStack().UsingResults();
     
     /// <inheritdoc/>
