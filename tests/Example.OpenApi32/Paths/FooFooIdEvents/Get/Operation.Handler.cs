@@ -8,10 +8,15 @@ internal partial class Operation
         {
             case false:
             case true when matchedMediaType == Response.OK200.ApplicationJsonl.ContentMediaType:
-                var response = new Response.OK200.ApplicationJsonl(request);
-                response.WriteItem(Components.Schemas.FooProperties.Create(name: "foo1"));
-                response.WriteItem(Components.Schemas.FooProperties.Create(name: "foo2"));
-                return Task.FromResult<Response>(response);
+                var jsonl = new Response.OK200.ApplicationJsonl(request);
+                jsonl.WriteItem(Components.Schemas.FooProperties.Create(name: "foo1"));
+                jsonl.WriteItem(Components.Schemas.FooProperties.Create(name: "foo2"));
+                return Task.FromResult<Response>(jsonl);
+            case true when matchedMediaType == Response.OK200.ApplicationJsonSeq.ContentMediaType:
+                var jsonSeq = new Response.OK200.ApplicationJsonSeq(request);
+                jsonSeq.WriteItem(Components.Schemas.FooProperties.Create(name: "foo1"));
+                jsonSeq.WriteItem(Components.Schemas.FooProperties.Create(name: "foo2"));
+                return Task.FromResult<Response>(jsonSeq);
             default:
                 throw new NotImplementedException($"Content media type {matchedMediaType} has not been implemented");
         }

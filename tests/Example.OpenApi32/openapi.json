@@ -92,6 +92,11 @@
                 "itemSchema": {
                   "$ref": "#/components/schemas/FooProperties"
                 }
+              },
+              "application/json-seq": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
               }
             }
           }
