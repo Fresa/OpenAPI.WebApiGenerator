@@ -82,6 +82,21 @@
       ]
     },
     "/foo/{FooId}/events": {
+      "get": {
+        "operationId": "Export_Foo_Events",
+        "responses": {
+          "200": {
+            "description": "Foo events",
+            "content": {
+              "application/jsonl": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "operationId": "Import_Foo_Events",
         "requestBody": {

@@ -31,7 +31,12 @@ internal sealed partial class OpenApiV3Visitor
 
             foreach (var content in OpenApiDocument.Content)
             {
-                if (TryVisit(["content", content.Key, "schema"], out var schemaPointer))
+                if (TryVisit(["content", content.Key, "itemSchema"], out var itemSchemaPointer))
+                {
+                    _contentReferences.Add(content.Value, new JsonReference(Reference.Uri,
+                        itemSchemaPointer.ToString().AsSpan()));
+                } 
+                else if (TryVisit(["content", content.Key, "schema"], out var schemaPointer))
                 {
                     _contentReferences.Add(content.Value, new JsonReference(Reference.Uri,
                         schemaPointer.ToString().AsSpan()));

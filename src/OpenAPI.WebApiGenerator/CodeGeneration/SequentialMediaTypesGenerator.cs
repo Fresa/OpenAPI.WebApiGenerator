@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Text.Json;
 
 namespace {{@namespace}};
 
@@ -173,6 +174,82 @@ internal sealed class ApplicationJsonSeqEnumerable<T>(Stream stream) :
 
         return T.Parse(data);
     }
+}
+
+
+/// <summary>
+/// Writer for sequential media types
+/// </summary>
+/// <param name="writer"></param>
+/// <typeparam name="T">Item type of the sequence</typeparam>
+internal abstract class SequentialJsonWriter<T>(PipeWriter writer) : IDisposable
+    where T : struct, IJsonValue<T>
+{
+    private readonly Utf8JsonWriter _jsonWriter = new(writer, new JsonWriterOptions
+    {
+        // Items should already have been validated so it's 
+        // redundant to validate here again
+        SkipValidation = true
+    });
+    private int _writtenItems;
+    
+    protected abstract byte Delimiter { get; }
+    protected virtual byte? Prefix { get; } = null;
+
+    /// <summary>
+    /// Validate the item
+    /// </summary>
+    /// <param name="item">The item to validate</param>
+    /// <param name="schemaLocation">Schema location of this sequence</param>
+    /// <param name="validationContext">Validation context</param>
+    /// <param name="validationLevel">Validation level</param>
+    /// <returns>The validation result</returns>
+    internal ValidationContext Validate(T item, string schemaLocation, ValidationContext validationContext,
+        ValidationLevel validationLevel) =>
+        item.Validate($"{schemaLocation}/{_writtenItems}", true, validationContext, validationLevel);
+
+    /// <summary>
+    /// Write an item to the sequence
+    /// </summary>
+    /// <param name="item">Item to write</param>
+    internal void WriteItem(T item)
+    {
+        if (Prefix != null)
+        {
+            var prefix = Prefix.Value;
+            writer.Write(new ReadOnlySpan<byte>(ref prefix));
+        }
+        item.WriteTo(_jsonWriter);
+        _jsonWriter.Flush();
+        _jsonWriter.Reset();
+        var delimiter = Delimiter;
+        writer.Write(new ReadOnlySpan<byte>(ref delimiter));
+        _writtenItems++;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _jsonWriter.Dispose();
+    }
+}
+
+/// <summary>
+/// Sequential json writer for jsonl
+/// </summary>
+internal sealed class ApplicationJsonlWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) 
+    where T : struct, IJsonValue<T>
+{
+    protected override byte Delimiter => 0x0A;
+}
+
+/// <summary>
+/// Sequential json writer for json-seq
+/// </summary>
+internal sealed class ApplicationJsonSeqWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) where T : struct, IJsonValue<T>
+{
+    protected override byte Delimiter => 0x0A;
+    protected override byte? Prefix => 0x1E;
 }
 
 #nullable restore
