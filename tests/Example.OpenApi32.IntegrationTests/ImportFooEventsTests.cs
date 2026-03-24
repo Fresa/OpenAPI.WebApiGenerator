@@ -24,6 +24,7 @@ public class ImportFooEventsTests(FooApplicationFactory app) : FooTestSpecificat
                 $$"""
                 {{prefix}}{ "Name": "test" }
                 {{prefix}}{ "Name": "another test" }
+                
                 """, mediaType)
         }, CancellationToken);
         
