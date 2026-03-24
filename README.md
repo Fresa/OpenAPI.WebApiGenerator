@@ -179,11 +179,11 @@ Other sequential media types can be implemented by simply following the expected
 
 ### Request Content 
 Inherit from `SequentialJsonEnumerable<T>` using the following naming convention:
-- application/jsonl -> `ApplicationJsonlEnumerable<T>`
+- application/jsonl (lower case) -> `ApplicationJsonlEnumerable<T>`
 
 ### Response Content
 Inherit from `SequentialJsonWriter<T>` using the following naming convention:
-- application/jsonl -> `ApplicationJsonlWriter<T>`
+- application/jsonl (lower case) -> `ApplicationJsonlWriter<T>`
 
 See the [OpenAPI 3.2 examples](#examples) for further details how to consume and produce sequential media types.
 

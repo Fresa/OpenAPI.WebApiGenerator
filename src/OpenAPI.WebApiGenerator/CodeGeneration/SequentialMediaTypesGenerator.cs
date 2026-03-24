@@ -18,12 +18,7 @@ new {GetFullyQualifiedTypeName(mediaType, itemTypeDeclaration)}({streamParameter
     internal string GetFullyQualifiedTypeName(
         MediaTypeHeaderValue mediaType,
         TypeDeclaration itemTypeDeclaration) =>
-        $"{@namespace}.{mediaType.MediaType.ToLower() switch
-        {
-            "application/jsonl" or "application/x-ndjson" or "application/x-jsonlines" => "ApplicationJsonl",
-            "application/json-seq" or "application/geo+json-seq" => "ApplicationJsonSeq",
-            _ => mediaType.MediaType.ToPascalCase()
-        }}Enumerable<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>";
+        $"{@namespace}.{mediaType.MediaType.ToLower().ToPascalCase()}Enumerable<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>";
     
     internal SourceCode GenerateClasses() => new("SequentialMediaTypes.g.cs",
 $$"""
@@ -140,7 +135,7 @@ internal abstract class SequentialJsonEnumerable<T>(Stream stream) : IAsyncEnume
 /// <summary>
 /// Sequential json enumerable for jsonl
 /// </summary>
-internal sealed class ApplicationJsonlEnumerable<T>(Stream stream) : 
+internal class ApplicationJsonlEnumerable<T>(Stream stream) : 
     SequentialJsonEnumerable<T>(stream) 
     where T : struct, IJsonValue<T>
 {
@@ -150,9 +145,21 @@ internal sealed class ApplicationJsonlEnumerable<T>(Stream stream) :
 }
 
 /// <summary>
+/// Sequential json enumerable for x-ndjson
+/// </summary>
+internal class ApplicationXNdjsonEnumerable<T>(Stream stream) : ApplicationJsonlEnumerable<T>(stream)
+    where T : struct, IJsonValue<T>;
+
+/// <summary>
+/// Sequential json enumerable for x-jsonlines
+/// </summary>
+internal class ApplicationXJsonlinesEnumerable<T>(Stream stream) : ApplicationJsonlEnumerable<T>(stream)
+    where T : struct, IJsonValue<T>;
+
+/// <summary>
 /// Sequential json enumerable for json-seq
 /// </summary>
-internal sealed class ApplicationJsonSeqEnumerable<T>(Stream stream) : 
+internal class ApplicationJsonSeqEnumerable<T>(Stream stream) : 
     SequentialJsonEnumerable<T>(stream) 
     where T : struct, IJsonValue<T>
 {
@@ -175,6 +182,12 @@ internal sealed class ApplicationJsonSeqEnumerable<T>(Stream stream) :
         return T.Parse(data);
     }
 }
+
+/// <summary>
+/// Sequential json enumerable for geo+json-seq
+/// </summary>
+internal class ApplicationGeoJsonSeqEnumerable<T>(Stream stream) : ApplicationJsonSeqEnumerable<T>(stream)
+    where T : struct, IJsonValue<T>;
 
 
 /// <summary>
@@ -237,20 +250,38 @@ internal abstract class SequentialJsonWriter<T>(PipeWriter writer) : IDisposable
 /// <summary>
 /// Sequential json writer for jsonl
 /// </summary>
-internal sealed class ApplicationJsonlWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) 
+internal class ApplicationJsonlWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) 
     where T : struct, IJsonValue<T>
 {
     protected override byte Delimiter => 0x0A;
 }
 
 /// <summary>
+/// Sequential json writer for x-ndjson
+/// </summary>
+internal class ApplicationXNdjsonWriter<T>(PipeWriter writer) : ApplicationJsonlWriter<T>(writer) 
+    where T : struct, IJsonValue<T>;
+
+/// <summary>
+/// Sequential json writer for x-jsonlines
+/// </summary>
+internal class ApplicationXJsonlinesWriter<T>(PipeWriter writer) : ApplicationJsonlWriter<T>(writer) 
+    where T : struct, IJsonValue<T>;
+
+/// <summary>
 /// Sequential json writer for json-seq
 /// </summary>
-internal sealed class ApplicationJsonSeqWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) where T : struct, IJsonValue<T>
+internal class ApplicationJsonSeqWriter<T>(PipeWriter writer) : SequentialJsonWriter<T>(writer) where T : struct, IJsonValue<T>
 {
     protected override byte Delimiter => 0x0A;
     protected override byte? Prefix => 0x1E;
 }
+
+/// <summary>
+/// Sequential json writer for geo+json-seq
+/// </summary>
+internal class ApplicationGeoJsonSeqWriter<T>(PipeWriter writer) : ApplicationJsonSeqWriter<T>(writer) 
+    where T : struct, IJsonValue<T>;
 
 #nullable restore
 """);
