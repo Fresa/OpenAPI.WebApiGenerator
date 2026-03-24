@@ -18,28 +18,19 @@ internal sealed class ResponseBodyContentGenerator
     private readonly bool _isSequentialMediaType;
     
     public ResponseBodyContentGenerator(KeyValuePair<string, IOpenApiMediaType> contentMediaType, TypeDeclaration typeDeclaration)
-    {
+    { 
         _contentType = MediaTypeHeaderValue.Parse(contentMediaType.Key);
         _typeDeclaration = typeDeclaration;
-        ClassName = contentMediaType.Key.ToPascalCase();
         _isSequentialMediaType = contentMediaType.Value.ItemSchema != null;
-        _isContentTypeRange = false;
-        switch (_contentType.MediaType)
+        _isContentTypeRange = _contentType.MediaType.EndsWith("*");
+        _contentVariableName = _contentType.MediaType switch
         {
-            case "*/*":
-                _contentVariableName = "any";
-                _isContentTypeRange = true;
-                break;
-            case not null when _contentType.MediaType.EndsWith("*"):
-                _contentVariableName = $"any{_contentType.MediaType.TrimEnd('*').TrimEnd('/').ToPascalCase()}";
-                _isContentTypeRange = true;
-                break;
-            case null:
-                throw new InvalidOperationException("Content type is null");
-            default:
-                _contentVariableName = _contentType.MediaType.ToCamelCase();
-                break;
-        }
+            "*/*" => "any",
+            not null when _isContentTypeRange =>
+                $"any{_contentType.MediaType.TrimEnd('*').TrimEnd('/').ToLower().ToPascalCase()}",
+            null => throw new InvalidOperationException("Content type is null"),
+            _ => _contentType.MediaType.ToLower().ToCamelCase()
+        };
 
         ClassName = _contentVariableName.ToPascalCase();
     }
