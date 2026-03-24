@@ -206,7 +206,14 @@ internal abstract class SequentialJsonWriter<T>(PipeWriter writer) : IDisposable
     });
     private int _writtenItems;
     
+    /// <summary>
+    /// Delimiter between each item
+    /// </summary>
     protected abstract byte Delimiter { get; }
+    
+    /// <summary>
+    /// Optional prefix before each item
+    /// </summary>
     protected virtual byte? Prefix { get; } = null;
 
     /// <summary>
