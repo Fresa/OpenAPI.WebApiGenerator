@@ -20,10 +20,10 @@ new {GetFullyQualifiedTypeName(mediaType, itemTypeDeclaration)}({streamParameter
         TypeDeclaration itemTypeDeclaration) =>
         $"{@namespace}.{mediaType.MediaType.ToLower() switch
         {
-            "application/jsonl" or "application/x-ndjson" or "application/x-jsonlines" => "ApplicationJsonlEnumerable",
-            "application/json-seq" or "application/geo+json-seq" => "ApplicationJsonSeqEnumerable",
+            "application/jsonl" or "application/x-ndjson" or "application/x-jsonlines" => "ApplicationJsonl",
+            "application/json-seq" or "application/geo+json-seq" => "ApplicationJsonSeq",
             _ => mediaType.MediaType.ToPascalCase()
-        }}<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>";
+        }}Enumerable<{itemTypeDeclaration.FullyQualifiedDotnetTypeName()}>";
     
     internal SourceCode GenerateClasses() => new("SequentialMediaTypes.g.cs",
 $$"""
