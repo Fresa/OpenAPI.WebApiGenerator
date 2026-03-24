@@ -169,14 +169,12 @@ internal class ApplicationJsonSeqEnumerable<T>(Stream stream) :
 
     protected override T ParseItem(ReadOnlySequence<byte> data)
     {
-        var rsPosition = data.PositionOf(RecordSeparator);
-        
         // RS should be first.
         // If it is not, then the data is incomplete and invalid,
         // let JSON validation handle it
-        if (rsPosition.HasValue && rsPosition.Value.GetInteger() == 0)
+        if (!data.IsEmpty && data.FirstSpan[0] == RecordSeparator)
         {
-            data = data.Slice(data.GetPosition(1));
+            data = data.Slice(1);
         }
 
         return T.Parse(data);
