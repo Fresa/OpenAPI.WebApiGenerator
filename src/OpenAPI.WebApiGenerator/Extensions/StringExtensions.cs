@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 
 namespace OpenAPI.WebApiGenerator.Extensions;
 
 internal static class StringExtensions
 {
-    private static readonly char[] DefaultDelimiters = ['/', '?', '=', '&', '{', '}', '-', '_'];
+    private static readonly char[] DefaultDelimiters = ['/', '?', '=', '&', '{', '}', '-', '_', '+'];
     
     [return: NotNullIfNotNull(nameof(str))]
     public static string? ToPascalCase(this string? str, params char[] delimiters)
