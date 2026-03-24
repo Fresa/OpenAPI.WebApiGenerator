@@ -93,7 +93,22 @@
                   "$ref": "#/components/schemas/FooProperties"
                 }
               },
+              "application/x-jsonlines": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
               "application/json-seq": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/geo+json-seq": {
                 "itemSchema": {
                   "$ref": "#/components/schemas/FooProperties"
                 }

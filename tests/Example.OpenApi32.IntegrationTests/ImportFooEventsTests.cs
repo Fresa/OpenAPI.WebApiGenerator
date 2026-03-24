@@ -6,8 +6,13 @@ namespace Example.OpenApi32.IntegrationTests;
 
 public class ImportFooEventsTests(FooApplicationFactory app) : FooTestSpecification, IClassFixture<FooApplicationFactory>
 {
-    [Fact]
-    public async Task ImportingFooEvents_ShouldReturnAccepted()
+    [Theory]
+    [InlineData("application/jsonl")]
+    [InlineData("application/x-jsonlines")]
+    [InlineData("application/x-ndjson")]
+    [InlineData("application/json-seq", "\x1E")]
+    [InlineData("application/geo+json-seq", "\x1E")]
+    public async Task ImportingFooEvents_ShouldReturnAccepted(string mediaType, string? prefix = "")
     {
         using var client = app.CreateClient()
             .WithOAuth2ImplicitFlowAuthentication("update");
@@ -16,10 +21,10 @@ public class ImportFooEventsTests(FooApplicationFactory app) : FooTestSpecificat
             RequestUri = new Uri(client.BaseAddress!, "/foo/1/events"),
             Method = new HttpMethod("POST"),
             Content = CreateJsonContent(
-                """
-                { "Name": "test" }
-                { "Name": "another test" }
-                """, "application/jsonl")
+                $$"""
+                {{prefix}}{ "Name": "test" }
+                {{prefix}}{ "Name": "another test" }
+                """, mediaType)
         }, CancellationToken);
         
         result.StatusCode.Should().Be(HttpStatusCode.Accepted);
