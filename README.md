@@ -167,6 +167,26 @@ switch (request.TryMatchAcceptMediaType<Response.OK200>(out var matchedMediaType
 } 
 ```
 
+## Sequential Media Types
+OpenAPI 3.2 added support for [sequential media types](https://spec.openapis.org/oas/v3.2.0.html#sequential-media-types). The following sequential media types are supported for both request and response media content:
+- application/jsonl
+- application/x-ndjson
+- application/x-jsonlines
+- application/json-seq
+- application/geo+json-seq
+
+Other sequential media types can be implemented by simply following the expected naming convention and placing the implementations in the expected namespace, see the compilation error of any missing media type class.
+
+### Request Content 
+Inherit from `SequentialJsonEnumerable<T>` using the following naming convention:
+- application/jsonl (lower case) -> `ApplicationJsonlEnumerable<T>`
+
+### Response Content
+Inherit from `SequentialJsonWriter<T>` using the following naming convention:
+- application/jsonl (lower case) -> `ApplicationJsonlWriter<T>`
+
+See the [OpenAPI 3.2 examples](#examples) for further details how to consume and produce sequential media types.
+
 ## Authentication and Authorization
 OpenAPI defines [security scheme objects](https://spec.openapis.org/oas/latest#security-scheme-object) for authentication and authorization mechanisms. The generator implement endpoint filters that corresponds to the security declaration of each operation. Do _not_ call `UseAuthentication` or similar when configuring the application.
 

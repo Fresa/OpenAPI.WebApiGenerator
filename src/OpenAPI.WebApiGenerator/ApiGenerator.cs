@@ -89,9 +89,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
 
         var validationExtensionsGenerator = new ValidationExtensionsGenerator(rootNamespace);
         validationExtensionsGenerator.GenerateClass().AddTo(context);
+        var sequentialJsonEnumeratorsGenerator = new SequentialMediaTypesGenerator(rootNamespace);
+        sequentialJsonEnumeratorsGenerator.GenerateClasses().AddTo(context);
         
         var operations = new List<(string Namespace, KeyValuePair<HttpMethod, OpenApiOperation> Operation)>();
-        var securityParameterGenerators = new ConcurrentDictionary<IOpenApiSecurityScheme, List<ParameterGenerator>>();
         foreach (var path in openApi.Paths)
         {
             var pathExpression = path.Key;
@@ -137,9 +138,10 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         var schemaReference = openApiOperationVisitor.GetSchemaReference(mediaType);
                         var typeDeclaration = schemaGenerator.Generate(schemaReference);
                         return new RequestBodyContentGenerator(
-                            pair.Key,
+                            pair,
                             typeDeclaration,
-                            httpRequestExtensionsGenerator);
+                            httpRequestExtensionsGenerator,
+                            sequentialJsonEnumeratorsGenerator);
                     }).ToList();
                     requestBodyGenerator = new RequestBodyGenerator(
                         body,
@@ -164,14 +166,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
                     var responseContent =
                         // OpenAPI.NET is incorrectly adding content where there is none defined. 
                         // No content definition means NO content.
-                        response.Content?.Where(content => 
-                            openApiResponseVisitor.HasContent(content.Value)) ?? [];
-                    var responseBodyGenerators = responseContent.Select(valuePair =>
+                        response.Content?.Where(responseContent => 
+                            openApiResponseVisitor.HasContent(responseContent.Value)) ?? [];
+                    var responseBodyGenerators = responseContent.Select(mediaContent =>
                     {
-                        var content = valuePair.Value;
-                        var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(content);
+                        var contentMediaType = mediaContent.Value;
+                        var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(contentMediaType);
                         var typeDeclaration = schemaGenerator.Generate(contentSchemaReference);
-                        return new ResponseBodyContentGenerator(valuePair.Key, typeDeclaration);
+                        return new ResponseBodyContentGenerator(mediaContent, typeDeclaration);
                     }).ToList();
 
                     var responseHeaderGenerators = response.Headers?.Select(valuePair =>

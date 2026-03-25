@@ -80,6 +80,95 @@
           "$ref": "#/components/parameters/FooId"
         }
       ]
+    },
+    "/foo/{FooId}/events": {
+      "get": {
+        "operationId": "Export_Foo_Events",
+        "responses": {
+          "200": {
+            "description": "Foo events",
+            "content": {
+              "application/jsonl": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/x-jsonlines": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/json-seq": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              },
+              "application/geo+json-seq": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/FooProperties"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "Import_Foo_Events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/jsonl": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            },
+            "application/x-jsonlines": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            },
+            "application/x-ndjson": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            },
+            "application/json-seq": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            },
+            "application/geo+json-seq": {
+              "itemSchema": {
+                "$ref": "#/components/schemas/FooProperties"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "headers": {
+              "ImportedEvents": {
+                "description": "Number of events imported",
+                "schema": {
+                  "type": "integer"
+                },
+                "required": true
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/FooId"
+        }
+      ]
     }
   },
   "components": {

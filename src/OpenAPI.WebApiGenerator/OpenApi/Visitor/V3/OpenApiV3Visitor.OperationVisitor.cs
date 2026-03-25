@@ -58,14 +58,11 @@ internal sealed partial class OpenApiV3Visitor
                     return;
                 }
                 
-                var requestContentPointer = Visit("requestBody", "content");
                 foreach (var content in OpenApiDocument.RequestBody.Content)
                 {
                     _requestContentSchemaReferences.Add(content.Value,
                         new JsonReference(Reference.Uri,
-                            requestContentPointer
-                                .Append(content.Key)
-                                .Append("schema")
+                            Visit("requestBody", "content", content.Key, content.Value.ItemSchema is not null ? "itemSchema" : "schema")
                                 .ToString()
                                 .AsSpan()));
                 }

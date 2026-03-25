@@ -262,7 +262,7 @@ internal abstract class BaseSecurityRequirementsFilter(WebApiConfiguration confi
                     break;
                 } 
              
-                authorized &= ClaimContainsScopes(authenticateResult.Principal, configuration.SecuritySchemeOptions.GetScopeOptions(scheme), scopes);
+                authorized &= ClaimContainsScopes(authenticateResult.Principal, Configuration.SecuritySchemeOptions.GetScopeOptions(scheme), scopes);
                 if (!authorized)
                     break;
             }

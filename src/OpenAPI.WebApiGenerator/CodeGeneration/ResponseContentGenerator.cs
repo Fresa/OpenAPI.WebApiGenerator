@@ -70,10 +70,6 @@ internal {{{(_contentGenerators.Any() ? "abstract" : "sealed")}}} class {{{_resp
     }}}{{{(_contentGenerators.Any() ? 
 $$"""
 
-
-    protected abstract IJsonValue Content { get; }
-    protected abstract string ContentSchemaLocation { get; }
-      
     /// <inheritdoc/>
     public static ContentMediaType<{{_responseClassName}}>[] ContentMediaTypes { get; } = 
     [{{_contentGenerators.AggregateToString(generator => 
@@ -114,27 +110,25 @@ $$"""
 """ : "")}}}
     /// <inheritdoc/>
     internal override void WriteTo(HttpResponse {{{responseVariableName}}})
-    {{{{(_contentGenerators.Any() ? 
-$$"""
-
-        {{HttpResponseExtensionsGenerator.CreateWriteBodyInvocation(
-            responseVariableName, 
-            "Content")}};
-""" : "")}}}
+    {
         {{{responseVariableName}}}.ContentType = {{{contentTypeFieldName}}};
         {{{responseVariableName}}}.StatusCode = StatusCode;{{{
         _headerGenerators.AggregateToString(generator =>
-            generator.GenerateWriteDirective(responseVariableName)).Indent(8)}}}
+            generator.GenerateWriteDirective(responseVariableName)).Indent(8)
+        }}}
     }
+    
+    /// <summary>
+    /// Create a validation context
+    /// </summary>
+    /// <returns>Validation context</returns>
+    {{{(_contentGenerators.Any() ? "protected" : "private")}}} ValidationContext CreateValidationContext() => 
+        ValidationContext.ValidContext.UsingStack().UsingResults();
     
     /// <inheritdoc/>
     internal override ValidationContext Validate(ValidationLevel validationLevel)
     {
-        var validationContext = ValidationContext.ValidContext.UsingStack().UsingResults();
-        {{{(_contentGenerators.Any() ? 
-$"""
-        validationContext = Content.Validate(ContentSchemaLocation, true, validationContext, validationLevel);
-""" : "")}}}
+        var validationContext = CreateValidationContext();
         {{{_headerGenerators.AggregateToString(generator =>
             generator.GenerateValidateDirective()).Indent(8)}}}
         return validationContext;
