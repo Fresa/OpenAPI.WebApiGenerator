@@ -5,10 +5,16 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Example.OpenApi30</RootNamespace>
+
+        <ApiCompatValidateAssemblies>true</ApiCompatValidateAssemblies>
+        <ApiCompatContractAssembly>LastMajorVersionBinary/$(AssemblyName).dll</ApiCompatContractAssembly>
+        <!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/apicompat/diagnostic-ids -->
+        <ApiCompatGenerateSuppressionFile>false</ApiCompatGenerateSuppressionFile>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.4.2" />
+        <PackageReference Include="Microsoft.DotNet.ApiCompat.Task" Version="10.0.202" PrivateAssets="all" IsImplicitlyDefined="true" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.12" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.12" />
         <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
