@@ -220,5 +220,22 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Please make sure to update tests as appropriate.
 
+## Breaking Changes
+The generated API surface is validated against a baseline using [ApiCompat](https://learn.microsoft.com/en-us/dotnet/fundamentals/apicompat/overview). Each `Example.OpenApi*` project has a `LastMajorVersionBinary/` directory containing the baseline reference assembly.
+
+### Introduce Breaking Change
+Build will fail when a breaking change is detected. Generate a suppression file for the breaking changes, and commit it to accept the breaking changes:
+```Shell
+dotnet build -p:ApiCompatGenerateSuppressionFile=true
+```
+
+### Update Baseline
+The baseline doesn't need to be updated when using suppression files, but if it for some reason should, run:
+```Shell
+dotnet build -p:_ApiCompatGenerateContractAssembly=true -p:ApiCompatValidateAssemblies=false
+```
+
+This copies the current reference assemblies to `LastMajorVersionBinary/` for each example project. Commit the updated DLLs. The suppression files should also be purged at this point.
+
 # License
 [MIT](LICENSE)
