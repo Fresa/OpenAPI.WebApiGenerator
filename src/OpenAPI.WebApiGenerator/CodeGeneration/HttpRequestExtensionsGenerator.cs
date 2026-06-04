@@ -168,9 +168,10 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
                 }
                 
                 var parser = GetParser(parameter);
-                var stringValue = parser.ValueIncludesParameterName
-                    ? string.Join('&', values.Select(value => $"{parameter.Name}={value}"))
-                    : values.Single();
+                var stringValue = string.Join(parser.Delimiter, 
+                    parser.ValueIncludesParameterName 
+                        ? values.Select(value => $"{parameter.Name}={value}") 
+                        : values);
                 
                 value = Parse<T>(parser, stringValue);
                 return true;

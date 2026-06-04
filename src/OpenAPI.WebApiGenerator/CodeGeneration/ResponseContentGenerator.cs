@@ -14,6 +14,8 @@ internal sealed class ResponseContentGenerator
     private readonly string _responseClassName;
     private readonly string _responseStatusCodePattern;
     private readonly IOpenApiResponse _response;
+    private readonly bool _hasExplicitStatusCode;
+    private readonly bool _hasDefaultStatusCode;
 
     private ResponseContentGenerator(
         KeyValuePair<string, IOpenApiResponse> response)
@@ -36,6 +38,10 @@ internal sealed class ResponseContentGenerator
         _responseStatusCodePattern = responseStatusCodePattern;
         _responseClassName = responseClassName;
         _response = response.Value;
+        _hasExplicitStatusCode = int.TryParse(_responseStatusCodePattern, out _);
+        _hasDefaultStatusCode = _responseStatusCodePattern == "default";
+        Precedence = _hasExplicitStatusCode ? 0 : _hasDefaultStatusCode ? 10 : 5;
+
     }
     public ResponseContentGenerator(
         KeyValuePair<string, IOpenApiResponse> response,
@@ -46,6 +52,8 @@ internal sealed class ResponseContentGenerator
         _headerGenerators = headerGenerators;
     }
     
+    internal int Precedence { get; }
+    
     public string GenerateResponseContentClass()
     {
         var anyHeaders = _headerGenerators.Any();
@@ -55,9 +63,7 @@ internal sealed class ResponseContentGenerator
         const string responseVariableName = "httpResponse";
         const string contentTypeFieldName = "_contentType";
         
-        var hasExplicitStatusCode = int.TryParse(_responseStatusCodePattern, out _);
-        var hasDefaultStatusCode = _responseStatusCodePattern == "default";
-        var needsStatusCodeValidation = !hasExplicitStatusCode && !hasDefaultStatusCode;
+        var needsStatusCodeValidation = !_hasExplicitStatusCode && !_hasDefaultStatusCode;
 
         return 
 $$$"""
@@ -79,13 +85,13 @@ $$"""
     ];
 """ : "")}}}
     
-    private int _statusCode{{{(hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}};
+    private int _statusCode{{{(_hasExplicitStatusCode ? $" = {_responseStatusCodePattern}" : string.Empty)}}};
     /// <summary>
     /// Response status code
     /// </summary> 
     internal int StatusCode
     { 
-        get => _statusCode;{{{(hasExplicitStatusCode ? "" : 
+        get => _statusCode;{{{(_hasExplicitStatusCode ? "" : 
 $"""
         init => _statusCode = {(needsStatusCodeValidation ? $"Validate{_responseStatusCodePattern.First()}xxStatusCode(value)" : "value")};
 """)}}}
