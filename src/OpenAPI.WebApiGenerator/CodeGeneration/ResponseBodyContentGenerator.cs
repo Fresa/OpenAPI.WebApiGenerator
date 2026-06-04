@@ -12,24 +12,24 @@ internal sealed class ResponseBodyContentGenerator
 {
     private readonly string _contentVariableName;
     internal string ClassName { get; }
-    private readonly MediaTypeHeaderValue _contentType;
+    internal MediaTypeHeaderValue ContentType { get; }
     private readonly TypeDeclaration _typeDeclaration;
     private readonly bool _isContentTypeRange;
     private readonly bool _isSequentialMediaType;
     
     public ResponseBodyContentGenerator(KeyValuePair<string, IOpenApiMediaType> contentMediaType, TypeDeclaration typeDeclaration)
     { 
-        _contentType = MediaTypeHeaderValue.Parse(contentMediaType.Key);
+        ContentType = MediaTypeHeaderValue.Parse(contentMediaType.Key);
         _typeDeclaration = typeDeclaration;
         _isSequentialMediaType = contentMediaType.Value.ItemSchema != null;
-        _isContentTypeRange = _contentType.MediaType.EndsWith("*");
-        _contentVariableName = _contentType.MediaType switch
+        _isContentTypeRange = ContentType.MediaType.EndsWith("*");
+        _contentVariableName = ContentType.MediaType switch
         {
             "*/*" => "any",
             not null when _isContentTypeRange =>
-                $"any{_contentType.MediaType.TrimEnd('*').TrimEnd('/').ToLower().ToPascalCase()}",
+                $"any{ContentType.MediaType.TrimEnd('*').TrimEnd('/').ToLower().ToPascalCase()}",
             null => throw new InvalidOperationException("Content type is null"),
-            _ => _contentType.MediaType.ToLower().ToCamelCase()
+            _ => ContentType.MediaType.ToLower().ToCamelCase()
         };
 
         ClassName = _contentVariableName.ToPascalCase();
@@ -40,7 +40,7 @@ internal sealed class ResponseBodyContentGenerator
         _isSequentialMediaType ? 
 $$"""
 /// <summary>
-/// Response for content {{_contentType}}
+/// Response for content {{ContentType}}
 /// </summary>
 internal sealed class {{ClassName}} : {{responseClassName}}
 {
@@ -51,12 +51,12 @@ internal sealed class {{ClassName}} : {{responseClassName}}
     private readonly WebApiConfiguration _configuration;
     
     /// <summary>
-    /// Construct response for content {{_contentType}}
+    /// Construct response for content {{ContentType}}
     /// </summary>
     /// <param name="request">Request</param>{{(_isContentTypeRange ? 
 $"""
 
-   /// <param name="contentType">Content type must match range {_contentType.MediaType}</param>
+   /// <param name="contentType">Content type must match range {ContentType.MediaType}</param>
 """ : "")}}
     public {{ClassName}}(Request request{{(_isContentTypeRange ? ", string contentType" : "")}})
     {{{(_isContentTypeRange ? 
@@ -68,7 +68,7 @@ $"""
         _content = new(request.HttpContext.Response.BodyWriter);
         _operation = request.HttpContext.RequestServices.GetRequiredService<Operation>();
         _configuration = request.HttpContext.RequestServices.GetRequiredService<WebApiConfiguration>();
-        {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
+        {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{ContentType.MediaType}\"")}};
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ $"""
         _currentItem = null;
     }
     
-    internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{_contentType}}"));
+    internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{ContentType}}"));
     /// <inheritdoc/>
     internal override void WriteTo(HttpResponse httpResponse)
     {
@@ -127,19 +127,19 @@ $"""
 
 $$"""
 /// <summary>
-/// Response for content {{_contentType}}
+/// Response for content {{ContentType}}
 /// </summary>
 internal sealed class {{ClassName}} : {{responseClassName}}
 {
     private {{_typeDeclaration.FullyQualifiedDotnetTypeName()}} _content;
     
     /// <summary>
-    /// Construct response for content {{_contentType}}
+    /// Construct response for content {{ContentType}}
     /// </summary>
     /// <param name="{{_contentVariableName}}">Content</param>{{(_isContentTypeRange ? 
 $"""
 
-    /// <param name="contentType">Content type must match range {_contentType.MediaType}</param>
+    /// <param name="contentType">Content type must match range {ContentType.MediaType}</param>
 """ : "")}}
     public {{ClassName}}({{_typeDeclaration.FullyQualifiedDotnetTypeName()}} {{_contentVariableName}}{{(_isContentTypeRange ? ", string contentType" : "")}})
     {{{(_isContentTypeRange ? 
@@ -148,10 +148,10 @@ $"""
         EnsureExpectedContentType(MediaTypeHeaderValue.Parse(contentType), ContentMediaType);
 """ : "")}}
         _content = {{_contentVariableName}};
-        {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{_contentType.MediaType}\"")}};
+        {{contentTypeFieldName}} = {{(_isContentTypeRange ? "contentType" : $"\"{ContentType.MediaType}\"")}};
     }
     
-    internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{_contentType}}"));
+    internal static ContentMediaType<{{responseClassName}}> ContentMediaType { get; } = new(MediaTypeHeaderValue.Parse("{{ContentType}}"));
     /// <inheritdoc/>
     internal override void WriteTo(HttpResponse httpResponse)
     {

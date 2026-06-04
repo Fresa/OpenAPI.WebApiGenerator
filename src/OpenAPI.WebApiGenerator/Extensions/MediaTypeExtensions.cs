@@ -34,6 +34,7 @@ internal static class MediaTypeExtensions
         {
             "*/*" => 0,
             not null when value.MediaType.EndsWith("*") => 100,
+            not null when value.MediaType.Contains("+") => 2000,
             _ => 1000
         };
 }

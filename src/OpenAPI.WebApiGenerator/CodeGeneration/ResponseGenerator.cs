@@ -125,7 +125,7 @@ internal partial class Request
 
             foreach (var mediaType in mediaTypes)
             {
-                if (!mediaType.Value.IsSubsetOf(acceptMediaType))
+                if (!acceptMediaType.IsSubsetOf(mediaType.Value))
                 {
                     continue;
                 }

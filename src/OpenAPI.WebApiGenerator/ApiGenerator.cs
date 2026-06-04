@@ -169,12 +169,14 @@ public sealed class ApiGenerator : IIncrementalGenerator
                         response.Content?.Where(responseContent => 
                             openApiResponseVisitor.HasContent(responseContent.Value)) ?? [];
                     var responseBodyGenerators = responseContent.Select(mediaContent =>
-                    {
-                        var contentMediaType = mediaContent.Value;
-                        var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(contentMediaType);
-                        var typeDeclaration = schemaGenerator.Generate(contentSchemaReference);
-                        return new ResponseBodyContentGenerator(mediaContent, typeDeclaration);
-                    }).ToList();
+                        {
+                            var contentMediaType = mediaContent.Value;
+                            var contentSchemaReference = openApiResponseVisitor.GetSchemaReference(contentMediaType);
+                            var typeDeclaration = schemaGenerator.Generate(contentSchemaReference);
+                            return new ResponseBodyContentGenerator(mediaContent, typeDeclaration);
+                        })
+                        .OrderByDescending(generator => generator.ContentType.GetPrecedence())
+                        .ToList();
 
                     var responseHeaderGenerators = response.Headers?.Select(valuePair =>
                     {
