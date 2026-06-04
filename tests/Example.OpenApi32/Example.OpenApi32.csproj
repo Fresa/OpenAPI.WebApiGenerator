@@ -18,7 +18,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="9.0.12" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.12" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.12" />
-        <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
+        <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.5.0" />
     </ItemGroup>
 
     <ItemGroup>
