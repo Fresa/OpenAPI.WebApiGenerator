@@ -17,4 +17,6 @@ jobs:
         run: curl -fsSL https://quobix.com/scripts/install_vacuum.sh | sh
 
       - name: Lint OpenAPI specs
-        run: vacuum lint tests/{*/,*/*/}openapi*.{json,yaml}
+        run: |
+          shopt -s nullglob
+          vacuum lint tests/{*/,*/*/}openapi*.{json,yaml}
