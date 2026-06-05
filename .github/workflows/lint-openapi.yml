@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install vacuum
-        run: curl -fsSL https://quobix.com/scripts/install_vacuum.sh | sh
+        run: curl -fsSL https://quobix.com/scripts/install_vacuum.sh | VERSION=0.29.1 sh
 
       - name: Lint OpenAPI specs
         run: |
