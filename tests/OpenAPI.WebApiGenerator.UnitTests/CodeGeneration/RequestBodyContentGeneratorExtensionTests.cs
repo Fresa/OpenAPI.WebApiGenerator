@@ -17,6 +17,7 @@ public class RequestBodyContentGeneratorExtensionTests
             CreateGenerator("*/*"),
             CreateGenerator("application/json; q=0.5"),
             CreateGenerator("text/*"),
+            CreateGenerator("application/geo+json"),
             CreateGenerator("application/json"),
             CreateGenerator("text/*; q=0.9"),
             CreateGenerator("application/json; charset=utf-8"),
@@ -28,6 +29,7 @@ public class RequestBodyContentGeneratorExtensionTests
             .ToArray();
 
         sorted.Should().ContainInOrder(
+            "application/geo+json",
             "application/json; charset=utf-8",
             "application/json",
             "text/plain",

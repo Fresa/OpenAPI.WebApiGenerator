@@ -137,12 +137,12 @@
                 "$ref": "#/components/schemas/FooProperties"
               }
             },
-            "application/json-seq": {
+            "application/geo+json-seq": {
               "itemSchema": {
                 "$ref": "#/components/schemas/FooProperties"
               }
             },
-            "application/geo+json-seq": {
+            "application/json-seq": {
               "itemSchema": {
                 "$ref": "#/components/schemas/FooProperties"
               }

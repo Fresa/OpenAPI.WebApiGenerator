@@ -123,13 +123,26 @@ internal partial class Request
             if ((acceptMediaType.Quality ?? 1.0) <= 0)
                 continue;
 
-            foreach (var mediaType in mediaTypes)
+            // Exact match
+            var match = mediaTypes.FirstOrDefault(mediaType =>
+                acceptMediaType.IsSubsetOf(mediaType.Value) && 
+                mediaType.Value.IsSubsetOf(acceptMediaType));
+
+            // Accept media type is broader than a supported media type;
+            // */*, application/*, application/*+json -> matches Accept header */* 
+            if (match.Value is null)
+                match = mediaTypes.FirstOrDefault(mediaType => 
+                    mediaType.Value.IsSubsetOf(acceptMediaType));
+
+            // Accept media type fits within a broader supported media type;
+            // Accept header application/json matches -> */*, application/* 
+            if (match.Value is null)
+                match = mediaTypes.FirstOrDefault(mediaType => 
+                    acceptMediaType.IsSubsetOf(mediaType.Value));
+
+            if (match.Value is not null)
             {
-                if (!mediaType.Value.IsSubsetOf(acceptMediaType))
-                {
-                    continue;
-                }
-                matchedContentMediaType = mediaType;
+                matchedContentMediaType = match;
                 return true;
             }
         }

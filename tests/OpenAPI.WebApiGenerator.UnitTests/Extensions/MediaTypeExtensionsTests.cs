@@ -31,6 +31,7 @@ public class MediaTypeExtensionsTests
     [InlineData("application/*; charset=utf-8; boundary=something", 102)]
     [InlineData("application/*; charset=utf-8; boundary=something; foo=bar", 103)]
     [InlineData("application/json", 1000)]
+    [InlineData("application/geo+json", 2000)]
     [InlineData("application/json; charset=utf-8", 1001)]
     [InlineData("application/json; charset=utf-8; boundary=something", 1002)]
     [InlineData("multipart/form-data; boundary", 1001)]
