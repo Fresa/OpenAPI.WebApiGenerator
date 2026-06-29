@@ -27,8 +27,12 @@ using Corvus.Json;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipelines;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace {{@namespace}};
 

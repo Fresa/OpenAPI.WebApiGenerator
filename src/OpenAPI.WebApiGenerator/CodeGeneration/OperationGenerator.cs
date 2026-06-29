@@ -31,9 +31,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace {{@namespace}};
 {{ new[]
@@ -272,6 +277,10 @@ internal abstract partial class Response
 
     private static string GenerateMissingHandler(string @namespace) =>
         $$"""
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+
             namespace {{@namespace}}
             {
                 internal partial class Operation

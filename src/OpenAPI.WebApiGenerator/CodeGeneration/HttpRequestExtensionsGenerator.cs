@@ -37,11 +37,17 @@ await {@namespace}.{HttpRequestExtensionsClassName}.BindBodyAsync<{bindingTypeNa
         new($"{HttpRequestExtensionsClassName}.g.cs",
         $$$""""
         #nullable enable
+        using System;
         using System.Collections.Concurrent;
+        using System.Collections.Generic;
         using System.Diagnostics.CodeAnalysis;
+        using System.Linq;
         using System.Text.Json;
+        using System.Threading;
+        using System.Threading.Tasks;
         using Corvus.Json;
         using Microsoft.AspNetCore.Http;
+        using Microsoft.AspNetCore.Routing;
         using Microsoft.Extensions.Primitives;
         using Microsoft.Net.Http.Headers;
         using OpenAPI.ParameterStyleParsers;

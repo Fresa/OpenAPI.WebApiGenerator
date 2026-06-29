@@ -31,8 +31,9 @@ internal sealed class AuthGenerator
         {
             return null;
         }
-        return new SourceCode("SecuritySchemes.g.cs", 
+        return new SourceCode("SecuritySchemes.g.cs",
 $$"""
+using Microsoft.AspNetCore.Http;
 using System.Collections.Immutable;
 
 namespace {{@namespace}};
@@ -216,7 +217,12 @@ $$"""
 #nullable enable
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace {{@namespace}};
 
@@ -409,9 +415,11 @@ $$"""
         {
             return null;
         }
-        return new SourceCode("SecuritySchemeOptions.g.cs", 
+        return new SourceCode("SecuritySchemeOptions.g.cs",
 $$"""
 #nullable enable
+using System;
+
 namespace {{@namespace}};
 
 /// <summary>
