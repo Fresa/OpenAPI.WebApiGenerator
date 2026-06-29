@@ -73,7 +73,11 @@
           "200": {
             "description": "Successfully deleted"
           }
-        }
+        },
+        "security": [
+          {},
+          {"openIdConnect": []}
+        ]
       },
       "parameters": [
         {

@@ -393,13 +393,15 @@ internal sealed class {{securityRequirementsFilterClassName}}(Operation operatio
     protected override SecurityRequirements Requirements { get; } = new()
     {{{string.Join(",", 
         securityRequirementGroups.Select(securityRequirementGroup =>
-            securityRequirementGroup.AggregateToString(securityRequirement => 
+            securityRequirementGroup.Any() ? securityRequirementGroup.AggregateToString(securityRequirement => 
 $$"""
         new SecurityRequirement
         {
             ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
         }
-""")))}}
+""") : """
+       new SecurityRequirement()
+       """))}}
     };
     
     private static Request ResolveRequest(HttpContext context) => (Request) context.Items[RequestItemKey]!;
