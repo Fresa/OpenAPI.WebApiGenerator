@@ -3,7 +3,6 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Example.OpenApi32</RootNamespace>
 
         <ApiCompatValidateAssemblies>true</ApiCompatValidateAssemblies>

@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Example.OpenApi32.Paths.FooFooId.Delete;
 
 internal partial class Operation
