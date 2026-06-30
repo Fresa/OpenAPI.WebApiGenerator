@@ -53,4 +53,7 @@ var app = builder.Build();
 app.MapOperations();
 app.Run();
 
+/// <summary>
+/// Application entry point.
+/// </summary>
 public abstract partial class Program;

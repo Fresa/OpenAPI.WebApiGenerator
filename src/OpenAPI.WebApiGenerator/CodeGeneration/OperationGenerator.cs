@@ -77,7 +77,7 @@ internal partial class Operation
     /// Create a request validation error response.
     /// <exception cref="JsonValidationException"></exception>
     /// <param name="request">The invalid request</param>
-    /// <param name="ValidationContext">The validation context describing the validation errors</param>
+    /// <param name="validationContext">The validation context describing the validation errors</param>
     /// </summary>
     private Response CreateRequestValidationErrorResponse(Request request, ValidationContext validationContext)
     {
