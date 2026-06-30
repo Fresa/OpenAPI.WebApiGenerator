@@ -4,6 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <RootNamespace>Example.OpenApi32</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
         <ApiCompatValidateAssemblies>true</ApiCompatValidateAssemblies>
         <ApiCompatContractAssembly>LastMajorVersionBinary/$(AssemblyName).dll</ApiCompatContractAssembly>
