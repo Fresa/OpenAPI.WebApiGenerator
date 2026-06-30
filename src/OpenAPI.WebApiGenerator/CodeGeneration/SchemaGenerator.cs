@@ -152,6 +152,7 @@ internal sealed class SchemaGenerator(
             optionalAsNullable: typesToGenerate.OptionalAsNullable,
             disabledNamingHeuristics: [.. typesToGenerate.DisabledNamingHeuristics],
             fileExtension: ".g.cs",
+            addExplicitUsings: true,
             defaultAccessibility: typesToGenerate.DefaultAccessibility);
 
         var languageProvider = CSharpLanguageProvider.DefaultWithOptions(options);

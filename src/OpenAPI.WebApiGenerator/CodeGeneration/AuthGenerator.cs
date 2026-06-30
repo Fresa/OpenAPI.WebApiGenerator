@@ -31,8 +31,9 @@ internal sealed class AuthGenerator
         {
             return null;
         }
-        return new SourceCode("SecuritySchemes.g.cs", 
+        return new SourceCode("SecuritySchemes.g.cs",
 $$"""
+using Microsoft.AspNetCore.Http;
 using System.Collections.Immutable;
 
 namespace {{@namespace}};
@@ -216,7 +217,12 @@ $$"""
 #nullable enable
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace {{@namespace}};
 
@@ -387,13 +393,15 @@ internal sealed class {{securityRequirementsFilterClassName}}(Operation operatio
     protected override SecurityRequirements Requirements { get; } = new()
     {{{string.Join(",", 
         securityRequirementGroups.Select(securityRequirementGroup =>
-            securityRequirementGroup.AggregateToString(securityRequirement => 
+            securityRequirementGroup.Any() ? securityRequirementGroup.AggregateToString(securityRequirement => 
 $$"""
         new SecurityRequirement
         {
             ["{{securityRequirement.Key}}"] = [{{string.Join(", ", securityRequirement.Value.Select(scope => $"\"{scope}\""))}}]
         }
-""")))}}
+""") : """
+       new SecurityRequirement()
+       """))}}
     };
     
     private static Request ResolveRequest(HttpContext context) => (Request) context.Items[RequestItemKey]!;
@@ -409,9 +417,11 @@ $$"""
         {
             return null;
         }
-        return new SourceCode("SecuritySchemeOptions.g.cs", 
+        return new SourceCode("SecuritySchemeOptions.g.cs",
 $$"""
 #nullable enable
+using System;
+
 namespace {{@namespace}};
 
 /// <summary>

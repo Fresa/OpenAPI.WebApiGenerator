@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Example.OpenApi20</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
         <ApiCompatValidateAssemblies>true</ApiCompatValidateAssemblies>
         <ApiCompatContractAssembly>LastMajorVersionBinary/$(AssemblyName).dll</ApiCompatContractAssembly>

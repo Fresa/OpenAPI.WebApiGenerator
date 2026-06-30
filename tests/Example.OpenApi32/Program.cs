@@ -1,7 +1,11 @@
+using System;
 using Corvus.Json;
 using Example.OpenApi.Auth;
 using Example.OpenApi32;
 using Microsoft.AspNetCore.Authentication.Certificate;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,4 +53,7 @@ var app = builder.Build();
 app.MapOperations();
 app.Run();
 
+/// <summary>
+/// Application entry point.
+/// </summary>
 public abstract partial class Program;

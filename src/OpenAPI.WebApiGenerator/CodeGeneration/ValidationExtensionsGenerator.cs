@@ -7,7 +7,10 @@ internal sealed class ValidationExtensionsGenerator(string @namespace)
 $$"""
 #nullable enable
 using Corvus.Json;
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text.Json;
 
 namespace {{@namespace}};

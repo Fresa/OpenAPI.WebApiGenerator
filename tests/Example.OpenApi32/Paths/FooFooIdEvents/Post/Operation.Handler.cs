@@ -1,4 +1,7 @@
-﻿using Example.OpenApi32.Components.Schemas;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Example.OpenApi32.Components.Schemas;
 
 namespace Example.OpenApi32.Paths.FooFooIdEvents.Post;
 

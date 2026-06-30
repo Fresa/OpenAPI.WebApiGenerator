@@ -12,11 +12,14 @@ internal sealed class OperationRouterGenerator(string @namespace, AuthGenerator 
 $$"""
 #nullable enable
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace {{@namespace}};
 
 /// <summary>
-///  Configure routes for OpenAPI operations  
+///  Configure routes for OpenAPI operations
 /// </summary>
 internal static class OperationRouter
 {

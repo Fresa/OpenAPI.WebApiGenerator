@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,7 +14,7 @@ namespace OpenAPI.WebApiGenerator.Tests;
 public partial class ApiGeneratorTests
 {
     private CancellationToken Cancellation => TestContext.Current.CancellationToken;
-    
+
     [Theory]
     [InlineData("openapi-v2.json")]
     [InlineData("openapi-v3.json")]
@@ -169,44 +168,5 @@ public partial class ApiGeneratorTests
         responseType.Constructors.Should().HaveCount(1)
             .And.Subject.First()
             .Parameters.Should().HaveCount(0);
-    }
-
-    private static void HasOnlyMissingHandler(ImmutableArray<Diagnostic> diagnostics)
-    {
-        diagnostics.Should().AllSatisfy(diagnostic =>
-        {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
-            diagnostic.Id.Should().Be("AF1001", diagnostic.GetFormattedMessage());
-        });
-    }
-    
-    private Compilation SetupGenerator(string openApiSpec, out ImmutableArray<Diagnostic> diagnostics)
-    {
-        var generator = new ApiGenerator();
-
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-
-        driver = driver.AddAdditionalTexts(
-            [
-                new InMemoryAdditionalText("openapi.json",
-                    openApiSpec)
-            ]
-        );
-
-        const string assemblyName = nameof(ApiGeneratorTests);
-        var compilation = CSharpCompilation.Create(assemblyName,
-            options: new CSharpCompilationOptions(outputKind: OutputKind.DynamicallyLinkedLibrary));
-
-        driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out diagnostics,
-            Cancellation);
-        
-        foreach (var tree in newCompilation.SyntaxTrees)                                                  
-        {                                
-            tree.GetDiagnostics().Should().NotContain(diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error ||
-                diagnostic.Severity == DiagnosticSeverity.Warning);       
-        }     
-        
-        return newCompilation;
     }
 }

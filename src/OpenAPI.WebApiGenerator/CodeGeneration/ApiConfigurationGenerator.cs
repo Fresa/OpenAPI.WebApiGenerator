@@ -12,8 +12,11 @@ internal sealed class ApiConfigurationGenerator(string @namespace, AuthGenerator
         using System;
         
         namespace {{@namespace}};
-              
-        public sealed class {{ClassName}} 
+
+        /// <summary>
+        /// Configuration for the generated web API.
+        /// </summary>
+        public sealed class {{ClassName}}
         {
             /// <summary>
             /// The uri to the exposed OpenAPI specification used to generate the API.
