@@ -51,11 +51,11 @@ Supported data formats are:
 3. Add references to [Corvus.Json.ExtendedTypes](https://github.com/corvus-dotnet/Corvus.JsonSchema?tab=readme-ov-file#corvusjsonextendedtypes) and [ParameterStyleParsers.OpenAPI](https://github.com/Fresa/OpenAPI.ParameterStyleParsers). 
 ```
 <ItemGroup>
-    <PackageReference Include="Corvus.Json.ExtendedTypes" Version="4.3.13" />
-    <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.4.0" />
+    <PackageReference Include="Corvus.Json.ExtendedTypes" Version="5.5.5" />
+    <PackageReference Include="ParameterStyleParsers.OpenAPI" Version="1.5.0" />
 </ItemGroup>
 ```
-* Corvus.Json.ExtendedTypes >= 4.0.0
+* Corvus.Json.ExtendedTypes >= 5.0.0
 * ParameterStyleParsers.OpenAPI >= 1.4.0
 
 4. Compile the project.
